@@ -56,9 +56,9 @@ end if
 
 ! initialise global variables
 call init0
-! if reducek=1 was used in ground state calculations, need to regenerate the eigenvectors set for the full BZ. 
+! if reducek=1 was used in ground state calculations, need to regenerate the eigenvectors set for the full BZ.
 reducek0=reducek
-if (reducek0.ne.0) reducek=0 
+if (reducek0.ne.0) reducek=0
 call init1
 call init2
 call init3
@@ -223,10 +223,10 @@ do ikp=1,nkpt
     ik=wann_nnkp(1,innkp)
     jk=wann_nnkp(2,innkp)
     bqvec=wann_nnkp(3:5,innkp)+vkl(:,jk)-vkl(:,ik)
-    
+
     if(ik.ne.ik0) then
       ik0=ik
-      call genwfsvp(.false.,.false.,wann_nband,wann_bands,vkl(:,ik),wfmt,ngtot,wfir)
+      call genwfsvp(.true.,.false.,wann_nband,wann_bands,vkl(:,ik),wfmt,ngtot,wfir)
     end if
 
     ! generate the G+q-vectors and related quantities
@@ -260,7 +260,7 @@ do ikp=1,nkpt
         end if
       end do
     end do
-    write(*,'("Info(writew90mmn): completed ",I5," of ",I5," Mmn(k,k+b) points")')& 
+    write(*,'("Info(writew90mmn): completed ",I5," of ",I5," Mmn(k,k+b) points")')&
         innkp,wann_nntot*nkpt
 !$OMP END CRITICAL
     deallocate(mmn)
@@ -284,9 +284,9 @@ do ikp=1,nkpt
            !write(502,'(2G18.10)')  dble(mmn(n,1,m,2)+mmn(n,2,m,1)),aimag(mmn(n,1,m,2)+mmn(n,2,m,1)) ! x
            !write(502,'(2G18.10)') -aimag(mmn(n,2,m,1)-mmn(n,1,m,2)),dble(mmn(n,2,m,1)-mmn(n,1,m,2)) ! y
            !write(502,'(2G18.10)')  dble(mmn(n,1,m,1)-mmn(n,2,m,2)),aimag(mmn(n,1,m,1)-mmn(n,2,m,2)) ! z
-            spn_x(ikp,is) = mmn(n,1,m,2)+mmn(n,2,m,1) 
+            spn_x(ikp,is) = mmn(n,1,m,2)+mmn(n,2,m,1)
             spn_x(ikp,is) = cmplx(0.d0,1.d0,kind=8)*(mmn(n,2,m,1)-mmn(n,1,m,2))
-            spn_z(ikp,is) = mmn(n,1,m,1)-mmn(n,2,m,2) 
+            spn_z(ikp,is) = mmn(n,1,m,1)-mmn(n,2,m,2)
             is=is+1
           end do
         end do
@@ -350,4 +350,3 @@ reducek=reducek0
 
 end subroutine writew90mmn
 !EOC
-

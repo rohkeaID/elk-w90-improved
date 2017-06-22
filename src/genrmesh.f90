@@ -66,6 +66,7 @@ do is=1,nspecies
       nrcmtinr(is)=irc
     end if
   end do
+!  nrcmt(is)=irc ! AG
 end do
 ! write to VARIABLES.OUT
 call writevars('nrsp',nv=nspecies,iva=nrsp)
