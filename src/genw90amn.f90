@@ -11,7 +11,7 @@ use modmain
 use modrandom
 use modw90
 ! !DESCRIPTION:
-!   Calculates the Amn overlap matrices between Bloch states and 
+!   Calculates the Amn overlap matrices between Bloch states and
 !   trial orbitals required for Wannier90.
 !EOP
 !BOC
@@ -29,12 +29,24 @@ complex(8), intent(inout) :: matel_amn(wann_nband,4,wann_nproj,4)
 integer :: ist,jst,ispin,jspin
 complex(8) :: matel
 real(8) :: norm
+integer is,ia,ias,nrc,nrci
+integer nr
+real(8) t1
+! automatic arrays
+real(8) fr(nrcmtmax)
+! external functions
+real(8) fintgt,ddot
+external fintgt,ddot
 ! allocatable arrays
 complex(8), allocatable :: zrhomt(:,:,:),zrhoir(:)
 complex(8), allocatable :: zrhoig(:)
+complex(8), allocatable :: amnmttot(:,:,:,:)
+complex(8), allocatable :: amnir(:,:,:,:)
 
 allocate(zrhomt(lmmaxvr,nrcmtmax,natmtot),zrhoir(ngtot))
 allocate(zrhoig(ngrf))
+allocate(amnmttot(wann_nband,4,wann_nproj,4))
+allocate(amnir(wann_nband,4,wann_nproj,4))
 do jst=1,wann_nproj
   if(wann_proj_isrand(jst)) then
 ! if this projection should be random (at present, any non-atom centred projection!)
@@ -48,13 +60,7 @@ do jst=1,wann_nproj
         end do
       end do
     end do
-    do jspin=1,nspinor
-      do ispin=1,nspinor
-        do ist=1,wann_nband
-          matel_amn(ist,ispin,jst,jspin)=matel_amn(ist,ispin,jst,jspin)/norm
-        end do
-      end do
-    end do
+    matel_amn(:,:,jst,:)=matel_amn(:,:,jst,:)/norm
   else
 ! otherwise calculate the overlap matrix element (integral) directly.
     do ist=1,wann_nband
@@ -65,10 +71,25 @@ do jst=1,wann_nproj
                                       wfmtq(1:lmmaxvr,1:nrcmtmax,1:natmtot,jspin,jst), &
                                       wfirq(1:ngtot,jspin,jst)                       , &
                                       zrhomt,zrhoir)
-          !zrhoig for all G rf (this should be optimized to calculate zrhoig only for G=0)
-          call zftzf(1,gqc,ylmgq,ngrf,sfacgq,zrhomt,zrhoir,zrhoig)
-          !Choose G=0, actual G vector already included in bqvec (therefore in wavefunction)
-          matel_amn(ist,ispin,jst,jspin) = zrhoig(1) * omega
+          ! !zrhoig for all G rf (this should be optimized to calculate zrhoig only for G=0)
+          ! call zftzf(1,gqc,ylmgq,ngrf,sfacgq,zrhomt,zrhoir,zrhoig)
+          ! !Choose G=0, actual G vector already included in bqvec (therefore in wavefunction)
+          ! matel_amn(ist,ispin,jst,jspin) = zrhoig(1) * omega
+
+          ! find the muffin-tin amn
+          do ias=1,natmtot
+            is=idxis(ias)
+            nr=nrcmt(is)
+            fr(1:nr)=zrhomt(1,1:nr,ias)*r2cmt(1:nr,is)
+            t1=fintgt(-1,nrcmt(is),rcmt(:,is),fr)
+            amnmttot(ist,ispin,jst,jspin)=amnmttot(ist,ispin,jst,jspin)+fourpi*y00*t1
+          end do
+
+          ! find the interstitial amn
+          t1=ddot(ngtot,zrhoir,1,cfunir,1)
+          amnir=t1*omega/dble(ngtot)
+          ! total calculated charge
+          matel_amn=amnmttot+amnir
         enddo
       enddo
     enddo
