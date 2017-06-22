@@ -1,0 +1,60 @@
+
+! Time-dependent density functional theory (TDDFT) optical spectrum of lithium
+! fluoride. This material has a prominent excitonic peak, which is absent in the
+! usual RPA dielectric function. The TDDFT kernel fxc is described in
+! Phys. Rev. B 69, p155112 (2004) as the 'long-range contribution' and requires
+! a material-dependent parameter alpha.
+
+tasks
+  0         ! ground-state calculation
+  120       ! compute momentum matrix elements
+  121       ! compute RPA dielectric function with no local field contributions
+  320       ! compute TDDFT dielectric function with local field contributions
+
+! long-range contribution kernel
+fxctype
+  200
+
+! parameter alpha for long-range contribution kernel
+fxclrc
+  5.5
+
+! G-vector cut-off of exchange-correlation kernel and response function
+gmaxrf
+  1.0
+
+swidth
+  0.01
+
+nempty
+  8
+
+lradstp
+  2
+
+wplot
+  800  100  0  : nwplot, ngrkf, nswplot
+  0.0  1.5     : wplot
+
+avec
+  3.80402   3.80402   0.0
+  3.80402   0.0       3.80402
+  0.0       3.80402   3.80402
+
+sppath
+  '../../../species/'
+
+atoms
+  2                                       : nspecies
+  'Li.in'                                 : spfname
+  1                                       : natoms; atposl below
+  0.0  0.0  0.0
+  'F.in'
+  1
+  0.5  0.5  0.5
+
+ngridk
+  4  4  4
+
+vkloff
+  0.25  0.5  0.625

@@ -1,0 +1,39 @@
+
+tasks
+ 0
+ 205
+ 210
+ 500
+
+test
+ .true.
+
+rgkmax
+  6.5
+
+maxscl
+  8
+
+ngridq
+  2  2  2
+
+ngridk
+  2  2  2
+
+avec
+  1.0  1.0 -1.0
+  1.0 -1.0  1.0
+ -1.0  1.0  1.0
+
+scale
+  3.118
+
+sppath
+ '../../species/'
+
+atoms
+  1                                   : nspecies
+  'Nb.in'                             : spfname
+  1                                   : natoms
+  0.0  0.0  0.0    0.0  0.0  0.0      : atposl, bfcmt
+

@@ -1,0 +1,55 @@
+
+! Magnetic response of fcc nickel. Try plotting the transverse component as a
+! function of frequency. Compare to B. Rousseau, A. Eiguren and A. Bergara,
+! Phys. Rev. B 85, 054305 (2012) and references therein.
+
+tasks
+  0
+  330
+
+! energy cut-off for Kohn-Sham response function
+emaxrf
+  0.5
+
+! G-vector cut-off for response function
+gmaxrf
+  5.0
+
+! frequency plot range
+wplot
+  60  100  1
+  0  0.020
+
+! q-vector of response function
+vecql
+  0.1  0.1  0.0
+
+spinpol
+  .true.
+
+bfieldc
+  0.0  0.0  0.01
+
+avec
+  1.0  1.0  0.0
+  1.0  0.0  1.0
+  0.0  1.0  1.0
+
+scale
+  3.33
+
+sppath
+  '../../../species/'
+
+atoms
+  1                                   : nspecies
+  'Ni.in'                             : spfname
+  1                                   : natoms
+  0.0  0.0  0.0    0.0  0.0  0.0      : atposl, bfcmt
+
+! dense k-point grid is required for response functions
+ngridk
+  10  10  10
+
+vkloff
+  0.5  0.5  0.5

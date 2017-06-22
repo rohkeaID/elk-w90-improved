@@ -1,0 +1,251 @@
++------------------------------+
+|     Eliashberg equations     |
++------------------------------+
+ 
+Temperature range :   0.1925701907       3.466263433    
+Number of temperature steps :     40
+Number of Pade approximant input points :   80
+Number of output frequencies :     2000
+Fermionic Matsubara frequency cut-off
+ phonons :   0.6576874456E-01
+ Coulomb :   0.1096145743E-02
+ 
+Temperature (kelvin) :   0.2744125218    
+Number of Matsubara frequencies
+ phonons :    12125
+ Coulomb :      201
+Eliashberg equations converged in    121 iterations
+ 
+Temperature (kelvin) :   0.3562548528    
+Number of Matsubara frequencies
+ phonons :     9358
+ Coulomb :      155
+Eliashberg equations converged in     88 iterations
+ 
+Temperature (kelvin) :   0.4380971839    
+Number of Matsubara frequencies
+ phonons :     7625
+ Coulomb :      126
+Eliashberg equations converged in     87 iterations
+ 
+Temperature (kelvin) :   0.5199395149    
+Number of Matsubara frequencies
+ phonons :     6437
+ Coulomb :      106
+Eliashberg equations converged in     87 iterations
+ 
+Temperature (kelvin) :   0.6017818460    
+Number of Matsubara frequencies
+ phonons :     5573
+ Coulomb :       92
+Eliashberg equations converged in     89 iterations
+ 
+Temperature (kelvin) :   0.6836241771    
+Number of Matsubara frequencies
+ phonons :     4915
+ Coulomb :       81
+Eliashberg equations converged in     92 iterations
+ 
+Temperature (kelvin) :   0.7654665081    
+Number of Matsubara frequencies
+ phonons :     4398
+ Coulomb :       72
+Eliashberg equations converged in     97 iterations
+ 
+Temperature (kelvin) :   0.8473088392    
+Number of Matsubara frequencies
+ phonons :     3981
+ Coulomb :       65
+Eliashberg equations converged in    104 iterations
+ 
+Temperature (kelvin) :   0.9291511702    
+Number of Matsubara frequencies
+ phonons :     3637
+ Coulomb :       59
+Eliashberg equations converged in    113 iterations
+ 
+Temperature (kelvin) :    1.010993501    
+Number of Matsubara frequencies
+ phonons :     3349
+ Coulomb :       54
+Eliashberg equations converged in    125 iterations
+ 
+Temperature (kelvin) :    1.092835832    
+Number of Matsubara frequencies
+ phonons :     3105
+ Coulomb :       50
+Eliashberg equations converged in    142 iterations
+ 
+Temperature (kelvin) :    1.174678163    
+Number of Matsubara frequencies
+ phonons :     2894
+ Coulomb :       47
+Eliashberg equations converged in    167 iterations
+ 
+Temperature (kelvin) :    1.256520494    
+Number of Matsubara frequencies
+ phonons :     2711
+ Coulomb :       44
+Eliashberg equations converged in    202 iterations
+ 
+Temperature (kelvin) :    1.338362826    
+Number of Matsubara frequencies
+ phonons :     2550
+ Coulomb :       41
+Eliashberg equations converged in    256 iterations
+ 
+Temperature (kelvin) :    1.420205157    
+Number of Matsubara frequencies
+ phonons :     2407
+ Coulomb :       39
+Eliashberg equations converged in    364 iterations
+ 
+Temperature (kelvin) :    1.502047488    
+Number of Matsubara frequencies
+ phonons :     2281
+ Coulomb :       37
+Eliashberg equations converged in    634 iterations
+ 
+Temperature (kelvin) :    1.583889819    
+Number of Matsubara frequencies
+ phonons :     2167
+ Coulomb :       35
+Failed to converge: possibly close to T_c
+ 
+Temperature (kelvin) :    1.665732150    
+Number of Matsubara frequencies
+ phonons :     2064
+ Coulomb :       33
+Failed to converge: possibly close to T_c
+ 
+Temperature (kelvin) :    1.747574481    
+Number of Matsubara frequencies
+ phonons :     1971
+ Coulomb :       32
+Eliashberg equations converged in    410 iterations
+ 
+Temperature (kelvin) :    1.829416812    
+Number of Matsubara frequencies
+ phonons :     1887
+ Coulomb :       30
+Eliashberg equations converged in     27 iterations
+ 
+Temperature (kelvin) :    1.911259143    
+Number of Matsubara frequencies
+ phonons :     1809
+ Coulomb :       29
+Eliashberg equations converged in     16 iterations
+ 
+Temperature (kelvin) :    1.993101474    
+Number of Matsubara frequencies
+ phonons :     1738
+ Coulomb :       28
+Eliashberg equations converged in      1 iterations
+ 
+Temperature (kelvin) :    2.074943805    
+Number of Matsubara frequencies
+ phonons :     1673
+ Coulomb :       27
+Eliashberg equations converged in     13 iterations
+ 
+Temperature (kelvin) :    2.156786136    
+Number of Matsubara frequencies
+ phonons :     1613
+ Coulomb :       26
+Eliashberg equations converged in      1 iterations
+ 
+Temperature (kelvin) :    2.238628467    
+Number of Matsubara frequencies
+ phonons :     1557
+ Coulomb :       25
+Eliashberg equations converged in      6 iterations
+ 
+Temperature (kelvin) :    2.320470798    
+Number of Matsubara frequencies
+ phonons :     1504
+ Coulomb :       24
+Eliashberg equations converged in      1 iterations
+ 
+Temperature (kelvin) :    2.402313129    
+Number of Matsubara frequencies
+ phonons :     1456
+ Coulomb :       23
+Eliashberg equations converged in      1 iterations
+ 
+Temperature (kelvin) :    2.484155460    
+Number of Matsubara frequencies
+ phonons :     1411
+ Coulomb :       22
+Eliashberg equations converged in      4 iterations
+ 
+Temperature (kelvin) :    2.565997791    
+Number of Matsubara frequencies
+ phonons :     1368
+ Coulomb :       21
+Eliashberg equations converged in      1 iterations
+ 
+Temperature (kelvin) :    2.647840122    
+Number of Matsubara frequencies
+ phonons :     1328
+ Coulomb :       21
+Eliashberg equations converged in      1 iterations
+ 
+Temperature (kelvin) :    2.729682453    
+Number of Matsubara frequencies
+ phonons :     1291
+ Coulomb :       20
+Eliashberg equations converged in      1 iterations
+ 
+Temperature (kelvin) :    2.811524785    
+Number of Matsubara frequencies
+ phonons :     1256
+ Coulomb :       20
+Eliashberg equations converged in      1 iterations
+ 
+Temperature (kelvin) :    2.893367116    
+Number of Matsubara frequencies
+ phonons :     1222
+ Coulomb :       19
+Eliashberg equations converged in      1 iterations
+ 
+Temperature (kelvin) :    2.975209447    
+Number of Matsubara frequencies
+ phonons :     1191
+ Coulomb :       19
+Eliashberg equations converged in      1 iterations
+ 
+Temperature (kelvin) :    3.057051778    
+Number of Matsubara frequencies
+ phonons :     1161
+ Coulomb :       18
+Eliashberg equations converged in      1 iterations
+ 
+Temperature (kelvin) :    3.138894109    
+Number of Matsubara frequencies
+ phonons :     1133
+ Coulomb :       18
+Eliashberg equations converged in      1 iterations
+ 
+Temperature (kelvin) :    3.220736440    
+Number of Matsubara frequencies
+ phonons :     1106
+ Coulomb :       17
+Eliashberg equations converged in      1 iterations
+ 
+Temperature (kelvin) :    3.302578771    
+Number of Matsubara frequencies
+ phonons :     1081
+ Coulomb :       17
+Eliashberg equations converged in      1 iterations
+ 
+Temperature (kelvin) :    3.384421102    
+Number of Matsubara frequencies
+ phonons :     1057
+ Coulomb :       16
+Eliashberg equations converged in      1 iterations
+ 
+Temperature (kelvin) :    3.466263433    
+Number of Matsubara frequencies
+ phonons :     1034
+ Coulomb :       16
+Eliashberg equations converged in      1 iterations

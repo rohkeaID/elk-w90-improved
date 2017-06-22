@@ -1,0 +1,44 @@
+
+! Water molecule in a box.
+
+tasks
+  0
+  500
+
+test
+ .true.
+
+tefvit
+ .true.
+
+maxscl
+  2
+
+molecule
+ .true.
+
+avec
+ 5.0 0.0 0.0
+ 0.0 5.0 0.0
+ 0.0 0.0 5.0
+
+rgkmax
+ 5.0
+
+gmaxvr
+ 14.0
+
+sppath
+  '../../species/'
+
+atoms
+  2                                     : nspecies
+ 'O.in'                                 : spfname
+  1                                     : natoms
+  0.0   0.0   0.0    0.0  0.0  0.0      : atpos, bfcmt
+ 'H.in'
+  2
+  1.811        0.0          0.0    0.0  0.0  0.0
+ -0.451907959  1.753710409  0.0    0.0  0.0  0.0
+
+

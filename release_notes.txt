@@ -1,0 +1,581 @@
+elk-3.1.12
+-Important: fixed an inaccuracy in the scalar relativistic part of the code
+ which has existed for around 12 years; this may slightly affect calculations of
+ heavy elements; special thanks to Stefaan Cottenier, José A. Flores Livas and
+ Marcin Dulak for the extensive calculations
+-real-time evolution now works with DFT+U (experimental)
+-added 'ramp' vector potential to time evolution code; this can simulate
+ constant and constantly increasing electric fields; see manual for details;
+ see the example Si-ramp
+-lots of optimisations everywhere: code should be noticeably faster
+-José made some changes to the 'highq' and 'vhighq' options
+-fixed bug with non-collinear optimised effective potential (OEP)
+-new task (150) writes out the Kohn-Sham-Dirac eigenvalues of the atomic species
+-SS added two new f_xc kernels: single iteration bootstrap (fxctype=211) and
+ revised bootstrap (RBO) (fxctype=212), see S. Rigamonti, et al., Phys. Rev.
+ Lett. 114, 146402; added two examples: Ne-RBO and LiF-RBO
+-improved the accuracy of the magnetic anisotropy energy (MAE) calculation by
+ rotating the spherical coverings of the spherical harmonic transform; thanks to
+ James Glasbrenner for testing
+-David Ernsting found and fixed a bug in the Compton interpolation routine
+-improved the stability of structural optimisation
+-removed the smoothing option from the exchange-correlation magnetic field
+ source projection routine
+-the number of first-variational states for magnetic systems was twice as large
+ as it needed to be: now fixed
+-improved the vim syntax highlighting generator; run 'make vim' again
+-organised the examples into categories
+-minor bug fixes and improvements
+-note for developers: changed some of the variable names related to atomic
+ species (purely cosmetic)
+
+elk-3.0.18
+-fixed electron-phonon coupling again; thanks to Karel Carva and Elie Moujaes
+ for the careful testing and discussion
+-DFPT phonons now work with MPI
+-SS added the 'single-iteration bootstrap kernel' for linear optics
+ calculations; this is selected with fxctype=211; see the example
+ 'Ar-bootstrap-single'
+-SS fixed a problem with RDMFT which had appeared in recent versions
+-SS made minor changes to the non-linear optics code
+-Important: fixed problem with the option 'cmagz' for forcing spin-orbit
+ calculations to be collinear; this may affect MAE calculations; thanks to
+ Martin Gmitra for finding this and the careful testing
+-Important: fixed a problem with the magnetisation directions selected for MAE
+ calculations
+-reworked the 'ncgga' option for non-collinear GGA calculations; should be much
+ more reliable now
+-several important optimisations; the Hamiltonian matrix setup and density
+ symmetrisation are now faster
+-magnetic anisotropy energy (MAE) calculation now outputs the direction vectors;
+ thanks to Galya Madzharova and Yu-ichiro Matsushita for the suggestion
+-added option 'vhighq' for very high quality calculations;see example 'Os-Delta'
+-'highq' and 'vhighq' options now write out the parameters which are changed
+-increased default 'lmaxmat' from 6 to 7
+-added new option 'nxlo'; this adds extra local-orbitals to the species in order
+ to make the APW functions smoother; this can make calculations, particularly of
+ excited state properties, more accurate
+-syntax highlighting now available for the vim editor; just run 'make vim' and
+ highlighting will be enabled
+
+
+elk-3.0.4
+-real-time propagation for solids now available thanks to the considerable
+ efforts of Kevin Krieger over the past three years; see the example
+ 'Ni-laser-pulse'; this feature is highly experimental
+-1D, 2D and 3D integrated electron momentum density (EMD) plots now available
+ thanks to David Ernsting and Stephen Dugdale; these plots can be compared
+ directly to Compton scattering profiles; see the examples 'Li-Compton' and
+ 'Ni-Compton'; still experimental
+-electron-phonon coupling has now been fixed and is also available for
+ linear-response phonons
+-large number of optimizations made throughout code
+-code is more memory efficient in many areas
+-Arkardy Davydov found a bug in OpenMP nested parallelism for BSE which has now
+ been fixed
+-fixed bug in magnetic anisotropy energy (MAE) calculation found by
+ José A. Flores Livas
+-added option for automatically converting species from APW+l.o. to LAPW; see
+ option 'nxapwlo' in manual
+-greatly improved unit cell optimisation algorithm; now should be very stable;
+ see example 'Ge-lattice-opt'
+-Markus Meinert updated his 'blocks2columns.py' python code which should now
+ work correctly with EPSILON_xx.OUT files
+-modified the 'highq' defaults thanks to testest performed by Don Hamann
+ described here
+-full charge and spin response function can be written to file using task=331
+-supercell phonons calculation now work with MPI
+-removed use of OpenMP ATOMIC directive because of bug in ifort version 11
+
+
+elk-2.3.22
+-Lars Nordström, Francesco Cricchio and JKD added fixed tensor moment (FTM)
+ calculations (experimental)
+-LN made changes to the mixer routine which makes restarts smoother
+-the Hamiltonian is now made real for systems with inversion symmetry; this was
+ removed in the previous release because of a bug; the FV step is now up to four
+ times faster
+-fixed problem with symmetry breaking of tetragonal systems during lattice
+ optimisation pointed out by various users
+-further improved and stabilised lattice optimisation
+-fixed a long-standing bug related to electron-phonon coupling pointed out by
+ Matthieu Verstraete and Ryotaro Arita
+-fixed a problem with electron-phonon coupling introduced in a previous version,
+ discovered by user 'wuhuagumu' and Heung-Sik Kim
+-TDDFT reponse code for both charge and magnetism has been made faster and more
+ memory efficient
+-creating a STOP file in the running directory now cleanly stops a structural
+ optimisation run; as requested by James Mudd
+-problem with nested OpenMP has now been fixed
+-more OpenMP parallel loops have been added
+-extended the use of BLAS throughout the code
+-fixed bug which affected the running of task=120
+-removed the 'frozencr' option for the moment because the core energy was
+ incorrectly calculated; this will be restored in a later release
+-various optimisations and minor bug fixes
+
+
+elk-2.3.16
+-DFT+U now works with multiple entries per atom; every mention of LDA+U has now
+ changed to DFT+U to reflect the generality of the method, and to give it an air
+ of respectibility; for example, the block 'lda+u' is now 'dft+u'; old input
+ files will still work fine
+-greatly improved the magnetic anisotropy energy (MAE) calculations, thanks to
+ suggestions by various users; the crystal is now rotated instead of the
+ magnetisation direction
+-fractional atomic species can now be generated on the fly using the 'fspecies'
+ block; see the example 'fractional-species'; note that the atomic mass is only
+ an estimate in these species files; this is useful for the virtual crystal
+ approximation (VCA)
+-spin-orbit coupling can now be used with strictly collinear calculations by
+ using 'cmagz=.true.'; this will speed up the calculation considerably; use only
+ when the system is genuinely collinear
+-unstable non-collinear GGA calculations can now be stabilised by setting
+ 'ncgga=.true.'
+-improved the speed and stability of the lattice vector optimisation; thanks to
+ forum discussions regarding BaTiO3
+-added the lattice optimisation of BaTiO3 to the examples directory; thanks to
+ David Tompsett
+-geometry optimisation should now work fine with MPI -added highly converged
+ osmium example 'Os-convergence' thanks to a lengthy discussion on the forum
+ started by Marcin Dulak; also increased the value of 'lmaxmat' for the 'highq'
+ option thanks to Marcin's careful testing
+-Important: greatly improved the code setup and compilation thanks to
+ suggestions by Marcin Dulak; all compiler options are now in the file
+ 'elk/make.inc'; the Makefile in 'elk/src' no longer requires modification
+-new variable 'rotavec' available in elk.in; this is a rotation specified in
+ axis-angle convention which allows the rotation of the crystal axes
+-thanks go to Rich Martin and collaborator Wen for useful testing and
+ suggestions
+-improved the DFPT phonon calculations and added the example 'Nb-phonon-DFPT'
+-decreased the chance of accidentally triggering the convergence indicator in
+ the self-consistent loop thanks to a suggestion from Markus Meinert
+-fixed problem with the routine 'nonlinopt', pointed out by user Sabrina and
+ Koichi Kitahara
+-improved the OpenMP efficiency in parts by using '$OMP ATOMIC' instead of
+ '$OMP CRITICAL'
+-changed the names of various internal subroutines; for example 'seceqnfv' is
+ now 'eveqnfv'
+-thanks go to Igor Mazin, Konrad Bussmann and James Glasbrenner for some very
+ useful improvments
+-fixed problem with species generation and MPI pointed out by Marcin Dulak
+-fixed problem with use of Fortran 'APPEND' flag thanks to user Alaska
+-updated the fundamental constants and conversion factors to CODATA 2008
+ recommended values
+-Important: updated code for compatibility with Libxc version 2.2.0; see the
+ manual and note the change in compilation instructions
+-fixed problem with the routine 'energyfdu' which affected DFT+U calculations
+ with 'inpdftu=4' (input of Yukawa screening length)
+-Important: temporarily switched of the conversion of the Hamiltonian to a real
+ symmetric problem because of possible bug; the only effect of this is that the
+ code is slower for systems with inversion symmetry; this will be fixed in the
+ next release
+-minor bug fixes and optimisations
+
+elk-2.2.10
+-fixed problem reported by Sonu Sharma and Michael Fechner with calculation of
+ expectation values L, S and J
+-slightly improved the magnetic anisotropy energy (MAE) calculation
+-added new variable 'socscf' which scales the spin-orbit interaction term in the
+ Hamiltonian; this allows calculation by interpolation of the MAE for cases
+ where the MAE is small
+-added new variables to VARIABLES.OUT
+
+elk-2.2.9
+-fixed problem with fixed spin moment (FSM) calculations pointed out by
+ Jagdish Kumar
+-added new output file VARIABLES.OUT; this is for developers wanting to
+ interface their codes to Elk; it contains most of the useful variables required
+ for reading the Elk binary files; if you would like a variable added then just
+ send me a mail; enabled when 'wrtvars' is set to .true.
+-minor cosmetic changes
+
+elk-2.2.8
+-Important: fixed serious bug discovered by Jan Balluff and Markus Meinert which
+ produced erroneous magnetic moments with GGA; this only affects version 2.2.5;
+ sorry about that
+-even more substantial speed-ups for most parts of the code
+-fixed MPI problem with the magnetic anisotropy energy (MAE) routine reported by
+ Konrad Bussmann and José A. Flores-Livas
+-minor bug fixes and improvements
+
+elk-2.2.5
+-dramatic speed-up for most parts of the code thanks to some (fairly obvious)
+ optimisations
+-greatly improved lattice vector optimisation
+-automatic determination of the magnetic anisotropy energy (MAE) with 'task=28'
+ (experimental); see the example 'FeCo-MAE'
+-the variable 'nempty' is now a real number; see manual entry
+-magnitude of total magnetisation vector written to MOMENTM.OUT
+-improved the species files
+-made the linearisation energy search more reliable
+-reduced the annoying 'linearisation energy not found' warning
+
+elk-2.2.1
+-added full structural optimisation; setting 'latvopt=1' performs unconstrained
+ optimisation of the lattice vectors; 'latvopt=2' performs iso-volumetric
+ optimisation; see the example 'MgB2-lattice-opt'
+-minor bug fixes and optimisations
+-all tests should now report 'Passed'
+
+elk-2.1.25
+-fixed several problems with the previous (beta) release; thanks to Markus
+ Meinert for the exhaustive checking
+-magnetic hyperfine fields are now correctly calculated thanks to MM
+-added missing items to the manual
+-added the example 'Si-phonon-DFPT'
+-thanks to Kari Ruotsalainen, Aleksay Golovchan and Vladimir Nazarov for
+ pointing out bugs in 2.1.22 - now fixed
+-added estimation of direct gap to INFO.OUT; thanks to user Sean for the idea
+-this is the version that will be used for the Elk Turorial
+-see you in Lausanne!
+
+elk-2.1.22 (beta)
+-Important: this is a beta version and should not be used for production work;
+ a production release will be made in a few weeks
+-Important: this version is not backwards compatible; calculations will have to
+ be converged from scratch
+-density functional perturbation theory (DFPT) phonons now available; only for
+ spin-unpolarised calculations at the moment; spin-polarisation will be added
+ for the next release; use with task=205; still experimental and generates
+ incorrect results for certain symmetries - we're still working on this; see the
+ example 'Al-phonon-DFPT'
+-full frequency-dependent magnetic response function now available; works with
+ non-collinear magnetism, etc.; use task=330; see example 'Ni-magnetic-response'
+-iterative diagonalisation greatly improved; now uses the method of P. Blaha,
+ et al., J. Comp. Phys. 229, p453 (2010)
+-upgraded code to handle libxc version 2
+-hybrid functionals should now work with libxc (experimental)
+-upgraded LAPACK to version 3.4.2
+-block name dos changed to wplot; changed variable 'nwdos' to 'nwplot'
+-variable 'gmaxrpa' changed to 'gmaxrf'; this is the response function G-vector
+ cut-off
+-BSE and TDDFT now faster, more accurate and memory efficient; thanks to
+ M. Meinert for discussions
+-task 188 changed to 320
+-reintroduced the variables 'lmaxinr' and 'fracinr'; this improves stability
+-lots of optimisations
+-added more MPI parallelism
+-various minor bug fixes
+-conduction state local-orbitals can now be switched on; use 'lorbcnd=.true.';
+ this can improve both ground-state and response function calculations; this is
+ switched on automatically when 'highq=.true.'
+-most species files have been changed; mostly larger muffin-tin radii
+-Important: Markus Meinert suggested a change to 'nempty'; this variable now
+ represents the number of states per atom and spin; this scales automatically as
+ the number of atoms is increased
+-default 'nempty' is now 4
+-M. Meinert changed the default Broyden parameters after extensive testing
+-LN fixed bug in XCrysDen Fermi surface plotting
+-LN also reduced the number of states which contribution to the Fermi surface
+ plot to the minimum
+-supercell phonon calculations can now be restarted with 'task=202'
+-Frank Wagner discovered a bug which affects certain types of symmetries in rare
+ instances; this has now been fixed
+-Important: default smearing function is now Fermi-Dirac (stype=3)
+-entropy contribution now added to the total energy
+-default smearing width reduced to 0.001 Ha, corresponding to room temperature
+-M. Meinert added a blocks-to-columns script; this is in the 'utilities'
+ directory
+-Oscar Grånäs added to list of main authors
+
+elk-1.4.22
+-Important:fixed bug in BSE calculations owing to incorrect rotation of
+ dielectric function matrix elements; thanks to Arkardy Davydov for pointing
+ this out
+-BSE is now three separate tasks: 185 writes the BSE Hamiltonian to file,
+ 186 diagonalises the Hamiltonian and 187 produces the BSE dielectric function;
+ thanks to Markus Meinert for suggesting this
+-adiabatic local density approximation (ALDA) for linear-response TDDFT now
+ available; see example 'diamond-TDDFT-ALDA'
+-added Markus' suggestion that the Tran-Blaha constant can now be read in with
+ the variable 'c_tb09'
+-added new variable 'highq'; set this to .true. and the most important
+ parameters are set for a high-quality, well-converged calculation; see the
+ settings in the file 'readinput.f90'; thanks to Igor Mazin for all the testing
+-removed the variables 'lmaxinr' and 'fracinr' as they were unnecessary
+-simplified TDDFT routines
+-Important: the variable 'radkpt' has been redefined and should be made larger
+ by 2π ; (sorry about this, the original scale for this variable was correct!)
+-fixed problem with MPI that caused some LDA+U runs to crash; thanks to Alaska
+ Subedi for pointing this out
+-added documentation
+-several minor bug fixes and optimisations
+
+elk-1.4.18
+-Important:fixed severe bug affecting spin-unpolarised native GGA functionals,
+ thanks to Jiji Pulikkotil for pointing out a problem with Mg3Sb2 which led to
+ its discovery; this now makes structural optimisation truly variational for PBE
+-Important:fixed severe bug affecting spin-polarised 'libxc' GGA functionals
+-thanks to Miguel Marques and Silvana Botti for the week-long collaboration at
+ Université Lyon where, amongst other things, we rewrote the meta-GGA interface
+ to 'libxc'
+-thanks to Markus Meinert for careful testing of meta-GGA with various systems
+-MM also added questions and answers to the FAQ
+-meta-GGA now works for collinear magnetism only: it is inconsistent with
+ non-collinearity
+-Henning Glawe pointed out a bug affecting the generation of the k-point set
+ when 'autokpt=.true.'
+-Important: the variable 'radkpt' has been redefined and should be made smaller
+ by a factor of 2π
+-SS fixed a bug in the plotting of spin-polarised Fermi surfaces
+-electron momentum density now available with 'task=170'; thanks to S. Dugdale
+ and D. Ernsting for discussions
+-lattice vectors, atomic positions and muffin-tin magnetic fields can now be
+ randomised by setting the random amplitudes 'rndavec', 'rndatposc' and
+ 'rndbfcmt' to positive values; this is useful for checking stability of a
+ calculation
+-the k-points corresponding to the indirect band-gap are now reported to
+ 'INFO.OUT'
+-lots of optimisations and simplifications
+
+elk-1.4.5
+ -potential-only meta-GGA now available in conjunction with Libxc as an
+  experimental feature; see the example 'Si-meta-GGA'; thanks to Miguel Marques
+  for discussions
+ -finite q-vector linear response TDDFT now available thanks to SS
+ -Important: variable 'autormt' has been removed and automatic scaling of the
+  muffin-tin radii is now always on; a new simpler algorithm for computing the
+  radii was implemented; non-overlapping muffin-tins will not be rescaled;
+  calculations may need to be reconverged
+ -changed parameter for estimation of the nuclear radius from Z to A; thanks to
+  Giorgio Concas for pointing this out
+ -Kohn-Sham band gap written to 'GAP.OUT' after each iteration
+ -3D nesting function plot now available; use 'task=105'
+ -fixed problem with a constant in the BSE exchange term
+ -fixed problem of TDDFT freezing with MPI
+ -lots of optimisations and simplifications
+
+elk-1.3.31
+ -fixed problem with OpenMP 'reduction' clause in calculation of dielectric
+  function
+ -no other changes
+
+elk-1.3.30
+-removed factor of 2 from the BSE exchange term, this has little effect on
+ spectra in the optical range; spotted by Markus Meinert after careful
+ investigation of core-state BSE spectra
+-M. Meinert also improved the 'CaO-BSE-core' and 'Fe-XMCD' examples
+-fixed problem with symmetry discovered by Alexey Baranov
+-calculation of the partial DOS is now parallel, thanks to suggestions from
+ Anton Filanovich
+-various optimisations; including some ideas from Anton Kozhevnikov
+-iterative diagonalisation is now much faster
+-improved the adaptive mixing scheme
+-improved the initial stability of the self-consistent loop, thanks to
+ discussions with Lars Nordstrom
+Notes for developers
+-inverse indices from 'idxis', 'idxia', 'idxil' and 'idxim' for species, atoms
+ and angular momenta are now available, thanks to A. Kozhevnikov
+-the arguments to hmlaa, hmlalo, hmllolo, olpaa, olpalo, olplolo have changed
+
+elk-1.3.22
+-fixed a problem which occurs with version 10 of the Intel compiler
+-simplified the 'setup' script and added OpenMP compiler options by default
+-no other changes
+
+elk-1.3.20
+-added directionality to the TDDFT code; thanks also to Vladimir Nazarov for
+ discussions
+-a pre-print is now available for the new TDDFT 'bootstrap' kernel:
+ arXiv:1107.0199v1 [cond-mat.mtrl-sci]
+-added the scissor correction to the RPA inverse dielectric function in
+ EPSINV_RPA.OUT
+-fixed a problem with running geometry optimisation with MPI; thanks to Arkady
+ Davydov and Antonio Sanna for discussions
+-geometry optmimisation has changed: now the geometry, interatomic distances,
+ final total energies and forces are stored for each optimisation step in
+ GEOMETRY_OPT.OUT, IADIST_OPT.OUT, TOTENERGY_OPT.OUT and FORCES_OPT.OUT
+-removed geometry optmisation from the ground-state calculation and put it in a
+ separate subroutine
+-reduced pseudocharge density constant (lnpsd) because the spherical bessel
+ function order could be too large; may change total energies slightly
+-q-points and weights written to QPOINTS.OUT
+-minor changes and optimisations
+
+elk-1.3.15
+-fixed serious bug introduced in the last version affecting some tasks (for
+ example DOS plots) for crystals with non-symorphic symmetries; thanks to
+ Vladimir Nazarov and Daniel Rohr for pointing this out
+-VM also fixed the graphene example, in which the atomic coordinates were
+ (embarrassingly) incorrect; also included a high-precision DOS plot to
+ demonstrate the Dirac-like band structure
+-SS, JKD, Antonio Sanna and Hardy Gross added a new TDDFT functional, called the
+ 'bootstrap' kernel, which produces remarkably good linear optical response
+ functions (article currently in preparation); see the example 'LiF-TDDFT'
+-Antonio Sanna added the Eliashberg equations for finding the superconducting
+ gap as a function of temperature; see the example 'Al-Eliashberg'
+-improved the electron-phonon coupling calculation (task=240); this is faster,
+ more accurate and now works for spin-spirals; now also parallelised with MPI
+-removed packed matrix format everwhere in the code, along with the variable
+ 'tpmat'; the first-variational matrices are now stored in upper triangular
+ format; this takes more memory, but is faster
+-Anton Kozhevnikov fixed a small problem with calculating the nuclear-nuclear
+ energy
+-various optimisations, simplifications and minor bug fixes
+-this version of the code with be used in the CECAM Tutorial
+Notes for developers
+-the order of indeices for the q- and w-dependent inverse dielectric function,
+ epsinv, have changed from (w,G,G') to (G,G',w)
+
+elk-1.3.2
+-linear response time-dependent density functional theory (TDDFT) now available
+ for calculating the q->0 dielectric response; see the example 'LiF-TDDFT'
+ (experimental)
+-fixed a problem with the BSE calculation which made the response function too
+ large
+-added the possibility of using arbitrary states in the BSE kernel thanks to
+ discussions with Markus Meinert; this enables the calulation of core state BSE
+ spectra; see the example 'CaO-BSE-core' (experimental)
+-MM also added an X-ray magnetic circular dichroism (XMCD) example: 'Fe-XMCD'
+-BSE calculations are now faster, thanks to discussions with MM
+-Alexey Baranov made several changes to the structure factor code, including
+ adding an energy window, 'wsfac', for the calculations; see the example
+ 'MnO-str-factors'
+-Tyrel McQueen suggested a way to speed up the Hartree-Fock calculation; this
+ has been implemented and also considerably speeds up OEP and RDMFT
+-TMcQ also made some ongoing changes to the hybrid functional code
+-made the radial Dirac and Schrodinger integrators yet more stable; thanks to AB
+ and Frank Wagner for discussions
+-fixed a problem with the ordinary RPA dielectric function; only affects
+ calculations which have a scissor shift which made epsilon slightly too small
+-real symmetric diagonalisation now used for the first-variational eigenvalue
+ problem for crystals with inversion symmetry; this can speed up the calculation
+ by a factor of three; this is thanks to discussions with Lars Nordstrom;
+ Important: the atomic basis may be shifted to a different position and old
+ output files may need to be reconverged
+-fixed a stability problem which occurs when using GGA functionals by removing
+ G-vector truncation of the effective potential introduced in version 1.0.16;
+ thanks to Greg Walker for discovering this
+-LDA+U calculations are now faster thanks to fast evaluation of the atomic
+ density matrix
+-Broyden mixing scheme now available: this seems to be both fast and stable
+ (use 'mixtype=3')
+-removed Anderson mixing
+-improved starting guess for the density in ground-state calculations
+-upgraded to LAPACK 3.3.1
+-various optimisations and simplifications
+Notes for developers
+-the arrays haa, halo, hlolo, oalo, ololo are now smaller and the indexing has
+ been rearranged
+
+elk-1.2.20
+-the Bethe-Salpeter equation (BSE) for linear optics now works beyond the
+ Tamm-Dankoff approximation
+-RPA and BSE calculations now use full wavefunctions instead of plane waves
+-removed the Coulomb regulator from the calculation of RPA dielectric function,
+ instead used the analytic results for the head and the wings of the matrix
+ (thanks to Vladimir Nazarov for discussions)
+-improved the stability of radial Dirac and Schrodinger integrators (thanks to
+ Alexei Baranov, Frank Wagner and Ondrej Certik for discussions)
+-added more block descriptions to the manual (thanks to various people for
+ pointing out omissions)
+-various optimisations
+
+elk-1.2.15
+-SS and JKD added the Bethe-Salpeter equation (BSE) for linear optics
+ calculations. This feature works with LDA+U, magnetism and spin-orbit coupling.
+ It is also parallelised with MPI and can be run across a cluster. See the
+ 'LiF-BSE' and 'Si-BSE' examples. Currently an experimental feature
+-Alexey Baranov added density and magnetic structure factors: see the
+ 'MnO-str-factors' example
+-AB also fixed a problem with output of the spacegroup code
+-full frequency and G vector dependent RPA inverse dielectric function now
+ available with 'task=180'. Works with metals, insulators, magnetism and SOC,
+ and can be calculated for arbitrary complex frequencies. Also parallelised with
+ OpenMP and MPI. Thanks to Anton Kozhevnikov for discussions
+-added lots more MPI parallelism and made the code more MPI-friendly
+-many optimisations across the whole code
+-Simone Chiesa, Anton Kozhevnikov and Adolfo Eguiluz found a problem in the
+ plotting of the partial DOS which has now been fixed
+-the first-variational eigenvalue matrices can now be stored and diagonalised in
+ non-packed storage mode: use 'tpmat=.false.'. This can speed up calculations at
+ the expense of memory
+-Tyrel McQueen found a bug in the 'findprim' routine, now fixed
+-TMcQ also suggested a change to how the code connects the points of the
+ 'plot1d' vertices
+-Martin Stankovski suggested that 'ecvcut' be made into an input variable,
+ allowing the core-valence cut-off to be adjusted
+-added the phonon calculation of Ni to the examples
+-Jerzy Goraus contributed a script for calculating VB-XPS spectra from PDOS*
+ files; and also one for converting the Wien2K struct file to spacegroup.in
+-modified some species files thanks to tests done by J. Goraus
+-Henning Glawe suggested including the version number in the release directory
+-upgraded to LAPACK 3.3.0
+-made tolerance for finding the linearisation energies (epsband) much smaller:
+ this improves the overall stability of the self-consistent loop
+Notes for developers
+-arguments to 'genppts' have changed; also the non-reduced k-points are now
+ stored in the remaining part of the reduced k-point arrays
+
+elk-1.1.4
+-message passing interface (MPI) parallel runs now available; scalable to
+ hundreds of cores across a cluster; can also be used as hybrid OpenMP+MPI
+ parallelism for maximum efficiency; with thanks to Bhagawan Sahu for help
+ with testing; see manual for compilation and running instructions
+-S. Sharma added susceptibility tensor for non-linear optical second-harmonic
+ generation (SHG); see example 'GaAs-NLO' for details
+-added spin-orbit correction to momentum matrix elements; affects linear and
+ non-linear optics
+-optical calculations now work in combination with spin-spirals
+-updated interface to version 1.0 of the ETSF exchange-correlation library,
+ libxc; thanks to M. Marques and T. McQueen for assistance
+-fixed bug spotted by T. McQueen involving using multiple tasks in conjunction
+ with 'primcell=.true.'
+-A. Kozhevnikov fixed bug in 'xc_pwca.f90'
+-A. Kozhevnikov also fixed serious bug in 'getevecfv.f90'
+-F. Cricchio changed the order of lattice vector angles in 'spacegroup' utility
+ to 'bc, ac, ab' which corresponds to the convention alpha, beta, gamma
+-removed scissor correction from eigenvalue solver; now it is used, as before,
+ only in optics calculations
+-T. McQueen suggested an improvement to the routine which generates the path in
+ reciprocal space for bandstructure plots, 'connect.f90', which has been
+ implemented
+-fixed problem with XCrysDen Fermi surface plots, spotted by FC
+-various optimisations and simplifications
+Notes for developers
+-arguments to 'zpotcoul' have changed in anticipation of linear-response
+ phonons; should now be called in conjunction with 'genzvclmt'
+
+elk-1.0.17
+-fixed problem with Fermi surface generation introduced in the last version
+-E. K. U. Gross added to list of main developers
+-no other changes
+
+elk-1.0.16
+-fixed problem in linear optics calculations for metals - thanks to Antonio
+ Sanna, Fabio Bernardini and Sandro Massida for pointing this out
+-FC and LN added option for automatic determination of APW linearisation
+ energies (use 'autolinengy=.true.')
+-Marty Blaber made a script which allows for semi-automatic labeling of the
+ vertex locations with gnuplot (found in the 'elk/utilities' directory)
+-FC and LN fixed problem with some compilers when writing FERMISURF.OUT
+-FC and LN fixed problem with writing XCrysDen Fermi surface plots
+-Anton Kozhevnikov found and fixed a problem with the generation of the
+ irreducible representation file 'ELMIREP.OUT'
+-Torbjörn Björkman added a new routine which automatically determines the
+ smearing width from the k-point density. See 'autoswidth' in the manual and
+ the example 'Nb-autoswidth' for details
+-added a constant electric field E in the form of a saw-tooth potential: set the
+ vector 'efieldc' (experimental)
+-added a constant vector potential A to the Hamiltonian to generate constant
+ currents: set the variable 'afieldc' (experimental)
+-FC and LN fixed problem with a spin-polarised GGA routine
+-FC and LN pointed out that the energy term associated with the excess charge
+ compensating background should be zero. This term has now been removed
+-code now more memory efficient thanks to smarter array allocation
+-the variable 'rgkmax' can now be made arbitrarily large without risk of
+ instability
+-removed variable 'cfdamp'
+-Anton Kozhevnikov pointed out that the radial functions were being redundantly
+ calculated for equivalent atoms -- now fixed
+-Anton Filanovich added several questions to the FAQ
+-scissors correction (given by the variable 'scissor') now applied consistently
+ immediately after the generation of the eigenvalues
+-FC and LN removed the spherical harmonic transform matrices with rank lmmaxapw
+-added dielectric function calculation for arbitrary q-vector, see 'LiF-Yambo'
+ example (experimental)
+-by setting 'gmaxvr=0', the G-vector cut-off for the potential and density is
+ automatically determined from 'gmaxvr=2*gkmax+epslat'
+-various bug fixes, simplifications and optimisations
+

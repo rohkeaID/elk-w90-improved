@@ -1,0 +1,40 @@
+#!/bin/bash
+
+if [ "$1" == "-d" ]; then
+  rm -f ~/.vim/ftdetect/elk.vim
+  rm -f ~/.vim/syntax/elk.vim
+  echo
+  echo "Syntax highlighting disabled for vim."
+  echo
+  exit
+fi
+
+rm -f elk.vim
+
+echo > elk.vim
+echo 'syn match elkComment "!.*$"' >> elk.vim
+echo 'syn match elkComment ":.*$"' >> elk.vim
+
+grep "case('" readinput.f90 | cut -d "'" -f2 | grep -v '^$' > vimelk.temp
+grep "case('" readinput.f90 | cut -d "'" -f4 | grep -v '^$' >> vimelk.temp
+awk '{print "syn keyword elkBlock",$1;}' vimelk.temp >> elk.vim
+rm vimelk.temp
+
+echo >> elk.vim
+
+echo 'hi link elkComment Comment' >> elk.vim
+echo 'hi link elkBlock Identifier' >> elk.vim
+
+mkdir -p ~/.vim/ftdetect
+mkdir -p ~/.vim/syntax
+
+echo "au BufRead,BufNewFile elk.in set filetype=elk" > ~/.vim/ftdetect/elk.vim
+mv elk.vim ~/.vim/syntax
+
+echo
+echo "Syntax highlighting enabled for vim."
+echo
+echo "To disable highlighting type:"
+echo " ./vimelk -d"
+echo
+

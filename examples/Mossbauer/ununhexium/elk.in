@@ -1,0 +1,77 @@
+
+! Ununhexium in the simple cubic unit cell (like polonium). This example is to
+! demonstrate how species files can be generated with the 'species' block.
+
+! run the ground state and find the electric field gradient (EFG)
+tasks
+  0
+  115
+
+! this block tells the code to generate a Uuh.in species file before any tasks
+! are performed
+species
+  116                   : atomic number
+ 'Uuh' 'ununhexium'     : symbol, name
+  292.0                 : standard atomic weight (units of 1/12 carbon-12)
+  2.2                   : muffin-tin radius
+  31                    : number of occupied states
+  1  0  1  2
+  2  0  1  2
+  2  1  1  2
+  2  1  2  4
+  3  0  1  2
+  3  1  1  2
+  3  1  2  4
+  3  2  2  4
+  3  2  3  6
+  4  0  1  2
+  4  1  1  2
+  4  1  2  4
+  4  2  2  4
+  4  2  3  6
+  4  3  3  6
+  4  3  4  8
+  5  0  1  2
+  5  1  1  2
+  5  1  2  4
+  5  2  2  4
+  5  2  3  6
+  5  3  3  6
+  5  3  4  8
+  6  0  1  2
+  6  1  1  2
+  6  1  2  4
+  6  2  2  4
+  6  2  3  6
+  7  0  1  2
+  7  1  1  2
+  7  1  2  2
+
+! include spin-orbit coupling
+spinorb
+  .true.
+
+! add a small field to determine if Uuh has a moment
+bfieldc
+  0.0  0.0  0.1
+
+avec
+  1.0  0.0  0.0
+  0.0  1.0  0.0
+  0.0  0.0  1.0
+
+! use lattice parameter of polonium
+scale
+  6.312
+
+atoms
+  1                                   : nspecies
+  'Uuh.in'                            : spfname
+  1                                   : natoms
+  0.0  0.0  0.0    0.0  0.0  0.0      : atposl, bfcmt
+
+ngridk
+  4  4  4
+
+vkloff
+  0.5  0.5  0.5

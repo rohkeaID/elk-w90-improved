@@ -1,0 +1,66 @@
+
+! Silicon exposed to an intense, linearly increasing electric field. See the
+! manual for details on the 'ramp' vector potential. This is a computationally
+! expensive example that is best run with MPI on a cluster.
+
+tasks
+  0
+  450
+  460
+
+xctype
+  20
+
+highq
+ .true.
+
+nxoapwlo
+  1
+
+mixtype
+  3
+
+nempty
+  20.0
+
+autokpt
+ .false.
+
+nosym
+ .true.
+
+tstime
+  500
+
+dtimes
+  0.5
+
+! vector potential ramp parameters
+!  1 - 3 : polarisation vector (including amplitude)
+!  4     : start time of ramp
+!  5     : linear coefficient
+!  6     : quadratic coefficient
+ramp
+  1
+  1.0  0.0  0.0   0.0   0.0  0.0025
+
+ngridk
+  12  12  12
+
+vkloff
+  0.25  0.5  0.625
+
+avec
+  5.13  5.13  0.0
+  5.13  0.0   5.13
+  0.0   5.13  5.13
+
+sppath
+  '../../../species/'
+
+atoms
+  1                                 : nspecies
+ 'Si.in'                            : spfname
+  2                                 : natoms; atposl below
+  0.0   0.0   0.0
+  0.25  0.25  0.25

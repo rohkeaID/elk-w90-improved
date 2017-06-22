@@ -1,0 +1,43 @@
+
+! Band structure of graphene. Observe the massless Dirac-like dispersion in the
+! density of states.
+
+tasks
+  0
+  10
+
+nempty
+  8
+
+wplot
+  200  150  1
+ -0.5  0.5
+
+plot1d
+  4  100
+  0.333333333   0.333333333   0.0
+  0.0           0.0           0.0
+  0.0           0.5           0.0
+  0.333333333   0.333333333   0.0
+
+! very high number of k-points required to resolve the linear dispersion
+ngridk
+  30  30  1
+
+avec
+ -0.5   0.866025403784   0.0
+ -1.0   0.0              0.0
+  0.0   0.0              3.2265697
+
+scale
+  4.64890
+
+sppath
+  '../../../species/'
+
+atoms
+  1                                     : nspecies
+  'C.in'                                : spfname
+  2                                     : natoms; atposl below
+  0.0  0.0  0.0
+  0.333333333333   0.333333333333   0.0

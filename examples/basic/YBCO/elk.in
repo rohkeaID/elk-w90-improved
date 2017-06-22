@@ -1,0 +1,53 @@
+
+! High T_c superconductor YBa2Cu3O7. Note that the code determines which atoms
+! are equivalent, and lists them in EQATOMS.OUT.
+
+tasks
+  0
+
+! small cut-off for testing purposes
+rgkmax
+  6.0
+
+! use Broyden mixing
+mixtype
+  3
+
+avec
+  7.2246  0.0     0.0
+  0.0     7.3442  0.0
+  0.0     0.0    22.0733
+
+sppath
+  '../../../species/'
+
+atoms
+  4                                     : nspecies
+  'Y.in'                                : spfname
+  1                                     : natoms; atposl below
+  0.5  0.5  0.5
+  'Ba.in'
+  2
+  0.5  0.5  0.1843
+  0.5  0.5  0.8157
+  'Cu.in'
+  3
+  0.0  0.0  0.0
+  0.0  0.0  0.3556
+  0.0  0.0  0.6444
+  'O.in'
+  7
+  0.0  0.5  0.0
+  0.5  0.0  0.3773
+  0.5  0.0  0.6227
+  0.0  0.5  0.3789
+  0.0  0.5  0.6211
+  0.0  0.0  0.1584
+  0.0  0.0  0.8416
+
+ngridk
+  2  2  1
+
+vkloff
+  0.25  0.5  0.5
+

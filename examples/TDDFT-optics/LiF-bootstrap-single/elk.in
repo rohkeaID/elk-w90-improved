@@ -1,0 +1,54 @@
+
+! Optical response of LiF with the single iteration bootstrap kernel.
+
+tasks
+  0
+  120
+  320
+
+! single iteration bootstrap
+fxctype
+  211
+
+scissor
+  0.1916
+
+swidth
+  0.008
+
+! LFE are included
+gmaxrpa
+  2.0
+
+lradstp
+  2
+
+nempty
+  10
+
+wplot
+  8000  100  0
+  0.0  1.0
+
+avec
+  3.80402   3.80402   0.0
+  3.80402   0.0       3.80402
+  0.0       3.80402   3.80402
+
+sppath
+  '../../../species/'
+
+atoms
+  2                                       : nspecies
+  'Li.in'                                 : spfname
+  1                                       : natoms; atposl below
+  0.0  0.0  0.0
+  'F.in'
+  1
+  0.5  0.5  0.5
+
+ngridk
+  8  8  8
+
+vkloff
+  0.625  0.5  0.25

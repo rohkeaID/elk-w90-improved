@@ -1,0 +1,60 @@
+
+! NiO in AFMII structure with LDA+U and fully-localised-limit (FLL) double
+! counting (dftu=1). Values of Slater parameters for Ni are taken from
+! literature.
+! Analyze total and partial DOS (t2g and eg states) and compare with bare LDA.
+! Notice the increasing of the gap (~4eV) and of magnetic moment to ~1.69 u_b.
+! The increasing of magnetic moment is typical of FLL double counting.
+! Example by Francesco Cricchio.
+
+tasks
+  0
+  10
+
+! DFT+U block
+! here FLL double counting is used (dftu=1)
+! inpdftu=1 corresponds to provide U and J in Hartree as input
+! inpdftu=2 or 3 corresponds to, respectively, Slater or Racah parameters
+! inpdftu=4 or 5 corresponds to calculating the Slater parameters through a
+! Yukawa potential (see example NiO-LDA+U-FLL-Ykwa and PRB 80, 035121 (2009))
+dft+u
+  1 2                             : dftu,inpdftu
+  1 2  0.29399 0.30078 0.18799    : is, l, f0, f2, f4
+
+spinpol
+  .true.
+
+scale
+  7.893389
+
+avec
+  1.0  0.5  0.5
+  0.5  1.0  0.5
+  0.5  0.5  1.0
+
+atoms
+  2                                    : nspecies
+  'Ni.in'                              : spfname
+  2                                    : natoms; atpos, bfcmt below
+  0.0   0.0   0.0    0.0  0.0 -2.0
+  0.5   0.5   0.5    0.0  0.0  2.0
+  'O.in'                               : spfname
+  2                                    : natoms; atpos, bfcmt below
+  0.25  0.25  0.25   0.0  0.0  0.0
+  0.75  0.75  0.75   0.0  0.0  0.0
+
+! the large magnetic local field on Ni is halved at every iteration
+! this speeds up the convergence of magnetic calculations
+reducebf
+  0.5
+
+! fairly high number of empty states
+nempty
+  8
+
+sppath
+  '../../../species/'
+
+! this grid is too small for accurate magnetic moment
+ngridk
+  4  4  4

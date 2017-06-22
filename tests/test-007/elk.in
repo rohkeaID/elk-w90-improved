@@ -1,0 +1,57 @@
+
+! FeAl in CsCl (B2) structure using GGA+U and interpolation between AMF and
+! FLL double counting.
+
+tasks
+  0
+  500
+
+test
+ .true.
+
+msmooth
+  2
+
+wplot
+ 50 100 2
+ 0.0 0.25
+
+gmaxvr
+ 10.0
+
+xctype
+  20
+
+dft+u
+  3 1                      : dftu, inpdftu
+  1 2  0.183 0.034911967   : is, l, U, J
+
+spinpol
+  .true.
+
+bfieldc
+  0.0 0.0 -0.01
+
+scale
+  5.496
+
+avec
+  1.0  0.0  0.0
+  0.0  1.0  0.0
+  0.0  0.0  1.0
+
+atoms
+  2                                   : nspecies
+  'Fe.in'                             : spfname
+  1                                   : natoms
+  0.0  0.0  0.0     0.0  0.0 0.0      : atposl, bfcmt
+  'Al.in'
+  1
+  0.5  0.5  0.5     0.0  0.0 0.0      : atposl, bfcmt
+
+sppath
+  '../../species/'
+
+ngridk
+  3  3  3
+

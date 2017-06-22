@@ -1,0 +1,50 @@
+
+! This example generates a good quality phonon dispersion for bcc niobium using
+! density functional perturbation theory (DFPT).
+
+! The phonon dispersion and vertex location lines are included with this
+! example in the files PHDISP.OUT and PHDLINES.OUT, respectively.
+
+tasks
+ 0        ! generate the ground-state
+ 205      ! generate the dynamical matrices with DFPT
+ 220      ! plot the phonon dispersion
+
+nrmtscf
+  2
+
+ngridq
+  4  4  4
+
+ngridk
+  12 12 12
+
+avec
+  1.0  1.0 -1.0
+  1.0 -1.0  1.0
+ -1.0  1.0  1.0
+
+scale
+  3.118
+
+sppath
+ '../../species/'
+
+atoms
+  1                                   : nspecies
+  'Nb.in'                             : spfname
+  1                                   : natoms
+  0.0  0.0  0.0    0.0  0.0  0.0      : atposl, bfcmt
+
+plot1d
+  9 400
+  0.5   0.5   0.5
+  0.25  0.25  0.25
+  0.0   0.0   0.0
+ -0.5   0.5   0.5
+ -0.5   0.5   0.0
+ -0.75  0.25  0.25
+ -0.5   0.5   0.0
+  0.0   0.0   0.0
+  0.5   0.5   0.0
+

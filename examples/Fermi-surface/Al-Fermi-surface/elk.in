@@ -1,0 +1,34 @@
+
+! Fermi surface plot of aluminium.
+
+tasks
+  0
+  100
+
+! define box corners and grid size for 3D plot, first point is the origin
+plot3d
+  0.0  0.0  0.0      : vclp3d
+  1.0  0.0  0.0
+  0.0  1.0  0.0
+  0.0  0.0  1.0
+  40  40  40         : np3d
+
+avec
+  1.0  1.0  0.0
+  1.0  0.0  1.0
+  0.0  1.0  1.0
+
+scale
+  3.8267
+
+sppath
+  '../../../species/'
+
+atoms
+  1
+  'Al.in'
+  1
+  0.0  0.0  0.0
+
+ngridk
+  6  6  6

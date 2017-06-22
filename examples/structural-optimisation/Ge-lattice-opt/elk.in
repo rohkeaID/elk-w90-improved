@@ -1,0 +1,54 @@
+
+! Unit cell optimisation for Ge with the PBE functional. This is performed with
+! geometric optimisation in which the lattice vectors are changed.
+
+! Setting 'latvopt' to 1 performs full unconstrained optimisation of the lattice
+! vectors. Setting it to 2 results in an iso-volumetric optimisation. In both
+! cases, the atomic positions are also optimised. To constrain the atomic
+! positions, set the nuclear mass to be a negative number in the species file.
+
+! As the calculation progresses, you can plot the files TOTENERGY_OPT.OUT and
+! STRESSMAX.OUT to see the change in the total energy and stress tensor. The
+! modulus of the maximum force on the atoms is written to FORCEMAX.OUT.
+
+! The updated unit cell geometry is written to GEOMETRY_OPT.OUT. The last entry
+! in this file contains the final lattice parameters and atomic positions.
+
+tasks
+  2
+
+! unconstrained optimisation of the lattice vectors
+latvopt
+  1
+
+mixtype
+  3
+
+! larger cut-off required for lattice optimisation
+rgkmax
+  8.0
+
+! PBE exchange-correlation functional
+xctype
+  20
+
+avec
+  1.0  1.0  0.0
+  1.0  0.0  1.0
+  0.0  1.0  1.0
+
+scale
+  5.3451
+
+sppath
+  '../../../species/'
+
+atoms
+  1                                 : nspecies
+  'Ge.in'                           : spfname
+  2                                 : natoms; atposl below
+  0.0   0.0   0.0
+  0.25  0.25  0.25
+
+ngridk
+  4  4  4

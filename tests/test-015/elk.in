@@ -1,0 +1,54 @@
+
+! NiO in AFMII structure with LDA+U and calculation of tensor moments.
+! The values of Slater parameters are calculated through a Yukawa potential 
+! with screening length corresponding to U=8eV.
+
+tasks
+  0
+  400
+  500
+
+maxscl
+  3
+
+test
+ .true.
+
+dft+u
+  1 5            : dftu, inpdftu
+  1 2 0.29399    : is, l, U fixed
+
+swidth
+ 0.05
+
+spinpol
+  .true.
+
+scale
+  7.893389
+
+avec
+   1.0  0.5  0.5
+   0.5  1.0  0.5
+   0.5  0.5  1.0
+
+atoms
+  2                                    : nspecies
+  'Ni.in'                              : spfname
+  2                                    : natoms; atpos, bfcmt below
+  0.0  0.0  0.0   0.0 0.0 -2.0
+  0.5  0.5  0.5   0.0 0.0  2.0
+  'O.in'                               : spfname
+  2                                    : natoms; atpos, bfcmt below
+  0.25 0.25 0.25  0.0 0.0  0.0
+  0.75 0.75 0.75  0.0 0.0  0.0
+
+reducebf
+   0.5
+
+sppath
+  '../../species/'
+
+ngridk
+  2  2  2
+

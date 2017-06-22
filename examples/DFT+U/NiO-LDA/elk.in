@@ -1,0 +1,45 @@
+
+! NiO in AFMII structure with LDA for comparison with LDA+U case.
+! Example by Fredrik Bultmark, Francesco Cricchio and Lars Nordstrom.
+
+tasks
+  0
+  10
+
+spinpol
+  .true.
+
+scale
+  7.893389
+
+avec
+  1.0  0.5  0.5
+  0.5  1.0  0.5
+  0.5  0.5  1.0
+
+atoms
+  2                                    : nspecies
+  'Ni.in'                              : spfname
+  2                                    : natoms; atpos, bfcmt below
+  0.0   0.0   0.0    0.0  0.0 -2.0
+  0.5   0.5   0.5    0.0  0.0  2.0
+  'O.in'                               : spfname
+  2                                    : natoms; atpos, bfcmt below
+  0.25  0.25  0.25   0.0  0.0  0.0
+  0.75  0.75  0.75   0.0  0.0  0.0
+
+! the large magnetic local field on Ni is halved at every iteration
+! this speeds up the convergence of magnetic calculations
+reducebf
+  0.5
+
+! fairly high number of empty states
+nempty
+  8
+
+sppath
+  '../../../species/'
+
+! this grid is too small for accurate magnetic moment
+ngridk
+  4  4  4

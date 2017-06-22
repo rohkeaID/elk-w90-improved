@@ -1,0 +1,40 @@
+
+! Test of libxc (http://www.tddft.org/programs/octopus/wiki/index.php/Libxc).
+! The library must be downloaded and compiled separately. Follow the
+! instructions in the Elk manual for installation of libxc.
+
+tasks
+  0
+
+! libxc is selected with xctype(1)=100. The remaining two numbers are the
+! exchange and correlation functionals, respectively - in this case Slater
+! exchange and Perdew-Wang correlation. Refer to the file
+! 'elk/src/libxc_funcs.f90' for the complete list of functionals and
+! associated numbers.
+
+xctype
+ 100  1  13
+
+avec
+  1.0  1.0  0.0
+  1.0  0.0  1.0
+  0.0  1.0  1.0
+
+scale
+  3.8267
+
+! this is the relative path to the species files
+sppath
+  '../../../species/'
+
+atoms
+  1                                   : nspecies
+  'Al.in'                             : spfname
+  1                                   : natoms; atposl below
+  0.0  0.0  0.0
+
+ngridk
+  4  4  4
+
+vkloff
+  0.5  0.5  0.5

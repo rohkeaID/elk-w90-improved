@@ -1,0 +1,72 @@
+
+! Example of Wannier90 out for Silicon (adapted from basic/Si)
+
+tasks
+  0
+  20
+  601
+  602
+
+! wannier90 properties
+wann_bands
+  1-8
+
+wann_projections
+  Si:sp3:r=2
+
+wann_seedname
+  ELK
+
+wann_tol
+  1.d-9
+
+wann_maxshell
+  12
+
+! use Broyden mixing
+mixtype
+  3
+
+avec
+  5.13 5.13 0.00
+  5.13 0.00 5.13
+  0.00 5.13 5.13
+
+sppath
+  '../../../species/'
+
+atoms
+  1                                  : nspecies
+ 'Si.in'                             : spfname
+  2                                  : natoms
+  0.125  0.125  0.125  0.0  0.0  0.0 : atposl, bfcmt
+ -0.125 -0.125 -0.125  0.0  0.0  0.0
+
+ngridk
+  4  4  4
+
+reducek
+  0
+
+! These are the vertices to be joined for the band structure plot
+plot1d
+  7 200
+   0.25000   0.50000   0.75000  : W
+   0.50000   0.50000   0.50000  : L
+   0.00000   0.00000   0.00000  : Gamma
+   0.00000   0.50000   0.50000  : X
+   0.25000   0.50000   0.75000  : W
+   0.37500   0.37500   0.75000  : K
+   0.50000   0.50000   0.50000  : L
+
+wann_input
+ bands_plot=true
+ begin kpoint_path
+  W 0.25     0.5     0.75   L 0.5      0.5     0.5   
+  L 0.5      0.5     0.5    G 0.0      0.0     0.0   
+  G 0.0      0.0     0.0    X 0.0      0.5     0.5   
+  X 0.0      0.5     0.5    W 0.25     0.5     0.75  
+  W 0.25     0.5     0.75   K 0.375    0.375   0.75 
+  K 0.375    0.375   0.75   L 0.5      0.5     0.5
+ end kpoint_path
+

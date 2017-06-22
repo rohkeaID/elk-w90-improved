@@ -1,0 +1,51 @@
+
+! Water molecule in a box. This example uses iterative diagonalisation which may
+! be used for fine-grained parallelism.
+
+! Remember to set
+!   export OMP_NUM_THREADS=n
+!   export OMP_NESTED=true
+! where n is the number of available processors.
+
+tasks
+  0
+
+maxscl
+  30
+
+lorbcnd
+  .true.
+
+! solve the first-variational eigenvalue equation iteratively
+tefvit
+  .true.
+
+! molecule calculation (atomic positions are in Cartesian coordinates)
+molecule
+  .true.
+
+! put molecule in a large box
+avec
+  6.0  0.0  0.0
+  0.0  6.0  0.0
+  0.0  0.0  6.0
+
+rgkmax
+  6.0
+
+gmaxvr
+  17.0
+
+sppath
+  '../../../species/'
+
+! atomic positions in Cartesian coordinates
+atoms
+  2                                     : nspecies
+  'O.in'                                : spfname
+  1                                     : natoms; atposc below
+  0.0  0.0  0.0
+  'H.in'
+  2
+  1.811        0.0          0.0
+ -0.451907959  1.753710409  0.0

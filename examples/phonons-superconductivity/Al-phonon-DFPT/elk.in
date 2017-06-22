@@ -1,0 +1,44 @@
+
+! Phonon dispersion of aluminium calculated with density functional perturbation
+! theory.
+
+! (A well-converged phonon dispersion using a 4x4x4 q-point set and a 12x12x12
+! k-point set is included with this example)
+
+tasks
+  0
+  205
+  220
+
+! q-point grid (should be commensurate with the k-point grid)
+ngridq
+  2  2  2
+
+! vertices for dispersion plot
+plot1d
+  4 200                               : nvp1d, npp1d
+  0.0   0.0   0.0                     : vlvp1d
+  0.5   0.5   0.0
+  1.0   0.0   0.0
+  0.5   0.0   0.0
+
+avec
+  1.0  1.0  0.0
+  1.0  0.0  1.0
+  0.0  1.0  1.0
+
+scale
+  3.8267
+
+sppath
+  '../../species/'
+
+atoms
+  1                                   : nspecies
+  'Al.in'                             : spfname
+  1                                   : natoms
+  0.0  0.0  0.0    0.0  0.0  0.0      : atposl, bfcmt
+
+ngridk
+  4  4  4
+

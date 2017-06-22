@@ -1,0 +1,42 @@
+
+! Linear optical response of aluminium including intra-band contributions.
+! The plasma frequency is also determined and written to PLASMA.OUT.
+
+tasks
+  0
+  120
+  121
+
+! include intra-band excitations
+intraband
+  .true.
+
+swidth
+  0.01
+
+! dense k-point set required
+ngridk
+  24  24  24
+
+! larger number of empty states required
+nempty
+  8
+
+avec
+  1.0  1.0  0.0
+  1.0  0.0  1.0
+  0.0  1.0  1.0
+
+! lattice constant at room temperature
+scale
+  3.8267
+
+! this is the relative path to the species files
+sppath
+  '../../../species/'
+
+atoms
+  1                                   : nspecies
+  'Al.in'                             : spfname
+  1                                   : natoms; atposl below
+  0.0  0.0  0.0

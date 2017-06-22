@@ -1,0 +1,76 @@
+
+! SrVO3 - bandstructure and Wannier90 output
+
+tasks
+  0
+  20
+  601
+  602
+
+nxapwlo
+  1
+
+reducek
+   0
+
+! wannier90 properties
+wann_nwf
+  5
+
+wann_bands
+  17-28
+
+wann_projections
+  V:d:r=0
+
+wann_seedname
+  ELK
+
+! use Broyden mixing
+mixtype
+  3
+
+avec
+   7.260000000       0.000000000       0.000000000
+   0.000000000       7.260000000       0.000000000
+   0.000000000       0.000000000       7.260000000
+
+sppath
+  '../../../species/'
+
+atoms
+   3                                    : nspecies
+'Sr.in'                                 : spfname
+   1                                    : natoms; atpos below
+    0.00000000    0.00000000    0.00000000
+'V.in'                                 : spfname
+   1                                    : natoms; atpos below
+    0.50000000    0.50000000    0.50000000
+'O.in'                                  : spfname
+   3                                    : natoms; atpos below
+    0.50000000    0.50000000    0.00000000
+    0.50000000    0.00000000    0.50000000
+    0.00000000    0.50000000    0.50000000
+
+ngridk
+  4  4  4 
+
+! These are the vertices to be joined for the band structure plot
+plot1d
+  5 200
+   0.0      0.0      0.0 : Gamma
+   0.5      0.5      0.0 : M
+   0.5      0.5      0.5 : R
+   0.0      0.0      0.0 : Gamma
+   0.5      0.0      0.0 : X
+
+wann_input
+ bands_plot=true
+ begin kpoint_path
+  G 0.0      0.0      0.0   M 0.5      0.5      0.0
+  M 0.5      0.5      0.0   R 0.5      0.5      0.5  
+  R 0.5      0.5      0.5   G 0.0      0.0      0.0 
+  G 0.0      0.0      0.0   X 0.5      0.0      0.0 
+ end kpoint_path
+ dis_num_iter = 1000
+

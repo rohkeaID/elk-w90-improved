@@ -1,0 +1,50 @@
+
+! Electron loss near-edge spectroscopy (ELNES) for boron nitride.
+
+tasks
+ 0
+ 140
+ 500
+
+test
+ .true.
+
+maxscl
+ 6
+
+rgkmax
+ 6.0
+
+lradstp
+ 2
+
+spinorb
+ .true.
+
+vecql
+ 0.0 0.0 0.5
+
+wplot
+ 50 100 3
+ 18.5 19.0
+
+emaxelnes
+ -10.0
+
+ngridk
+ 2  2  2
+
+avec
+  3.4204 3.4204 0.0000
+  3.4204 0.0000 3.4204
+  0.0000 3.4204 3.4204
+
+atoms
+  2
+  'B.in'
+  1
+  0.00 0.00 0.00  0.0 0.0 0.0
+  'N+.in'
+  1
+  0.25 0.25 0.25  0.0 0.0 0.0
+

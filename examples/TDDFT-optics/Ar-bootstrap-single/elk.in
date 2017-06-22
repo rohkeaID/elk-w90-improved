@@ -1,0 +1,52 @@
+
+! This example produces the dielectric function of solid argon using a single
+! iteration of the bootstrap kernel [Phys. Rev. Lett. 107, 186401]. This
+! approximation works particularly well for calculating excitonic binding
+! energies.
+
+! A file with experimental data in units of eV is included in this directory.
+
+tasks
+  0
+  120
+  320
+
+scissor
+  0.22
+
+swidth
+  0.005
+
+! bootstrap kernal with single iteration
+fxctype
+  211
+
+gmaxrf
+  0.0
+
+wplot
+  6000  100  2
+  0.0  1.0
+
+nempty
+  10
+
+avec
+  0.5  0.5  0.0
+  0.5  0.0  0.5
+  0.0  0.5  0.5
+
+scale
+  10.030
+
+sppath
+  '../../../species/'
+
+atoms
+  1                                     : nspecies
+ 'Ar.in'                                : spfname
+  1                                     : natoms; atposl below
+  0.0  0.0  0.0
+
+ngridk
+  8  8  8

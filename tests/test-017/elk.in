@@ -1,0 +1,54 @@
+
+! RDMFT test
+
+tasks
+  0
+  300
+  500
+
+test
+ .true.
+
+rdmmaxscl
+  1
+
+maxitn
+  2
+
+maxitc
+  2
+
+mixtype
+  3
+
+rgkmax
+  6.0
+
+lmaxvr
+  5
+
+gmaxvr
+  0.0
+
+avec
+  5.3435 5.3435 0.0000
+  5.3435 0.0000 5.3435
+  0.0000 5.3435 5.3435
+
+sppath
+  '../../species/'
+
+atoms
+  2                                   : nspecies
+  'Ga.in'                             : spfname
+  1                                   : natoms
+  0.00 0.00 0.00  0.0 0.0 0.0         : atposl, bfcmt
+  'As.in'                             : spfname
+  1                                   : natoms
+  0.25 0.25 0.25  0.0 0.0 0.0         : atposl, bfcmt
+
+ngridk
+  2  1  1
+
+vkloff
+  0.25  0.5  0.625

@@ -1,0 +1,92 @@
+
+! Ferromagnetic noncolinear bcc iron example to show spin-split Wannier interpolated bands
+! Use wannier90.x and postw90.x to generate bands (all needed input in generated ELK.win)
+
+tasks
+  0
+  20
+  601
+  602
+
+spinorb
+  .true.
+
+! small magnetic field in the z-direction
+bfieldc
+  0.0  0.0  0.01
+
+! fairly large number of empty states required for magnetic cases
+nempty
+  8
+
+! wannier90 properties
+wann_nwf                  : number of Wannier functions
+  18
+
+wann_bands                : which bands to use for overlap matrices
+  9-33
+
+wann_projections
+  Fe:sp3d2;dxy;dxz;dyz
+   
+wann_seedname
+  ELK
+
+wann_input                : additional input to go into <seedname>.win
+  bands_plot = true
+  kpath = true
+  kpath_task = bands
+  kpath_bands_colour = spin
+  kpath_num_points = 500
+  begin kpoint_path
+    G  0.00  0.00  0.00   H -0.50  0.50  0.50
+    H -0.50  0.50  0.50   P  0.25  0.25  0.25
+    P  0.25  0.25  0.25   N  0.00  0.50  0.00
+    N  0.00  0.50  0.00   G  0.00  0.00  0.00
+    G  0.00  0.00  0.00   H  0.50 -0.50  0.50
+    H  0.50 -0.50  0.50   N  0.50  0.00  0.00
+    N  0.50  0.00  0.00   G  0.00  0.00  0.00
+    G  0.00  0.00  0.00   P  0.25  0.25  0.25
+    P  0.25  0.25  0.25   N  0.50  0.00  0.00
+  end kpoint_path
+  dis_win_min       = -10.0d0      
+  dis_win_max       =  70.0d0
+  dis_froz_min      = -10.0d0
+  dis_froz_max      =  10.0d0
+  dis_num_iter      =  500 
+
+plot1d
+  10 400
+  0.00  0.00  0.00
+ -0.50  0.50  0.50
+  0.25  0.25  0.25
+  0.00  0.50  0.00
+  0.00  0.00  0.00
+  0.50 -0.50  0.50
+  0.50  0.00  0.00
+  0.00  0.00  0.00
+  0.25  0.25  0.25
+  0.50  0.00  0.00
+
+avec
+  1.0  1.0 -1.0
+  1.0 -1.0  1.0
+ -1.0  1.0  1.0
+
+scale
+  2.708
+
+sppath
+  '../../../species/'
+
+atoms
+  1                                   : nspecies
+  'Fe.in'                             : spfname
+  1                                   : natoms
+  0.0  0.0  0.0    0.0  0.0  0.0      : atposl, bfcmt
+
+ngridk
+  4  4  4
+
+reducek
+  0

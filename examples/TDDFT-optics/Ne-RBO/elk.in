@@ -1,0 +1,55 @@
+
+! Example for the revised bootstrap kernel (RBO) of S. Rigamonti, et al.,
+! Phys. Rev. Lett. 114, 146402.
+
+tasks
+  0
+  120
+  320
+
+scissor
+  0.360
+
+lradstp
+  2
+
+! local field effects (LFE) not included
+gmaxrpa
+  0.0
+
+swidth
+  0.005
+
+! RBO kernel
+fxctype
+  212
+
+wplot
+  5000  100  1
+  0.0  1.1
+
+nempty
+  20
+
+avec
+  0.5  0.5  0.0
+  0.5  0.0  0.5
+  0.0  0.5  0.5
+
+scale
+  8.440
+
+sppath
+  '../../../species/'
+
+atoms
+  1                                      : nspecies
+  'Ne.in'                                : spfname
+  1                                      : natoms; atposl below
+  0.0  0.0  0.0
+
+ngridk
+  10  10  10
+
+vkloff
+  0.625  0.5  0.25

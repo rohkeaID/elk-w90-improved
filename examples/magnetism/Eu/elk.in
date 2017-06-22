@@ -1,0 +1,39 @@
+
+! Ferromagnetic bcc Eu example (thanks to Sandro Massidda for fixing a problem
+! with the Eu.in species file).
+
+tasks
+  0
+  10
+
+spinpol
+  .true.
+
+spinorb
+  .true.
+
+bfieldc
+  0.0  0.0  0.01
+
+nempty
+  8
+
+avec
+  1.0  1.0 -1.0
+  1.0 -1.0  1.0
+ -1.0  1.0  1.0
+
+scale
+  4.30385
+
+sppath
+  '../../../species/'
+
+atoms
+  1                                   : nspecies
+  'Eu.in'                             : spfname
+  1                                   : natoms
+  0.0  0.0  0.0    0.0  0.0  0.0      : atposl, bfcmt
+
+ngridk
+  8  8  8

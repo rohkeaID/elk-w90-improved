@@ -1,0 +1,12 @@
+\BOOKMARK [1][-]{section.1}{Introduction}{}% 1
+\BOOKMARK [1][-]{section.2}{Usage}{}% 2
+\BOOKMARK [1][-]{section.3}{Table of space group symbols}{}% 3
+\BOOKMARK [1][-]{section.4}{Routine/Function Prologues}{}% 4
+\BOOKMARK [2][-]{subsection.4.1}{Fortran: Module Interface modmain \(Source File: modmain.f90\)}{section.4}% 5
+\BOOKMARK [2][-]{subsection.4.2}{sgsymb \(Source File: sgsymb.f90\)}{section.4}% 6
+\BOOKMARK [2][-]{subsection.4.3}{findprimcell \(Source File: findprimcell.f90\)}{section.4}% 7
+\BOOKMARK [2][-]{subsection.4.4}{r3frac \(Source File: r3frac.f90\)}{section.4}% 8
+\BOOKMARK [2][-]{subsection.4.5}{r3mv \(Source File: r3mv.f90\)}{section.4}% 9
+\BOOKMARK [2][-]{subsection.4.6}{r3cross \(Source File: r3cross.f90\)}{section.4}% 10
+\BOOKMARK [2][-]{subsection.4.7}{r3minv \(Source File: r3minv.f90\)}{section.4}% 11
+\BOOKMARK [2][-]{subsection.4.8}{r3mm \(Source File: r3mm.f90\)}{section.4}% 12

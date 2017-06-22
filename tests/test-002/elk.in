@@ -1,0 +1,40 @@
+
+tasks
+  0
+  500
+
+test
+ .true.
+
+maxscl
+  5
+
+rgkmax
+ 6.5
+
+spinpol
+ .true.
+
+bfieldc
+  0.0  0.0  0.5
+
+avec
+  1.0  1.0 -1.0
+  1.0 -1.0  1.0
+ -1.0  1.0  1.0
+
+scale
+  2.708
+
+sppath
+  '../../species/'
+
+atoms
+  1                                   : nspecies
+  'Fe.in'                             : spfname
+  1                                   : natoms
+  0.0  0.0  0.0    0.0  0.0  0.0      : atposl, bfcmt
+
+ngridk
+  4  4  4
+

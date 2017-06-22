@@ -1,0 +1,43 @@
+
+! In this example the code generates a fractional atomic species file called
+! 'A.in' which is then used in a ground-state calculation to find the moment.
+! This allows for easy use of the virtual crystal approximation (VCA).
+
+tasks
+  0
+
+! generate a fractional atomic species charge -26.2 and write to the file 'A.in'
+fspecies
+ -26.2 'A'
+
+spinpol
+  .true.
+
+! small magnetic field in the z-direction
+bfieldc
+  0.0  0.0  0.01
+
+! fairly large number of empty states required for magnetic cases
+nempty
+  8
+
+avec
+  1.0  1.0 -1.0
+  1.0 -1.0  1.0
+ -1.0  1.0  1.0
+
+scale
+  2.708
+
+! Now use the file 'A.in' in the atoms block
+atoms
+  1                                   : nspecies
+  'A.in'                              : spfname
+  1                                   : natoms
+  0.0  0.0  0.0    0.0  0.0  0.0      : atposl, bfcmt
+
+ngridk
+  4  4  4
+
+vkloff
+  0.5  0.5  0.5

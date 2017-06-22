@@ -1,0 +1,46 @@
+
+! Optimised effective potential (OEP) test
+
+tasks
+ 0
+ 500
+
+test
+ .true.
+
+xctype
+ -1
+
+tauoep
+ 0.5 1.0 1.0
+
+maxitoep
+ 10
+
+maxscl
+ 2
+
+swidth
+ 0.02
+
+rgkmax
+ 6.5
+
+avec
+  5.13 5.13 0.00
+  5.13 0.00 5.13
+  0.00 5.13 5.13
+
+sppath
+  '../../species/'
+
+atoms
+  1                                 : nspecies
+ 'Si.in'                            : spfname
+  2                                 : natoms
+  0.0 0.0 0.0      0.0 0.0 0.0      : atposl, bfcmt
+  0.25 0.25 0.25   0.0 0.0 0.0
+
+ngridk
+  2  2  2
+

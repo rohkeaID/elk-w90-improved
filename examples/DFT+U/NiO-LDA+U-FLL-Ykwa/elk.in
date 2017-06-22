@@ -1,0 +1,66 @@
+
+! NiO in AFMII structure with LDA+U and fully-localised-limit (FLL) double
+! counting (dftu=1). With inpdftu=4 the values of Slater parameters are
+! conveniently calculated through a screened Yukawa potential with screening
+! length lambda provided as input (see PRB 80, 035121 (2009)). Here lambda=1.5
+! gives realistic values of Slater integrals which are  printed in FDU.OUT.
+
+! Try to plot the magnetic moments of Ni as function of lambda.
+! If inpdftu=5 the code will automatically determine the screening length
+! corresponding to the fixed value of U (udufix) provided as input.
+! Example by Francesco Cricchio.
+
+tasks
+  0
+
+! DFT+U block
+! here FLL double counting is used (dftu=1)
+! inpdftu=4 corresponds to calculate the Slater parameters self-consistently
+! through a Yukawa potential with screening length lambda
+dft+u
+  1 4            : dftu, inpdftu
+  1 2  1.5       : is, l, lambda
+
+! alternatively try inpdftu=5; this will determine the screening length
+! corresponding to U=0.29399 Ha (8 eV) through a secant algorithm
+!dft+u
+!  1 5            : dftu, inpdftu
+!  1 2  0.29399   : is, l, U fixed
+
+spinpol
+  .true.
+
+scale
+  7.893389
+
+avec
+  1.0  0.5  0.5
+  0.5  1.0  0.5
+  0.5  0.5  1.0
+
+atoms
+  2                                    : nspecies
+  'Ni.in'                              : spfname
+  2                                    : natoms; atpos, bfcmt below
+  0.0   0.0   0.0    0.0  0.0 -2.0
+  0.5   0.5   0.5    0.0  0.0  2.0
+  'O.in'                               : spfname
+  2                                    : natoms; atpos, bfcmt below
+  0.25  0.25  0.25   0.0  0.0  0.0
+  0.75  0.75  0.75   0.0  0.0  0.0
+
+! the large magnetic local field on Ni is halved at every iteration
+! this speeds up the convergence of magnetic calculations
+reducebf
+  0.5
+
+sppath
+  '../../../species/'
+
+! fairly high number of empty states
+nempty
+  8
+
+! this grid is too small for accurate magnetic moment
+ngridk
+  4  4  4

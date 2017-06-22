@@ -1,0 +1,73 @@
+
+! Calculation of electron-phonon coupling and superconductivity in lead using
+! density functional perturbation theory (DFPT).
+
+tasks
+  0      : ground-state run
+  205    : dynamical matrices and density derivatives with DFPT
+  220
+
+ngridq
+  4  4  4
+
+! large number of muffin-tin points required for accurate derivatives
+nrmtscf
+  3
+
+! large cut-off required for lead
+rgkmax
+  8.0
+
+! add extra local-orbitals for accurate electron-phonon coupling
+nxlo
+  2
+
+ngridk
+  12  12  12
+
+! Uncomment the following lines and run to determine the electron-phonon
+! coupling and superconducting T_c.
+!ngridk
+!  24  24  24
+!
+!tasks
+!  1
+!  220
+!  240
+!  245
+!  250
+
+! large smearing width required
+swidth
+  0.01
+
+! use Gaussian smearing
+stype
+  0
+
+avec
+  0.0  0.5  0.5
+  0.5  0.0  0.5
+  0.5  0.5  0.0
+
+scale
+  9.3541
+
+sppath
+  '../../../species/'
+
+atoms
+  1                                   : nspecies
+  'Pb.in'                             : spfname
+  1                                   : natoms; atposl below
+  0.0  0.0  0.0
+
+plot1d
+  7 200                               : nvp1d, npp1d
+  0.0   0.0   1.0                     : vlvp1d
+  0.5   0.5   1.0
+  0.0   0.0   0.0
+  0.5   0.0   0.0
+  0.5   0.5   0.0
+  0.5   0.25 -0.25
+  0.5   0.0   0.0

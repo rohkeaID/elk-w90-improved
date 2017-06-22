@@ -1,0 +1,24 @@
+#!/bin/bash
+
+echo
+echo "main code"
+grep "$@" *.f90 Makefile
+echo
+echo "spacegroup"
+grep "$@" spacegroup/*.f90 spacegroup/Makefile
+echo
+echo "eos"
+grep "$@" eos/*.f90 eos/Makefile
+echo
+echo "examples"
+grep -r "$@" ../examples/*
+echo
+echo "tests"
+grep -r "$@" ../tests/*
+echo
+echo "species"
+grep -r "$@" ../species/*
+echo
+echo "utilities"
+grep -r "$@" ../utilities/*
+

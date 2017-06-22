@@ -1,0 +1,43 @@
+
+! Antiferromagnetic bcc iron example with  fixed spin moment in muffin-tin.
+
+tasks
+ 0
+ 500
+
+test
+ .true.
+
+fsmtype
+  2
+
+mommtfix
+ 1 1   0.0 0.0  1.0     : is, ia, mommtfix 
+ 1 2   0.0 0.0 -1.0     : is, ia, mommtfix
+
+swidth
+ 0.01
+
+rgkmax
+ 6.0
+
+avec
+  1.0  0.0  0.0
+  0.0  1.0  0.0
+  0.0  0.0  1.0
+
+scale
+  6.6
+
+sppath
+  '../../species/'
+
+atoms
+  1                                   : nspecies
+  'Fe.in'                             : spfname
+  2                                   : natoms
+  0.0  0.0  0.0    0.0  0.0    0.001    : atposl, bfcmt
+  0.5  0.5  0.5    0.0  0.0   -0.001
+
+ngridk
+  4  4  4

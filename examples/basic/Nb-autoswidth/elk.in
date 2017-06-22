@@ -1,0 +1,31 @@
+
+! Example demonstrating the automatic determination of the smearing width. See
+! 'autoswidth' in the manual for details.
+
+! Example by T. Bjorkman and O. Granas.
+
+tasks
+  0
+
+autoswidth
+  .true.
+
+avec
+  1.0  1.0 -1.0
+  1.0 -1.0  1.0
+ -1.0  1.0  1.0
+
+scale
+  3.118
+
+sppath
+  '../../../species/'
+
+atoms
+  1                                   : nspecies
+  'Nb.in'                             : spfname
+  1                                   : natoms
+  0.0  0.0  0.0    0.0  0.0  0.0      : atposl, bfcmt
+
+ngridk
+  4  4  4

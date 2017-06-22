@@ -1,0 +1,112 @@
+
+! Example of Wannier90 output for Bi (takes ~10min on a Core i7 with ifort).
+
+tasks
+  0
+  20
+  601
+  602 
+
+!nxapwlo
+! 1
+ 
+spinorb
+  .true.
+
+reducek
+  0
+
+! wannier90 properties
+wann_nwf
+  12
+
+wann_bands
+  21-40
+
+wann_projections
+  Bi:sp3
+
+! f=0.23407,0.23407,0.23407:p
+! f=-0.23407,-0.23407,-0.23407:p
+
+!wann_maxshell
+!  40
+   
+wann_seedname
+  ELK
+
+! use Broyden mixing
+mixtype
+  3
+
+!swidth ! Defect value. Convergence for this parameter should be checked. (Maybe try to find experimental value of broadening)
+!  0.001
+
+xctype ! GGA functional
+  20
+
+ngridk ! Convergence for this should be checked.
+  4 4 4
+
+!rgkmax
+!  10.0
+
+!gmaxvr
+!  12.0
+
+!gmaxrf 
+!  0.0
+
+!nempty
+!  8
+
+!lmaxvr
+!  8
+
+!lmaxapw
+!  8
+
+avec 
+  4.28464  -2.47374  7.43336
+  0.0       4.94748  7.43336
+ -4.28464  -2.47374  7.43336
+
+epslat        ! Simetriak kontsideratzeko parametroa. Aldatu behar da, bestela ez ditu simetriak ondo ikusten. Hau "avec" bektoreak QE moduan jartzeagatik.
+  0.0001 
+ 
+atoms !Atomoak posizio simetrikoan jatorriarekiko
+   1                                    : nspecies
+   'Bi.in'                                 : spfname
+   2                                    : natoms; atposl, bfcmt below
+   0.23407    0.23407    0.23407    0.00000000  0.00000000  0.00000000
+   -0.23407    -0.23407    -0.23407    0.00000000  0.00000000  0.00000000
+
+sppath
+  '../../../species/'
+
+plot1d
+  6 500                          : nvp1d,npp1d
+  -0.5 0.5 0.                    : X     vlvp1d 
+  0.0 0.0 0.0                    : GM
+  0.5 0.5 0.5                    : T
+  0.74050 0.25950 0.5            : W
+  1.0 0.0 0.5                    : L
+  1.0 0.0 0.0                    : GM
+
+!wann_numiter
+!  5000
+
+wann_input
+  bands_plot=true
+  kpath = true
+  kpath_task = bands
+  kpath_bands_colour = spin
+  kpath_num_points=500
+  begin kpoint_path
+   X -0.5     0.5     0.0    G 0.0      0.0     0.0
+   G 0.0      0.0     0.0    T 0.5      0.5     0.5
+   T 0.5      0.5     0.5    W 0.74040  0.25950 0.5
+   W 0.74040  0.25950 0.5    L 1.0      0.0     0.5
+   L 1.0      0.0     0.5    G 1.0      0.0     0.0
+  end kpoint_path
+

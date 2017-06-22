@@ -1,0 +1,42 @@
+
+! NaCl monomer in a large box. Note that with 'molecule=.true.' the atomic
+! positions are supplied in Cartesian coordinates. Try plotting the 1D
+! density along the molcular axis. You can also compute the vibrational
+! frequency using task=200.
+
+tasks
+  0
+
+molecule
+  .true.
+
+! large smearing width improves convergence for molecules
+swidth
+  0.05
+
+rgkmax
+  6.0
+
+! large box containing the molecule
+avec
+  10.0   0.0   0.0
+   0.0  10.0   0.0
+   0.0   0.0  10.0
+
+sppath
+  '../../../species/'
+
+! note that atomic positions are now in Cartesian coordinates
+atoms
+  2                                     : nspecies
+  'Na.in'                               : spfname
+  1                                     : natoms; atposc below
+  0.0     0.0  0.0
+  'Cl.in'                               : spfname
+  1                                     : natoms; atposc below
+  4.4121  0.0  0.0
+
+plot1d
+  2  1000
+  0.0  0.0  0.0
+  1.0  0.0  0.0

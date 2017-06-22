@@ -1,0 +1,61 @@
+
+! Example for the revised bootstrap kernel (RBO) of S. Rigamonti, et al.,
+! Phys. Rev. Lett. 114, 146402.
+
+tasks
+  0         ! ground-state calculation
+  120       ! compute momentum matrix elements
+  121       ! compute RPA dielectric function with no local field contributions
+  320       ! compute TDDFT dielectric function with local field contributions
+
+! scissor shift
+scissor
+  0.192
+
+xctype
+  3
+
+! RBO kernel
+fxctype
+  212
+
+! smearing width
+swidth
+  0.01
+
+! G-vector cut-off of exchange-correlation kernel and response function
+gmaxrf
+  0.0
+
+nempty
+  8
+
+lradstp
+  2
+
+wplot
+  800  100  0  : nwplot, ngrkf, nswplot
+  0.0  1.5     : wplot
+
+avec
+  3.80402   3.80402   0.0
+  3.80402   0.0       3.80402
+  0.0       3.80402   3.80402
+
+sppath
+  '../../../species/'
+
+atoms
+  2                                       : nspecies
+  'Li.in'                                 : spfname
+  1                                       : natoms; atposl below
+  0.0  0.0  0.0
+  'F.in'
+  1
+  0.5  0.5  0.5
+
+ngridk
+  8  8  8
+
+vkloff
+  0.25  0.5  0.625

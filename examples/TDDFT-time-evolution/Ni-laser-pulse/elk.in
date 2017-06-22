@@ -1,0 +1,107 @@
+
+! Simulation of an intense ultra-short laser pulse acting on fcc nickel.
+
+! The laser pulse is represented by a time-dependent vector potential which is
+! constructed from an arbitrary superposition of planes waves each multiplied
+! with a Gaussian envelope function.
+
+! The time-dependent vector potential and laser pulse parameters are written to
+! AFIELDT.OUT and TD_INFO.OUT, respectively. The power density of the laser
+! pulse is written to AFPDT.OUT. Time units are atomic, one of which is equal to
+! 24.18884328 attoseconds.
+
+! The total macroscopic current is written to the file CURRENT_TD.OUT and may be
+! directly plotted. The total moment magnitude as a function of time is stored
+! in the file MOMENTM_TD.OUT. Observe that the moment declines considerably
+! after the laser pulse has stopped.
+
+! This example is insufficiently converged for a production run, and all
+! observables should be carefully checked for convergence with respect to the
+! usual parameters.
+
+tasks
+  0
+  450
+  460
+
+! no symmetry operations used for the ground-state run
+nosym
+  .true.
+
+! tight ground-state convergence
+epspot
+  1.e-7
+
+lradstp
+  5
+
+rgkmax
+  8.0
+
+ngridk
+  8  8  8
+
+! automatic conversion of species to LAPW + linearised l.o. instead of APW+l.o.
+nxoapwlo
+  1
+
+! large number of empty states required
+nempty
+  16
+
+! total simulation time
+tstime
+  500.0
+
+! Simulation time step, ideally about 1 attosecond. It is critically important
+! to make sure that the time evolution is stable, particularly for magnetism
+! which can diverge even in the absence of a laser field. Any simulation should
+! be run first with a laser field of amplitude zero to make sure that all
+! observables remain constant over the total simulation time. Reducing the time
+! step can improve stability.
+dtimes
+  0.1
+
+! laser pulse parameters
+!  1 - 3 : polarisation vector (including amplitude)
+!  4     : frequency
+!  5     : phase in degrees
+!  6     : chirp rate
+!  7     : peak time
+!  8     : full-width at half-maximum
+pulse
+  1      : number of laser pulses
+  0.0 0.0 250.0   0.03   0.0   0.0   240.0   120.0
+
+! plot the 2D magnetisation every ntswrite time steps
+tdmag2d
+ .true.
+
+ntswrite
+  100
+
+spinpol
+ .true.
+
+spinorb
+ .true.
+
+bfieldc
+  0.0  0.0  0.01
+
+avec
+  1.0  1.0  0.0
+  1.0  0.0  1.0
+  0.0  1.0  1.0
+
+scale
+  3.33
+
+sppath
+  '../../../species/'
+
+atoms
+  1                                   : nspecies
+  'Ni.in'                             : spfname
+  1                                   : natoms
+  0.0  0.0  0.0    0.0  0.0  0.0      : atposl, bfcmt

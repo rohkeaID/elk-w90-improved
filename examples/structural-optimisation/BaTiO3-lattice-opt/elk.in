@@ -1,0 +1,58 @@
+
+! Example taken from the Elk forum demonstrating the lattice optimisation of
+! BaTiO3 using the PBEsol functional. With thanks to David Tompsett.
+
+! See: http://sourceforge.net/p/elk/discussion/897820/thread/db2127bd/#24b6
+
+tasks
+  2
+
+latvopt
+  1
+
+epspot
+  1.e-7
+
+epsstress
+  1.e-3
+
+mixtype
+  3
+
+xctype
+  22
+
+lmaxmat
+  8
+
+rgkmax
+  8.0
+
+gmaxvr
+  18.0
+
+ngridk
+  10  10  10
+
+avec
+  7.576  0.0    0.0
+  0.0    7.576  0.0
+  0.0    0.0    7.576
+
+sppath
+  '../../../species/'
+
+atoms
+  3                                    : nspecies
+  'Ba.in'                              : spfname
+  1                                    : natoms; atpos below
+  0.0  0.0  0.0
+  'Ti.in'
+  1
+  0.5  0.5  0.5
+  'O.in'
+  3
+  0.5  0.5  0.0
+  0.5  0.0  0.5
+  0.0  0.5  0.5
+

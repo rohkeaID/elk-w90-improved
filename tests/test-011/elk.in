@@ -1,0 +1,35 @@
+
+! Hartree-Fock calculation of silicon.
+
+tasks
+  0
+  5
+ 500
+
+test
+ .true.
+
+maxscl
+  2
+
+avec
+  5.13 5.13 0.00
+  5.13 0.00 5.13
+  0.00 5.13 5.13
+
+sppath
+  '../../species/'
+
+atoms
+  1                                 : nspecies
+ 'Si.in'                            : spfname
+  2                                 : natoms
+  0.0 0.0 0.0      0.0 0.0 0.0      : atposl, bfcmt
+  0.25 0.25 0.25   0.0 0.0 0.0
+
+ngridk
+  2  2  2
+
+vkloff
+  0.5 0.5 0.5
+

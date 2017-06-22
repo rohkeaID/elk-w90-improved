@@ -1,0 +1,60 @@
+
+! Calculating the Mossbauer effect hyperfine parameters for bcc Fe, namely the
+! contact charge density, the contact magnetic hyperfine field and the electric
+! field gradient (EFG). In this case the EFG is zero because of symmetry.
+
+! The hyperfine magnetic field is difficult to calculate accurately. This is
+! partly due to the neglect of the orbital and dipolar contributions, but mainly
+! because most of the contact magnetisation arises from the polarised core s
+! states. One therefore has to switch on core polarisation with
+! 'spincore=.true.', but in addition any semi-core s states should also be moved
+! to the core and thus treated with the full Dirac equation. Consequently, this
+! example requires a special species file (Fe.in), in which the 3s states are in
+! the core. Also note that the field is quite sensitive to the number of empty
+! states and k-points. Experimentally the hyperfine field is 33.9 Tesla
+! [J. Phys. Soc. Jpn. 33, 159 (1972)]. A complete derivation of the formulae can
+! be found in Phys. Rev. B  53, 3271 (1987).
+
+tasks
+  0
+  110       : isomer shift and hyperfine field
+  115       : electric field gradient
+
+spinpol
+  .true.
+
+! switch on core polarisation for hyperfine field
+spincore
+  .true.
+
+! start with a large field and reduce it at every iteration
+bfieldc
+  0.0  0.0  0.01
+
+beta0
+  0.01
+
+! large number of empty states required for hyperfine field
+nempty
+  10
+
+rgkmax
+  7.5
+
+avec
+  1.0  1.0 -1.0
+  1.0 -1.0  1.0
+ -1.0  1.0  1.0
+
+scale
+  2.708
+
+atoms
+  1                                   : nspecies
+  'Fe.in'                             : spfname
+  1                                   : natoms
+  0.0  0.0  0.0    0.0  0.0  0.0      : atposl, bfcmt
+
+! large number of k-points required
+ngridk
+  8  8  8

@@ -1,0 +1,261 @@
+#!/bin/bash
+# 
+# Copyright (C) 2010 M. G. Blaber
+# This file is distributed under the terms of the GNU General Public License.
+# See the file COPYING for license details.
+#
+# http://elk.sourceforge.net/ 
+#  
+# Marty's plotting program for elk band structures.
+# Changelog:
+#  v0.2 - Fixed a bug regarding white space noticed by Kay Dewhurst
+#
+# Description:
+# -Plots the bands from elk, including labels that you have specified in your 
+#  elk.in file (see below for details)
+# -Notes on the necessary files and programs and Usage are given below.
+# -I recommend adding this script to your "path", a guide is given in the 
+#  Installation Notes below.
+# 
+# A sample plot1d block is given below:
+# -------------
+# plot1d
+#  3 100                  : nvp1d, npp1d
+#  0.0   0.0   1.0   !G   : vlvp1d
+#  0.5   0.5   1.0   !X
+#  0.0   0.0   0.0   !G
+# --------------
+#
+#Some user defineable plot parameters (You may always change the parameters of 
+#individual plots by editing elk-bands.gps)
+plot_width="15 cm"    #For publication, change to 8.5 cm
+plot_height="10 cm"   #For publication, change to 6 - 10 cm
+plot_font="Times, 18" #For publication, change to 12
+border_linewidth="2"  
+band_linewidth="1"    #This number is scaled by border_linewidth internally by gnuplot
+#
+#
+# REQUIRED FILES:
+# elk.in BAND.OUT BANDLINES.OUT 
+#
+# REQUIRED PROGRAMS:
+# awk gnuplot 
+#
+# USAGE:
+# elk-bands
+# OR (energies in eV)
+# elk-bands [min_energy] [max_energy]
+# eg: elk-bands -5 10
+#
+# INSTALLATION NOTES:
+# HOW TO ADD elk-bands TO YOUR PATH
+# -Make a new directory in your home folder named bin:
+#   mkdir /home/username/bin
+# -Add this new directory to your path by editing your bashrc file,
+#   /home/username/.bashrc
+# and add the following line:
+#   export PATH=$PATH:/home/username/bin
+# To update the path variable for the terminal you are currently in, type:
+#   source ~/.bashrc
+#
+###########
+
+me="elk-bands"
+version="0.2"
+input_file=elk.in 
+band_file=BAND.OUT
+bandlines_file=BANDLINES.OUT
+
+#Output:
+gps_file=$me.gps
+eps_file=$me.eps
+
+
+echo "- Welcome to $me version $version"
+echo "- Use ~ in front of any character in the labels list to make that letter greek!"
+echo "---------------------------------------------"
+
+
+#########
+# Check Dependencies
+# Error Message
+dependencies_usage="ERROR - Programs required by $me not found.
+$me requires the following programs:
+- awk
+- gnuplot
+Your local package manager should have them, alternatively you can grab them from:
+http://www.gnu.org/software/gawk/
+http://www.gnuplot.info/
+"
+# awk check
+check=$(which awk 2>&1)
+if [ ! $? -eq 0 ]; then 
+  echo "Ahhhhhhhhhhhhhh - No awk found"
+  echo "$dependencies_usage"
+  exit 1
+fi
+# gnuplot check
+check=$(which gnuplot 2>&1)
+if [ ! $? -eq 0 ]; then 
+  echo "Ahhhhhhhhhhhhhh - No gnuplot found"
+  echo "$dependencies_usage"
+  exit 1
+fi
+
+echo "- Found awk and gnuplot"
+
+#########
+# Check for input files
+# Error message
+inputfiles_usage="ERROR - Some file required by $me not found.
+$me requires the following files:
+$input_file 
+$band_file 
+$bandlines_file"
+
+# Check 
+for f in $input_file $band_file $bandlines_file; do
+  if [ ! -f $f ]; then
+    echo "Ooops, can't find $f"
+    echo "$inputfiles_usage"
+    exit 1
+  fi
+done
+
+echo "- Found $input_file $band_file $bandlines_file"
+
+#########
+# Check Parameters
+# Error message
+usage="Welcome to $me $version 
+Usage (energies in eV):
+$me [min energy] [max energy]
+eg: elk-bands -5.5 10.0
+"
+# Check
+if [ $1 ]; then 
+  if [ $2 ]; then 
+    min_energy=$1
+    max_energy=$2
+  else  
+    echo "ERROR - Please provide both energies"
+    exit 1
+  fi
+else #no parameters provided
+  min_energy="-15"
+  max_energy="15"
+fi
+
+#########
+# Get the labels and check them
+# Error for when someone forgets the labels in elk.in
+label_usage="ERROR - Labels not found.
+All tildes ~ convert the following letter to a greek symbol.
+$me requires the plot1d block in $input_file to look like:
+------------------------
+plot1d
+  7 400                  : nvp1d, npp1d
+  0.0   0.0   1.0   ~G   : vlvp1d
+  0.5   0.5   1.0   X
+  0.0   0.0   0.0   ~G
+  0.5   0.0   0.0   L
+  0.5   0.5   0.0   Merry Christmas
+  0.5   0.25 -0.25  W
+  0.5   0.0   0.0   L
+-------------------------
+ERROR - Labels not defined correctly - scroll back up to see what went wrong
+"
+
+# Read the labels from elk.in and put them in a file label_names.tmp
+cat $input_file | awk '{
+  if($1=="plot1d"){go=1}
+  if(go==2){number_of_labels=$1}
+  if(go>number_of_labels+2){go=0}
+  if(go>2){
+    for (i = 4; i <= NF; i++){printf("%s ", $i)}
+    printf("\n")
+  }
+  if(go>0){go=go+1}
+}' | sed 's/://g' | sed 's/vlvp1d//g' | sed 's/ / /g'  > label_names.tmp
+
+#Check the labels. 
+
+no_label_line=$(cat label_names.tmp | awk '{if($1==""){print NR; exit}}')
+
+if [ $no_label_line ]; then
+  echo "ERROR - No label found on line $((no_label_line+2)) of plot1d block"
+  echo "$label_usage"
+  exit 1
+fi
+
+# Get the positions of the labels from bandlines file
+cat $bandlines_file | awk 'BEGIN{last=-1}{
+  if($1!=""){
+    if($1!=last){last=$1;print $1}
+  }
+}' > label_positions.tmp
+
+# Match up the labels with their positions and remove the exclamation marks if they exist
+paste label_positions.tmp label_names.tmp  | sed 's/!//' > labels.tmp
+rm label_names.tmp label_positions.tmp
+
+#this thing joins all the labels together into a format gnuplot can understand.
+labels=$(cat labels.tmp | awk '{
+for (i = 2; i <= NF; i++){if (i==2){label=$i}else{label=label " " $i}}
+printf("%s%s%s %f,  ",q,label,q,$1)
+label=""
+}' q=\" )
+
+#Replace all instances of capital G with the gamma symbol
+labels=$(echo $labels | sed 's/~\(.\)/\{\/Symbol \1\}/g' )
+
+if [[ $labels == *"{/Symbol  }"* ]]
+then
+  echo "WARNING -> There is a space after a \"~\" in the labels block... get rid of it.";
+fi
+
+echo "- Found labels"
+
+#########
+# Write elk-bands.gps, the file which gnuplot uses.
+#this is a neat trick to spew out a file without having to use quotes. the end of the file is labeled _EOF
+cat > bands.tmp << _EOF
+set terminal postscript enhanced eps colour lw $border_linewidth dashlength 2 font "$plot_font" size $plot_width, $plot_height
+set style data lines
+
+set output "$eps_file"
+
+set ylabel "Energy (eV)"
+set grid noytics xtics  #this puts vertical lines on the band structure according to xtics below
+set xtics( $labels )
+set mytics 5 #minor y tics, the number of little tics in between labeled tics.
+
+unset key   #change this to "set key top left" or something if you want the key in the plot
+            #if you use "set key" then the title "Bands" will appear in the key
+
+plot [:][$min_energy:$max_energy] \
+"BAND.OUT" using 1:((\$2)*27.21138386) title "Bands" lw $band_linewidth lt 1 lc rgb "black",\
+0.0 lt -1 notitle
+_EOF
+
+#this thing just removes the final comma from the end of the "set xtics ( )" line.
+cat bands.tmp | sed 's/, )/)/' > $gps_file
+
+rm bands.tmp
+rm labels.tmp
+
+echo "- Plotting file written to $gps_file"
+
+gnuplot $gps_file
+
+if [ ! $? -eq 0 ]; then
+  echo "Unfortunately, some sort of unforseen error has occurred, try posting a message 
+  on the forum at http://sourceforge.net/projects/elk/forums/
+  "
+else
+  echo "- Band plot is ready in $eps_file"
+fi
+
+echo ""
+
+exit 0

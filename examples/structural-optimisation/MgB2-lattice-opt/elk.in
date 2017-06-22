@@ -1,0 +1,53 @@
+
+! Automatic determination of the c/a ratio of MgB2. This is performed with
+! geometric optimisation which involves changing of the lattice vectors whilst
+! maintaining the unit cell volume.
+
+! Setting 'latvopt' to 1 performs full unconstrained optimisation of the lattice
+! vectors. Setting it to 2 results in an iso-volumetric optimisation. In both
+! cases, the atomic positions are also optimised. To constrain the atomic
+! positions, set the nuclear mass to be a negative number in the species file.
+! In the case of MgB2, the atomic positions remain fixed because of symmetry.
+
+! As the calculation progresses, you can plot the files TOTENERGY_OPT.OUT and
+! STRESSMAX.OUT to see the change in the total energy and stress tensor. The
+! modulus of the maximum force on the atoms is written to FORCEMAX.OUT.
+
+! The updated unit cell geometry is written to GEOMETRY_OPT.OUT. The last entry
+! in this file contains the final lattice parameters and atomic positions.
+
+tasks
+  2
+
+! lattice vector optimisation while maintaining the unit cell volume
+latvopt
+  2
+
+! speed the calculation up with Broyden mixing
+mixtype
+  3
+
+ngridk
+  6  6  4
+
+avec
+  5.8316944  0.0          0.0
+ -2.9158472  5.050395498  0.0
+  0.0        0.0          6.659394380
+
+! decrease the unit cell volume to increase the pressure
+scale
+  0.9
+
+sppath
+  '../../../species/'
+
+atoms
+  2                                    : nspecies
+  'Mg.in'                              : spfname
+  1                                    : natoms; atposl below
+  0.0         0.0         0.0
+  'B.in'
+  2
+  0.33333333  0.66666667  0.5
+  0.66666667  0.33333333  0.5

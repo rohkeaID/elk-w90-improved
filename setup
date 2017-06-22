@@ -1,0 +1,123 @@
+#! /bin/sh
+# Setup script for the Elk Code
+
+# generic values
+MAKE="make"
+F90="f90"
+F90_OPTS="-O3"
+F77=$F90
+F77_OPTS=$F90_OPTS
+AR="ar"
+LIB_SYS=""
+LIB_LPK="lapack.a blas.a"
+LIB_FFT="fftlib.a"
+
+# get system type from user
+GETSYS ()
+{
+  clear
+  echo "Choose compiler:"
+  echo
+  echo "  1. Intel Fortran (ifort) with OpenMP"
+  echo "  2. GNU Fortran (gfortran) with OpenMP"
+  echo "  3. Portland Group Fortran (pgf90) with OpenMP"
+  echo "  4. G95 (g95)"
+  echo "  5. NAG Fortran (nagfor)"
+  echo "  6. IBM Fortran (xlf90_r) with OpenMP"
+  echo
+  echo " 20. Intel Fortran profiling (debug only)"
+  echo " 21. GNU Fortran code check (debug only)"
+  echo " 22. G95 code check (debug only)"
+  echo
+  echo "  o. Other       x. Exit"
+  echo
+  read SYS
+  if [ "$SYS" = x ] ; then
+    exit 0
+  elif [ "$SYS" = o ] ; then
+    echo "Enter Fortran 90 compiler command:"
+    read F90
+    echo "Enter Fortran 90 compiler options:"
+    read F90_OPTS
+    echo "Enter Fortran 77 compiler command:"
+    read F77
+    echo "Enter Fortran 77 compiler options:"
+    read F77_OPTS
+  elif [ "$SYS" = 1 ] ; then
+    F90="ifort"
+    F90_OPTS="-O3 -ip -unroll -no-prec-div -openmp"
+    F77=$F90
+    F77_OPTS=$F90_OPTS
+  elif [ "$SYS" = 2 ] ; then
+    F90="gfortran"
+    F90_OPTS="-O3 -ffast-math -funroll-loops -fopenmp"
+    F77=$F90
+    F77_OPTS=$F90_OPTS
+  elif [ "$SYS" = 3 ] ; then
+    F90="pgf90"
+    F90_OPTS="-O3 -mp -lpthread"
+    F77=$F90
+    F77_OPTS=$F90_OPTS
+  elif [ "$SYS" = 4 ] ; then
+    F90="g95"
+    F90_OPTS="-O3 -fno-second-underscore"
+    F77=$F90
+    F77_OPTS=$F90_OPTS
+  elif [ "$SYS" = 5 ] ; then
+    F90="nagfor"
+    F90_OPTS="-O4 -kind=byte -dusty -dcfuns"
+    F77=$F90
+    F77_OPTS=$F90_OPTS
+  elif [ "$SYS" = 6 ] ; then
+    F90="xlf90_r"
+    F90_OPTS="-O3 -qsmp=omp"
+    F77=$F90
+    F77_OPTS=$F90_OPTS
+  elif [ "$SYS" = 20 ] ; then
+    F90="ifort"
+    F90_OPTS="-O3 -ip -unroll -no-prec-div -g -p"
+    F77=$F90
+    F77_OPTS=$F90_OPTS
+  elif [ "$SYS" = 21 ] ; then
+    F90="gfortran"
+    F90_OPTS="-O3 -fopenmp -fcheck=all -finit-real=snan -Wextra -Wall"
+    F77=$F90
+    F77_OPTS=$F90_OPTS
+  elif [ "$SYS" = 22 ] ; then
+    F90="g95"
+    F90_OPTS="-O3 -Wall -std=f95 -pedantic -fbounds-check -fno-second-underscore -ftrace=full"
+    F77=$F90
+    F77_OPTS="-O3 -fno-second-underscore"
+  else
+    GETSYS
+  fi
+}
+
+GETSYS
+
+# produce the make.inc file
+echo > make.inc
+echo "MAKE = $MAKE" >> make.inc
+echo "F90 = $F90" >> make.inc
+echo "F90_OPTS = $F90_OPTS" >> make.inc
+echo "F77 = $F77" >> make.inc
+echo "F77_OPTS = $F77_OPTS" >> make.inc
+echo "AR = $AR" >> make.inc
+echo "LIB_SYS = $LIB_SYS" >> make.inc
+echo "# LAPACK and BLAS libraries" >> make.inc
+echo "LIB_LPK = $LIB_LPK" >> make.inc
+echo "LIB_FFT = $LIB_FFT" >> make.inc
+cat make.def >> make.inc
+
+echo
+echo "You can now edit the compiler options in 'make.inc' to use optimised"
+echo "BLAS/LAPACK/FFT libraries, MPI parallelisation and Libxc."
+echo "See the Elk manual for details."
+echo
+echo "Then run 'make' to compile the code."
+echo
+
+echo
+echo "To enable syntax highlighting in vim run 'make vim'"
+echo
+

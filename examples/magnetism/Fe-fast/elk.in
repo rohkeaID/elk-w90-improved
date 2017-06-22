@@ -1,0 +1,50 @@
+
+! Ferromagnetic bcc iron example. Note the large global magnetic field that is
+! halved at every iteration. This procedure speeds up the convergence of
+! magnetic calculations. Compare the number of iterations with the Fe example.
+
+tasks
+  0
+
+spinpol
+ .true.
+
+! large magnetic field in the z-direction
+bfieldc
+  0.0  0.0  2.0
+
+! the magnetic field is halved at every iteration
+reducebf
+  0.5
+
+! Broyden mixing with spin-polarized calculation works only if a large field is
+! provided so that the system does not get stuck in a non-magnetic solution
+mixtype
+  3
+
+! fairly large number of empty states required for magnetic cases
+nempty
+  8
+
+avec
+  1.0  1.0 -1.0
+  1.0 -1.0  1.0
+ -1.0  1.0  1.0
+
+scale
+  2.708
+
+sppath
+  '../../../species/'
+
+atoms
+  1                                   : nspecies
+  'Fe.in'                             : spfname
+  1                                   : natoms
+  0.0  0.0  0.0    0.0  0.0  0.0      : atposl, bfcmt
+
+ngridk
+  4  4  4
+
+vkloff
+  0.5  0.5  0.5

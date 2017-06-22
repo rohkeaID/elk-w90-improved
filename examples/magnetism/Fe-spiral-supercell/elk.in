@@ -1,0 +1,52 @@
+
+! Spin-spiral state for Gamma-Fe calculated supercells instead of the spiral
+! Bloch state anzatz. This is required for functionals which do not preserve
+! the anzatz self-consistently.
+
+! The code runs in the same way as the phonon supercell calculations. The
+! supercells are generated automatically from the q-points given by ngridq. Like
+! phonons, several instances of the code can be started in the same directory,
+! allowing for parallel generation of the q-dependent ground-states.
+
+! Note that automatic k-point generation is always enabled for this task.
+
+tasks
+  350
+
+! q-point set on which the spiral ground-states are to be computed
+ngridq
+  2  2  2
+
+nempty
+  8
+
+rgkmax
+  6.0
+
+avec
+  1.0  1.0  0.0
+  1.0  0.0  1.0
+  0.0  1.0  1.0
+
+scale
+  3.375
+
+sppath
+  '../../../species/'
+
+atoms
+  1                                     : nspecies
+  'Fe.in'                               : spfname
+  1                                     : natoms
+  0.0  0.0  0.0    -2.0  0.0  0.0       : atposl, bfcmt
+
+! reduce the external B-field at each s.c. cycle
+reducebf
+  0.85
+
+! define a fixed spin direction in the muffin-tin
+fsmtype
+ -2
+
+mommtfix
+  1  1   1.0  0.0  0.0

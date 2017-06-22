@@ -1,0 +1,79 @@
+
+! Determination of the magnetic anisotropy energy (MAE) for Fe_(1-x)Co_x where
+! x = 1/2 and the unit cell is tetragonal of L1_0 type.
+
+! The MAE is determined from a set of fixed spin moment direction calculations
+! performed automatically with task = 28. The number of direction points used is
+! given by the parameter 'npmae'. The estimation becomes more accurate as the
+! number of points increases, but the calculation takes longer. The MAE is also
+! strongly dependent on the number of k-points, the number used in this example
+! is insufficient for a reliable result.
+
+! Example updated by James Glasbrenner and others.
+
+
+tasks
+  28
+
+! high angular momentum cut-off needed for accurate densities and potentials
+lmaxapw
+  14
+
+lmaxvr
+  14
+
+! make the density and potential spherical near the nucleus
+lmaxinr
+  0
+
+! number of magnetisation direction points; the estimate of the MAE improves
+! with the number of points; in this case, the Cartesian x, y and z directions
+! are used
+npmae
+  3
+
+! very tight convergence required
+epspot
+  1.e-8
+
+epsengy
+  1.e-6
+
+rgkmax
+  8.0
+
+ngridk
+  4  4  4
+
+swidth
+  0.01
+
+mixtype
+  3
+
+! artificial strained lattice
+avec
+  0.5  0.5  0.0
+  0.0  1.0  0.0
+  0.0  0.0  1.0
+
+scale1
+  6.8
+
+scale2
+  6.8
+
+scale3
+  7.0
+
+sppath
+  '../../../species/'
+
+atoms
+  2                                   : nspecies
+  'Fe.in'                             : spfname
+  1                                   : natoms; atposl below
+  0.0  0.0  0.0
+  'Co.in'
+  1
+  0.0  0.5  0.5
