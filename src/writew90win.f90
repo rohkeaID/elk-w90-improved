@@ -66,7 +66,7 @@ allocate(wwkpt(wnkptnr))
 call genppts(.false.,1,symlat,ngridk,wnkptnr,epslat,bvec,wkptboxl,wnkpt, &
     wikmap,wikmapnr,wivk,wvkl,wvkc,wwkpt,wkptnr)
 
-! reads the projections and checks that the number of wannier functions 
+! reads the projections and checks that the number of wannier functions
 ! given is equal to the number of projections
 call getw90proj
 ! checks that the number of bands is greater than or equal to the number projections
@@ -84,13 +84,13 @@ open(50,file=filename,action='WRITE',form='FORMATTED')
 write(50,'(" length_unit=Bohr")')
 write(50,'(" num_wann =  ",I8)') wann_nwf
 write(50,'(" num_bands = ",I8)') wann_nband
-write(50,'(" num_iter = ",I8)') wann_numiter 
+write(50,'(" num_iter = ",I8)') wann_numiter
 
 ! writes spinors if necessary
 if (nspinor.eq.2) then
 write(50,*)
-write(50,'(" spinors = true")') 
-write(50,'(" spn_formatted = true")') 
+write(50,'(" spinors = true")')
+write(50,'(" spn_formatted = true")')
 end if
 
 ! writes the unit cell
@@ -154,4 +154,3 @@ deallocate(wwkpt)
 
 end subroutine
 !EOC
-

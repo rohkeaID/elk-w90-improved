@@ -31,12 +31,14 @@ complex(8), intent(in) :: wfir(ngtot,nspinor,wann_nband)
 integer ist,jst,ispin,jspin,i
 integer is,ia,ias,nrc,nrci
 integer nr
-real(8) t1
+real(8) t1real, t1img
+complex(8) t1
 ! automatic arrays
-real(8) fr(nrcmtmax)
+complex(8) fr(nrcmtmax)
 ! external functions
-real(8) fintgt,ddot
-external fintgt,ddot
+real(8) fintgt
+complex(8) zdotu
+external fintgt,zdotu
 ! automatic arrays
 real(8) vkql(3)
 ! allocatable arrays
@@ -45,6 +47,7 @@ complex(8), allocatable :: zrhomt(:,:,:),zrhoir(:)
 complex(8), allocatable :: zrhoig(:,:)
 complex(8), allocatable :: mmnmttot(:,:,:,:)
 complex(8), allocatable :: mmnir(:,:,:,:)
+complex(8), allocatable :: cfunir_complex(:)
 
 ! k+b-vector in lattice coordinates
 vkql(:)=vkl(:,ikp)+vqpl(:)
@@ -56,7 +59,7 @@ vkql(:)=vkl(:,ikp)+vqpl(:)
 ! generate the wavefunctions for all states at k+q
 allocate(wfmtq1(lmmaxvr,nrcmtmax,natmtot,nspinor,wann_nband))
 allocate(wfirq(ngtot,nspinor,wann_nband))
-call genwfsvp(.true.,.false.,wann_nband,wann_bands,vkql,wfmtq1,ngtot,wfirq)
+call genwfsvp(.false.,.false.,wann_nband,wann_bands,vkql,wfmtq1,ngtot,wfirq)
 
 allocate(wfmtq(lmmaxvr,nrcmtmax,natmtot,nspinor,wann_nband))
 do ist=1,wann_nband
@@ -78,6 +81,11 @@ allocate(zrhomt(lmmaxvr,nrcmtmax,natmtot),zrhoir(ngtot))
 allocate(zrhoig(ngrf,4))
 allocate(mmnmttot(wann_nband,4,wann_nband,4))
 allocate(mmnir(wann_nband,4,wann_nband,4))
+allocate(cfunir_complex(ngtot))
+
+mmnmttot = cmplx(0.0d0,0.0d0,kind=8)
+cfunir_complex = cmplx(cfunir,0.0d0,kind=8)
+
 do ist=1,wann_nband
   do jst=1,wann_nband
     i=0
@@ -102,21 +110,27 @@ do ist=1,wann_nband
           is=idxis(ias)
           nr=nrcmt(is)
           fr(1:nr)=zrhomt(1,1:nr,ias)*r2cmt(1:nr,is)
-          t1=fintgt(-1,nrcmt(is),rcmt(:,is),fr)
+          t1real=fintgt(-1,nrcmt(is),rcmt(:,is),dble(fr))
+          t1img=fintgt(-1,nrcmt(is),rcmt(:,is),aimag(fr))
+          t1=cmplx(t1real,t1img,kind=8)
           mmnmttot(ist,ispin,jst,jspin)=mmnmttot(ist,ispin,jst,jspin)+fourpi*y00*t1
         end do
 
         ! find the interstitial mmn
-        t1=ddot(ngtot,zrhoir,1,cfunir,1)
-        mmnir=t1*omega/dble(ngtot)
-        ! total calculated charge
-        matel_mmn=mmnmttot+mmnir
+
+        t1=zdotu(ngtot,zrhoir,1,cfunir_complex,1)
+        mmnir(ist,ispin,jst,jspin)=t1*omega/dble(ngtot)
 
       enddo
     enddo
   enddo
 enddo
 
+! total calculated charge
+matel_mmn=mmnmttot+mmnir
+
+
+deallocate(cfunir_complex)
 deallocate(zrhomt,zrhoir)
 deallocate(zrhoig)
 deallocate(mmnmttot,mmnir)

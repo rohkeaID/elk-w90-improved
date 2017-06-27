@@ -226,7 +226,7 @@ do ikp=1,nkpt
 
     if(ik.ne.ik0) then
       ik0=ik
-      call genwfsvp(.true.,.false.,wann_nband,wann_bands,vkl(:,ik),wfmt,ngtot,wfir)
+      call genwfsvp(.false.,.false.,wann_nband,wann_bands,vkl(:,ik),wfmt,ngtot,wfir)
     end if
 
     ! generate the G+q-vectors and related quantities
@@ -285,7 +285,7 @@ do ikp=1,nkpt
            !write(502,'(2G18.10)') -aimag(mmn(n,2,m,1)-mmn(n,1,m,2)),dble(mmn(n,2,m,1)-mmn(n,1,m,2)) ! y
            !write(502,'(2G18.10)')  dble(mmn(n,1,m,1)-mmn(n,2,m,2)),aimag(mmn(n,1,m,1)-mmn(n,2,m,2)) ! z
             spn_x(ikp,is) = mmn(n,1,m,2)+mmn(n,2,m,1)
-            spn_x(ikp,is) = cmplx(0.d0,1.d0,kind=8)*(mmn(n,2,m,1)-mmn(n,1,m,2))
+            spn_y(ikp,is) = cmplx(0.d0,1.d0,kind=8)*(mmn(n,2,m,1)-mmn(n,1,m,2))
             spn_z(ikp,is) = mmn(n,1,m,1)-mmn(n,2,m,2)
             is=is+1
           end do

@@ -31,22 +31,30 @@ complex(8) :: matel
 real(8) :: norm
 integer is,ia,ias,nrc,nrci
 integer nr
-real(8) t1
+real(8) t1real, t1img
+complex(8) t1
 ! automatic arrays
-real(8) fr(nrcmtmax)
+complex(8) fr(nrcmtmax)
 ! external functions
-real(8) fintgt,ddot
-external fintgt,ddot
+real(8) fintgt
+complex(8) zdotu
+external fintgt,zdotu
 ! allocatable arrays
 complex(8), allocatable :: zrhomt(:,:,:),zrhoir(:)
 complex(8), allocatable :: zrhoig(:)
 complex(8), allocatable :: amnmttot(:,:,:,:)
 complex(8), allocatable :: amnir(:,:,:,:)
+complex(8), allocatable :: cfunir_complex(:)
 
 allocate(zrhomt(lmmaxvr,nrcmtmax,natmtot),zrhoir(ngtot))
 allocate(zrhoig(ngrf))
 allocate(amnmttot(wann_nband,4,wann_nproj,4))
 allocate(amnir(wann_nband,4,wann_nproj,4))
+allocate(cfunir_complex(ngtot))
+
+amnmttot = cmplx(0.0d0,0.0d0,kind=8)
+cfunir_complex = cmplx(cfunir,0.0d0,kind=8)
+
 do jst=1,wann_nproj
   if(wann_proj_isrand(jst)) then
 ! if this projection should be random (at present, any non-atom centred projection!)
@@ -81,20 +89,26 @@ do jst=1,wann_nproj
             is=idxis(ias)
             nr=nrcmt(is)
             fr(1:nr)=zrhomt(1,1:nr,ias)*r2cmt(1:nr,is)
-            t1=fintgt(-1,nrcmt(is),rcmt(:,is),fr)
+            t1real=fintgt(-1,nrcmt(is),rcmt(:,is),dble(fr))
+            t1img=fintgt(-1,nrcmt(is),rcmt(:,is),aimag(fr))
+            t1=cmplx(t1real,t1img,kind=8)
             amnmttot(ist,ispin,jst,jspin)=amnmttot(ist,ispin,jst,jspin)+fourpi*y00*t1
           end do
 
           ! find the interstitial amn
-          t1=ddot(ngtot,zrhoir,1,cfunir,1)
-          amnir=t1*omega/dble(ngtot)
-          ! total calculated charge
-          matel_amn=amnmttot+amnir
+          t1=zdotu(ngtot,zrhoir,1,cfunir_complex,1)
+          amnir(ist,ispin,jst,jspin)=t1*omega/dble(ngtot)
+
         enddo
       enddo
     enddo
+    ! total calculated amn
+    matel_amn(:,:,jst,:)=amnmttot(:,:,jst,:)+amnir(:,:,jst,:)
   end if
 enddo
+
+deallocate(cfunir_complex)
+deallocate(amnmttot,amnir)
 deallocate(zrhomt,zrhoir)
 deallocate(zrhoig)
 
