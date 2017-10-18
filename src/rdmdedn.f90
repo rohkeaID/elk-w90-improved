@@ -32,7 +32,7 @@ integer ik,ist
 do ik=1,nkpt
   allocate(evecsv(nstsv,nstsv),c(nstsv,nstsv))
 ! get eigenvectors from file
-  call getevecsv(filext,vkl(:,ik),evecsv)
+  call getevecsv(filext,ik,vkl(:,ik),evecsv)
 ! kinetic and Coulomb potential contribution
   call zgemm('C','N',nstsv,nstsv,nstsv,zone,evecsv,nstsv,dkdc(:,:,ik),nstsv, &
    zzero,c,nstsv)

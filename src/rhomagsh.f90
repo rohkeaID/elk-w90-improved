@@ -20,58 +20,31 @@ use modmain
 implicit none
 ! local variables
 integer idm,is,ias
-integer nr,nri,nrc,nrci
+integer nrc,nrci,npc
 ! allocatable arrays
-real(8), allocatable :: rfmt(:,:)
+real(8), allocatable :: rfmt(:)
 !$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(rfmt,is,nr,nri) &
-!$OMP PRIVATE(nrc,nrci,idm)
+!$OMP PRIVATE(rfmt,is,nrc,nrci,npc,idm)
 !$OMP DO
 do ias=1,natmtot
-  allocate(rfmt(lmmaxvr,nrcmtmax))
+  allocate(rfmt(npcmtmax))
   is=idxis(ias)
-  nr=nrmt(is)
-  nri=nrmtinr(is)
   nrc=nrcmt(is)
-  nrci=nrcmtinr(is)
+  nrci=nrcmti(is)
+  npc=npcmt(is)
 ! convert the density to spherical harmonics
-  call rfcpy(nr,nri,rhomt(:,:,ias),rfmt)
-  call rfsht(nrc,nrci,1,rfmt,lradstp,rhomt(:,:,ias))
+  rfmt(1:npc)=rhomt(1:npc,ias)
+  call rfsht(nrc,nrci,rfmt,rhomt(:,ias))
 ! convert magnetisation to spherical harmonics
-  if (spinpol) then
-    do idm=1,ndmag
-      call rfcpy(nr,nri,magmt(:,:,ias,idm),rfmt)
-      call rfsht(nrc,nrci,1,rfmt,lradstp,magmt(:,:,ias,idm))
-    end do
-  end if
+  do idm=1,ndmag
+    rfmt(1:npc)=magmt(1:npc,ias,idm)
+    call rfsht(nrc,nrci,rfmt,magmt(:,ias,idm))
+  end do
   deallocate(rfmt)
 end do
 !$OMP END DO
 !$OMP END PARALLEL
 return
-
-contains
-
-subroutine rfcpy(nr,nri,rfmt1,rfmt2)
-implicit none
-! arguments
-integer, intent(in) :: nr,nri
-real(8), intent(in) :: rfmt1(lmmaxvr,nrmtmax)
-real(8), intent(out) :: rfmt2(lmmaxvr,nrcmtmax)
-! local variables
-integer ir,irc
-irc=0
-do ir=1,nri,lradstp
-  irc=irc+1
-  call dcopy(lmmaxinr,rfmt1(:,ir),1,rfmt2(:,irc),1)
-end do
-do ir=nri+lradstp,nr,lradstp
-  irc=irc+1
-  call dcopy(lmmaxvr,rfmt1(:,ir),1,rfmt2(:,irc),1)
-end do
-return
-end subroutine
-
 end subroutine
 !EOC
 

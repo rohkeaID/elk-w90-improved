@@ -125,7 +125,7 @@ t1=dw*dble(ngridk(1)*ngridk(2)*ngridk(3))*dble(nsk(1)*nsk(2)*nsk(3))
 t1=1.d0/t1
 g(:)=t1*g(:)
 ! smooth output function if required
-if (nsm.gt.0) call fsmooth(nsm,nw,1,g)
+if (nsm.gt.0) call fsmooth(nsm,nw,g)
 deallocate(f0,f1,e0,e1)
 deallocate(f00,f01,f10,f11)
 deallocate(e00,e01,e10,e11)

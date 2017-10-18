@@ -10,10 +10,14 @@ implicit none
 ! arguments
 integer, intent(in) :: iq,is,ia,ip
 ! local variables
-integer js,iostat
-integer version_(3),nspecies_,lmmaxvr_
-integer natoms_,nrmt_,ngridg_(3)
+integer js,jas,iostat
+integer version_(3),nspecies_
+integer lmmaxo_,natoms_
+integer nrmt_,ngridg_(3)
 character(256) fext,fname
+! allocatable arrays
+complex(8), allocatable :: zfmt(:,:,:)
+allocate(zfmt(lmmaxo,nrmtmax,natmtot))
 call phfext(iq,is,ia,ip,fext)
 fname='DVS'//trim(fext)
 open(50,file=trim(fname),action='READ',form='UNFORMATTED',status='OLD', &
@@ -43,12 +47,12 @@ if (nspecies.ne.nspecies_) then
   write(*,*)
   stop
 end if
-read(50) lmmaxvr_
-if (lmmaxvr.ne.lmmaxvr_) then
+read(50) lmmaxo_
+if (lmmaxo.ne.lmmaxo_) then
   write(*,*)
-  write(*,'("Error(readdvs): differing lmmaxvr")')
-  write(*,'(" current : ",I4)') lmmaxvr
-  write(*,'(" file    : ",I4)') lmmaxvr_
+  write(*,'("Error(readdvs): differing lmmaxo")')
+  write(*,'(" current : ",I4)') lmmaxo
+  write(*,'(" file    : ",I4)') lmmaxo_
   write(*,'(" in file ",A)') trim(fname)
   write(*,*)
   stop
@@ -86,8 +90,13 @@ if ((ngridg(1).ne.ngridg_(1)).or.(ngridg(2).ne.ngridg_(2)).or. &
   write(*,*)
   stop
 end if
-read(50) dvsmt,dvsir
+read(50) zfmt,dvsir
+do jas=1,natmtot
+  js=idxis(jas)
+  call zfmtpack(.true.,nrmt(js),nrmti(js),zfmt(:,:,jas),dvsmt(:,jas))
+end do
 close(50)
+deallocate(zfmt)
 return
 end subroutine
 

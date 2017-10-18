@@ -1,0 +1,89 @@
+
+! This example generates a good quality phonon dispersion for bcc niobium using
+! density functional perturbation theory (DFPT). The superconducting critical
+! temperature is also computed using McMillan's formula and by solving the
+! Eliashberg equations.
+
+! The phonon dispersion and vertex location lines are included with this
+! example in the files PHDISP.OUT and PHDLINES.OUT, respectively.
+
+tasks
+  0       : generate the ground-state
+  205     : generate the dynamical matrices with DFPT
+
+! number of phonon q-points
+ngridq
+  4  4  4
+
+! add extra local-orbitals for accurate electron-phonon coupling
+nxlo
+  1
+
+! larger cut-off required
+rgkmax
+  8.0
+
+ngridk
+  8  8  8
+
+! larger smearing width required for stable phonon dispersion
+swidth
+  0.005
+
+stype
+  1
+
+! increase the number of muffin-tin points (for accurate gradients)
+nrmtscf
+  2.0
+
+! after all the dynamical matrix DYN---.OUT files have been calculated then
+! uncomment the following lines and run again
+
+! large k-point required for accurate electron-phonon coupling
+!ngridk
+!  24 24 24
+
+!tasks
+!  1       : ground state with larger k-point set
+!  210     : phonon DOS
+!  220     : plot the phonon dispersion
+!  240     : electron-phonon matrix elements
+!  245     : phonon line-widths
+!  250     : Eliashberg function, alpha^2F
+!  260     : solving the Eliashberg equations
+
+! number of temperature steps for Eliashberg calculation
+ntemp
+  40
+
+avec
+  1.0  1.0 -1.0
+  1.0 -1.0  1.0
+ -1.0  1.0  1.0
+
+! use LDA equilibrium lattice constant
+scale
+  3.071
+
+sppath
+ '../../../species/'
+
+atoms
+  1                                   : nspecies
+  'Nb.in'                             : spfname
+  1                                   : natoms; atposl below
+  0.0  0.0  0.0
+
+plot1d
+  9  400
+  0.5   0.5   0.5
+  0.25  0.25  0.25
+  0.0   0.0   0.0
+ -0.5   0.5   0.5
+ -0.5   0.5   0.0
+ -0.75  0.25  0.25
+ -0.5   0.5   0.0
+  0.0   0.0   0.0
+  0.5   0.5   0.0
+

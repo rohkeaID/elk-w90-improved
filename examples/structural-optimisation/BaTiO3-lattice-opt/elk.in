@@ -31,6 +31,9 @@ rgkmax
 gmaxvr
   18.0
 
+trimvg
+ .true.
+
 ngridk
   10  10  10
 

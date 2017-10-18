@@ -13,9 +13,9 @@ use modmain
 !   nr    : number of radial mesh points (in,integer)
 !   nri   : number of points on the inner part of the muffin-tin (in,integer)
 !   zfmt1 : input complex muffin-tin function in spherical harmonics
-!           (in,complex(lmmaxvr,nr))
+!           (in,complex(*))
 !   zfmt2 : output complex muffin-tin function in spherical coordinates
-!           (out,complex(lmmaxvr,nr))
+!           (out,complex(*))
 ! !DESCRIPTION:
 !   Performs a backward spherical harmonic transform (SHT) on a complex
 !   muffin-tin function expressed in spherical harmonics to obtain a function in
@@ -28,19 +28,19 @@ use modmain
 implicit none
 ! arguments
 integer, intent(in) :: nr,nri
-complex(8), intent(in) :: zfmt1(lmmaxvr,nr)
-complex(8), intent(out) :: zfmt2(lmmaxvr,nr)
+complex(8), intent(in) :: zfmt1(*)
+complex(8), intent(out) :: zfmt2(*)
 ! local variables
-integer nro,iro
+integer nro,i
 ! transform the inner part of the muffin-tin
-call zgemm('N','N',lmmaxinr,nri,lmmaxinr,zone,zbshtinr,lmmaxinr,zfmt1,lmmaxvr, &
- zzero,zfmt2,lmmaxvr)
+call zgemm('N','N',lmmaxi,nri,lmmaxi,zone,zbshti,lmmaxi,zfmt1,lmmaxi,zzero, &
+ zfmt2,lmmaxi)
 ! transform the outer part of the muffin-tin
 nro=nr-nri
 if (nro.eq.0) return
-iro=nri+1
-call zgemm('N','N',lmmaxvr,nro,lmmaxvr,zone,zbshtvr,lmmaxvr,zfmt1(:,iro), &
- lmmaxvr,zzero,zfmt2(:,iro),lmmaxvr)
+i=lmmaxi*nri+1
+call zgemm('N','N',lmmaxo,nro,lmmaxo,zone,zbshto,lmmaxo,zfmt1(i),lmmaxo,zzero, &
+ zfmt2(i),lmmaxo)
 return
 end subroutine
 !EOC

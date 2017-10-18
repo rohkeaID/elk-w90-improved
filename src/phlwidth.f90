@@ -9,27 +9,20 @@ use modphonon
 implicit none
 ! local variables
 integer i,j,iq,iv
-integer lwork,info
 real(8) gmin,gmax,t1
 ! allocatable arrays
 real(8), allocatable :: wq(:),gq(:,:),gp(:,:)
-real(8), allocatable :: rwork(:)
-complex(8), allocatable :: dynq(:,:,:)
-complex(8), allocatable :: ev(:,:),b(:,:)
-complex(8), allocatable :: gmq(:,:,:),gmr(:,:,:)
-complex(8), allocatable :: gmp(:,:),work(:)
+complex(8), allocatable :: dynq(:,:,:),ev(:,:),b(:,:)
+complex(8), allocatable :: gmq(:,:,:),gmr(:,:,:),gmp(:,:)
 ! initialise universal variables
 call init0
 call init2
 allocate(wq(nbph),gq(nbph,nqpt),gp(nbph,npp1d))
-allocate(rwork(3*nbph))
 allocate(dynq(nbph,nbph,nqpt))
 allocate(ev(nbph,nbph),b(nbph,nbph))
 allocate(gmq(nbph,nbph,nqpt))
 allocate(gmr(nbph,nbph,nqptnr))
 allocate(gmp(nbph,nbph))
-lwork=2*nbph
-allocate(work(lwork))
 ! read in the dynamical matrices
 call readdyn(dynq)
 ! apply the acoustic sum rule
@@ -61,7 +54,7 @@ do iq=1,npp1d
 ! compute the gamma matrix at this particular q-point
   call dynrtoq(vplp1d(:,iq),gmr,gmp)
 ! diagonalise the gamma matrix
-  call zheev('N','U',nbph,gmp,nbph,gp(:,iq),work,lwork,rwork,info)
+  call eveqnz(nbph,nbph,gmp,gp(:,iq))
 ! square the eigenvalues to recover the linewidths
   gp(:,iq)=gp(:,iq)**2
   gmin=min(gmin,gp(1,iq))
@@ -90,8 +83,8 @@ write(*,*)
 write(*,'("Info(phlwidth):")')
 write(*,'(" phonon linewidth dispersion written to PHLWIDTH.OUT")')
 write(*,'(" vertex location lines written to PHLWLINES.OUT")')
-deallocate(wq,gq,gp,rwork,dynq)
-deallocate(ev,b,gmq,gmr,gmp,work)
+deallocate(wq,gq,gp,dynq)
+deallocate(ev,b,gmq,gmr,gmp)
 return
 end subroutine
 

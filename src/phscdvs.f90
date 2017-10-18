@@ -10,16 +10,16 @@ use modstore
 implicit none
 ! arguments
 integer, intent(in) :: p
-real(8), intent(in) :: vsmt0(lmmaxvr,nrmtmax,natmtot),vsir0(ngtot)
+real(8), intent(in) :: vsmt0(npmtmax,natmtot),vsir0(ngtot)
 ! local variables
 integer is,ia,ja,ias,jas
-integer nr,nri,iv(3),i
-integer ig0,ifg0,ifg
+integer nr,nri,np,i
+integer iv(3),ig0,ifg0,ifg
 real(8) vl(3),vc(3),t1
 complex(8) z0,z1,z2
 ! allocatable arrays
-real(8), allocatable :: rfmt(:,:)
-complex(8), allocatable :: zfmt(:,:),zfir(:)
+real(8), allocatable :: rfmt(:)
+complex(8), allocatable :: zfmt(:),zfir(:)
 ! prefactor
 z0=1.d0/(2.d0*deltaph)
 ! multiply by i for sin-like displacement
@@ -27,13 +27,14 @@ if (p.eq.1) z0=z0*zi
 !------------------------------!
 !     muffin-tin potential     !
 !------------------------------!
-allocate(rfmt(lmmaxvr,nrmtmax),zfmt(lmmaxvr,nrmtmax))
+allocate(rfmt(npmtmax),zfmt(npmtmax))
 z1=z0/dble(nscph)
 ias=0
 jas=0
 do is=1,nspecies
   nr=nrmt(is)
-  nri=nrmtinr(is)
+  nri=nrmti(is)
+  np=npmt(is)
   ja=0
   do ia=1,natoms0(is)
     ias=ias+1
@@ -41,14 +42,14 @@ do is=1,nspecies
       ja=ja+1
       jas=jas+1
 ! compute the difference between the perturbed and unperturbed potentials
-      rfmt(:,1:nr)=vsmt(:,1:nr,jas)-vsmt0(:,1:nr,jas)
+      rfmt(1:np)=vsmt(1:np,jas)-vsmt0(1:np,jas)
 ! convert real potential difference to a complex spherical harmonic expansion
-      call rtozfmt(nr,nri,1,rfmt,1,zfmt)
+      call rtozfmt(nr,nri,rfmt,zfmt)
 ! the muffin-tin potential should have an *explicit* phase exp(iq.r)
       t1=-dot_product(vqc(:,iqph),vscph(:,i))
       z2=z1*cmplx(cos(t1),sin(t1),8)
 ! add to total
-      call zfmtadd(nr,nri,z2,zfmt,dvsmt(:,:,ias))
+      dvsmt(1:np,ias)=dvsmt(1:np,ias)+z2*zfmt(1:np)
     end do
 ! end loop over atoms and species
   end do

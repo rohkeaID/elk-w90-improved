@@ -11,7 +11,7 @@ subroutine genylmg
 use modmain
 ! !DESCRIPTION:
 !   Generates a set of spherical harmonics, $Y_{lm}(\hat{\bf G})$, with angular
-!   momenta up to {\tt lmaxvr} for the set of ${\bf G}$-vectors.
+!   momenta up to {\tt lmaxo} for the set of ${\bf G}$-vectors.
 !
 ! !REVISION HISTORY:
 !   Created June 2003 (JKD)
@@ -23,10 +23,10 @@ integer ig
 real(8) r,tp(2)
 ! allocate global G-vector spherical harmonic array
 if (allocated(ylmg)) deallocate(ylmg)
-allocate(ylmg(lmmaxvr,ngvec))
+allocate(ylmg(lmmaxo,ngvec))
 do ig=1,ngvec
   call sphcrd(vgc(:,ig),r,tp)
-  call genylm(lmaxvr,tp,ylmg(:,ig))
+  call genylm(lmaxo,tp,ylmg(:,ig))
 end do
 return
 end subroutine

@@ -11,8 +11,8 @@ integer, intent(in) :: lmax
 integer, intent(in) :: ld
 complex(8), intent(inout) :: dmat(ld,nspinor,ld,nspinor,natmtot)
 ! local variables
-integer isym,lspl,lspn,lmmax
 integer is,ia,ja,ias,jas
+integer isym,lspl,lspn,lmmax
 real(8) t1
 ! automatic arrays
 logical done(natmmax)
@@ -50,8 +50,9 @@ do is=1,nspecies
       ja=ieqatom(ia,is,isym)
       if (.not.done(ja)) then
         jas=idxas(ja,is)
-        lspl=lsplsymc(isym)
-        lspn=lspnsymc(isym)
+! inverse symmetry (which rotates atom ia into atom ja)
+        lspl=isymlat(lsplsymc(isym))
+        lspn=isymlat(lspnsymc(isym))
         dmat(:,:,:,:,jas)=0.d0
         call rotdmat(symlatc(:,:,lspl),symlatc(:,:,lspn),lmax,nspinor,ld, &
          dmat(:,:,:,:,ias),dmat(:,:,:,:,jas))

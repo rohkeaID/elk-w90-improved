@@ -18,7 +18,7 @@ subroutine pade(nin,zin,uin,nout,zout,uout)
 !   Calculates a Pad\'{e} approximant of a function, given the function
 !   evaluated on a set of points in the complex plane. The function is returned
 !   for a set of complex output points. The algorithm from H. J. Vidberg and
-!   J. W. Serene {\it J. Low Temp. Phys.} {\bf } 29, 179 (1977) is used.
+!   J. W. Serene {\it J. Low Temp. Phys.} {\bf 29}, 179 (1977) is used.
 !
 ! !REVISION HISTORY:
 !   Created December 2010 (Antonio Sanna)
@@ -50,7 +50,13 @@ allocate(g(nin,nin))
 g(1,:)=uin(:)
 do i=2,nin
   do j=i,nin
-    g(i,j)=(g(i-1,i-1)-g(i-1,j))/((zin(j)-zin(i-1))*g(i-1,j))
+    z1=(zin(j)-zin(i-1))*g(i-1,j)
+    t1=abs(dble(z1))+abs(aimag(z1))
+    if (t1.gt.1.d-14) then
+      g(i,j)=(g(i-1,i-1)-g(i-1,j))/z1
+    else
+      g(i,j)=0.d0
+    end if
   end do
 end do
 ! loop over output points

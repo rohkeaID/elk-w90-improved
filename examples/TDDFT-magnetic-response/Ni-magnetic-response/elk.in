@@ -9,7 +9,7 @@ tasks
 
 ! energy cut-off for Kohn-Sham response function
 emaxrf
-  0.5
+  1.5
 
 ! G-vector cut-off for response function
 gmaxrf

@@ -8,6 +8,7 @@ use modmain
 use modtddft
 use moddftu
 use modmpi
+use modtest
 implicit none
 ! local variables
 integer ik,itimes0
@@ -42,8 +43,8 @@ call genapwfr
 call genlofr
 ! get the eigenvalues and occupation numbers from file
 do ik=1,nkpt
-  call getevalsv(filext,vkl(:,ik),evalsv(:,ik))
-  call getoccsv(filext,vkl(:,ik),occsv(:,ik))
+  call getevalsv(filext,ik,vkl(:,ik),evalsv(:,ik))
+  call getoccsv(filext,ik,vkl(:,ik),occsv(:,ik))
 end do
 ! DFT+U
 if (dftu.ne.0) then
@@ -63,11 +64,13 @@ if (mp_mpi.and.(task.eq.460)) then
   do ik=1,nkpt
     call putoccsv('_TD.OUT',ik,occsv(:,ik))
     allocate(evecfv(nmatmax,nstfv,nspnfv))
-    call getevecfv('.OUT',vkl(:,ik),vgkl(:,:,:,ik),evecfv)
+    call getevecfv('.OUT',ik,vkl(:,ik),vgkl(:,:,:,ik),evecfv)
     call putevecfv('_TD.OUT',ik,evecfv)
     deallocate(evecfv)
     allocate(evecsv(nstsv,nstsv))
-    call getevecsv('.OUT',vkl(:,ik),evecsv)
+    call getevecsv('.OUT',ik,vkl(:,ik),evecsv)
+! randomise eigenvectors at t=0 if required
+    call rndevsv(rndevt0,evecsv)
     call putevecsv('_TD.OUT',ik,evecsv)
     deallocate(evecsv)
   end do
@@ -88,19 +91,19 @@ do itimes=itimes0+1,ntimes-1
     write(*,'("Info(tddft): time step ",I8," of ",I8,",   t = ",G18.10)') &
      itimes,ntimes,times(itimes)
   end if
+! evolve the wavefunctions across a single time step
+  call timestep
 ! generate the density and magnetisation at current time step
   call rhomag
 ! compute the total current
   call current
+! compute the time-dependent Kohn-Sham potentials and magnetic fields
+  call potkst
 ! DFT+U
   if (dftu.ne.0) then
     call gendmatmt
     call genvmatmt
   end if
-! compute the time-dependent Kohn-Sham potentials and magnetic fields
-  call potkst
-! evolve the wavefunctions across a single time step
-  call timestep
   if (mp_mpi) then
 ! write TDDFT output
     call writetddft
@@ -111,6 +114,8 @@ do itimes=itimes0+1,ntimes-1
   call mpi_barrier(mpi_comm_kpt,ierror)
 end do
 filext='.OUT'
+! write the total current of the last step to test file
+call writetest(460,'total current of last time step',nv=3,tol=1.d-6,rva=curtot)
 return
 end subroutine
 

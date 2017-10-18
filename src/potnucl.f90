@@ -7,6 +7,12 @@
 ! !ROUTINE: potnucl
 ! !INTERFACE:
 subroutine potnucl(ptnucl,nr,r,zn,vn)
+! !INPUT/OUTPUT PARAMETERS:
+!   ptnucl : .true. if the nucleus is a point charge (in,logical)
+!   nr     : number of radial mesh points (in,integer)
+!   r      : radial mesh (in,real(nr))
+!   zn     : nuclear charge (in,real)
+!   vn     : potential on radial mesh (out,real(nr))
 ! !DESCRIPTION:
 !   Computes the nuclear potential on a radial mesh. The nuclear radius $R$ is
 !   estimated from the nuclear charge $Z$ and the potential is given by
@@ -24,8 +30,7 @@ implicit none
 ! arguments
 logical, intent(in) :: ptnucl
 integer, intent(in) :: nr
-real(8), intent(in) :: r(nr)
-real(8), intent(in) :: zn
+real(8), intent(in) :: r(nr),zn
 real(8), intent(out) :: vn(nr)
 ! local variables
 integer ir

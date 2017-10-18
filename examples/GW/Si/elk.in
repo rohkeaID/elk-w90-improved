@@ -1,0 +1,48 @@
+
+! GW spectral function of silicon.
+
+tasks
+  0
+  600
+
+! use the diagonal approximation to teh self-energy
+gwdiag
+  1
+
+! Matsubara frequency cut-off
+wmaxgw
+  3.0
+
+! response function G-vector cut-off
+gmaxrf
+  3.0
+
+! temperature of many-body system (determines Matsubara frequency spacing)
+tempk
+  1500.0
+
+wplot
+  800 100 0
+  -0.8 0.5
+
+nempty
+  4
+
+avec
+  5.13  5.13  0.00
+  5.13  0.00  5.13
+  0.00  5.13  5.13
+
+sppath
+  '../../../species/'
+
+atoms
+  1                                 : nspecies
+  'Si.in'                           : spfname
+  2                                 : natoms; atposl below
+  0.0  0.0  0.0
+  0.25 0.25 0.25
+
+ngridk
+  4  4  4
+

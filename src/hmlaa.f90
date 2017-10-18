@@ -12,8 +12,7 @@ use modmain
 ! !INPUT/OUTPUT PARAMETERS:
 !   ias    : joint atom and species number (in,integer)
 !   ngp    : number of G+p-vectors (in,integer)
-!   apwalm : APW matching coefficients
-!            (in,complex(ngkmax,apwordmax,lmmaxapw,natmtot))
+!   apwalm : APW matching coefficients (in,complex(ngkmax,apwordmax,lmmaxapw))
 !   ld     : leading dimension of h (in,integer)
 !   h      : Hamiltonian matrix (inout,complex(*))
 ! !DESCRIPTION:
@@ -26,7 +25,7 @@ use modmain
 implicit none
 ! arguments
 integer, intent(in) :: ias,ngp
-complex(8), intent(in) :: apwalm(ngkmax,apwordmax,lmmaxapw,natmtot)
+complex(8), intent(in) :: apwalm(ngkmax,apwordmax,lmmaxapw)
 integer, intent(in) :: ld
 complex(8), intent(inout) :: h(*)
 ! local variables
@@ -50,7 +49,7 @@ do l1=0,lmaxmat
           lm3=lm3+1
           do jo=1,apword(l3,is)
             zsum=0.d0
-            do l2=0,lmaxvr
+            do l2=0,lmaxo
               if (mod(l1+l2+l3,2).eq.0) then
                 do m2=-l2,l2
                   lm2=idxlm(l2,m2)
@@ -59,12 +58,12 @@ do l1=0,lmaxmat
               end if
             end do
             if (abs(dble(zsum))+abs(aimag(zsum)).gt.1.d-14) then
-              call zaxpy(ngp,zsum,apwalm(:,jo,lm3,ias),1,y,1)
+              call zaxpy(ngp,zsum,apwalm(:,jo,lm3),1,y,1)
             end if
           end do
         end do
       end do
-      x(1:ngp)=conjg(apwalm(1:ngp,io,lm1,ias))
+      x(1:ngp)=conjg(apwalm(1:ngp,io,lm1))
       call zher2i(ngp,zone,x,y,ld,h)
     end do
   end do
@@ -76,10 +75,10 @@ do l1=0,lmaxmat
   do m1=-l1,l1
     lm1=lm1+1
     do io=1,apword(l1,is)
-      x(1:ngp)=conjg(apwalm(1:ngp,io,lm1,ias))
+      x(1:ngp)=conjg(apwalm(1:ngp,io,lm1))
       do jo=1,apword(l1,is)
         z1=t1*apwfr(nrmt(is),1,io,l1,ias)*apwdfr(jo,l1,ias)
-        call zher2i(ngp,z1,x,apwalm(:,jo,lm1,ias),ld,h)
+        call zher2i(ngp,z1,x,apwalm(:,jo,lm1),ld,h)
       end do
     end do
   end do

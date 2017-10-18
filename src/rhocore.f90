@@ -21,25 +21,37 @@ use modmain
 !BOC
 implicit none
 ! local variables
-integer idm,ispn
-integer is,ias,nr,ir
+integer ispn,idm,is,ias
+integer nr,nri,iro,ir,i
 real(8) v(ndmag),sum,t1
 ! automatic arrays
-real(8) fr(nrmtmax),gr(nrmtmax)
+real(8) fr(nrmtmax)
+! external functions
+real(8) fintgt
+external fintgt
 do ias=1,natmtot
   is=idxis(ias)
   nr=nrmt(is)
+  nri=nrmti(is)
+  iro=nri+1
   sum=0.d0
 ! loop over spin channels
   do ispn=1,nspncr
-    do ir=1,nr
 ! add the core density to the muffin-tin density
-      rhomt(1,ir,ias)=rhomt(1,ir,ias)+rhocr(ir,ias,ispn)/y00
+    i=1
+    do ir=1,nri
+      rhomt(i,ias)=rhomt(i,ias)+rhocr(ir,ias,ispn)/y00
       fr(ir)=rhocr(ir,ias,ispn)*r2sp(ir,is)
+      i=i+lmmaxi
+    end do
+    do ir=iro,nr
+      rhomt(i,ias)=rhomt(i,ias)+rhocr(ir,ias,ispn)/y00
+      fr(ir)=rhocr(ir,ias,ispn)*r2sp(ir,is)
+      i=i+lmmaxo
     end do
 ! compute the core charge inside the muffin-tins
-    call fderiv(-1,nr,rsp(:,is),fr,gr)
-    sum=sum+fourpi*gr(nr)
+    t1=fintgt(-1,nr,rsp(:,is),fr)
+    sum=sum+fourpi*t1
   end do
 ! core leakage charge
   chgcrlk(ias)=chgcr(is)-sum
@@ -47,11 +59,17 @@ do ias=1,natmtot
   if (spincore) then
 ! compute the total moment in the muffin-tin
     do idm=1,ndmag
-      do ir=1,nr
-        fr(ir)=magmt(1,ir,ias,idm)*r2sp(ir,is)
+      i=1
+      do ir=1,nri
+        fr(ir)=magmt(i,ias,idm)*r2sp(ir,is)
+        i=i+lmmaxi
       end do
-      call fderiv(-1,nr,rsp(:,is),fr,gr)
-      v(idm)=fourpi*y00*gr(nr)
+      do ir=iro,nr
+        fr(ir)=magmt(i,ias,idm)*r2sp(ir,is)
+        i=i+lmmaxo
+      end do
+      t1=fintgt(-1,nr,rsp(:,is),fr)
+      v(idm)=fourpi*y00*t1
     end do
 ! normalise
     if (ncmag) then
@@ -61,9 +79,16 @@ do ias=1,natmtot
     end if
     if (t1.gt.1.d-10) v(:)=v(:)/t1
 ! add the core magnetisation to the total
-    do ir=1,nr
+    i=1
+    do ir=1,nri
       t1=abs((rhocr(ir,ias,1)-rhocr(ir,ias,2))/y00)
-      magmt(1,ir,ias,:)=magmt(1,ir,ias,:)+t1*v(:)
+      magmt(i,ias,:)=magmt(i,ias,:)+t1*v(:)
+      i=i+lmmaxi
+    end do
+    do ir=iro,nr
+      t1=abs((rhocr(ir,ias,1)-rhocr(ir,ias,2))/y00)
+      magmt(i,ias,:)=magmt(i,ias,:)+t1*v(:)
+      i=i+lmmaxo
     end do
   end if
 end do

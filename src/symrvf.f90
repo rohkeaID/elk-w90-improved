@@ -6,13 +6,15 @@
 !BOP
 ! !ROUTINE: symrvf
 ! !INTERFACE:
-subroutine symrvf(lrstp,rvfmt,rvfir)
+subroutine symrvf(nr,nri,np,ld,rvfmt,rvfir)
 ! !USES:
 use modmain
 ! !INPUT/OUTPUT PARAMETERS:
-!   lrstp : radial step length (in,integer)
-!   rvfmt : real muffin-tin vector field
-!           (in,real(lmmaxvr,nrmtmax,natmtot,ndmag))
+!   nr    : number of radial points for each species (in,integer(nspecies))
+!   nri   : number of radial points on the inner part (in,integer(nspecies))
+!   np    : total number of points in each muffin-tin (in,integer(nspecies))
+!   ld    : leading dimension (in,integer)
+!   rvfmt : real muffin-tin vector field (in,real(ld,natmtot,ndmag))
 !   rvfir : real interstitial vector field (in,real(ngtot,ndmag))
 ! !DESCRIPTION:
 !   Symmetrises a vector field defined over the entire unit cell using the full
@@ -33,42 +35,35 @@ use modmain
 !BOC
 implicit none
 ! arguments
-integer, intent(in) :: lrstp
-real(8), intent(inout) :: rvfmt(lmmaxvr,nrmtmax,natmtot,ndmag)
-real(8), intent(inout) :: rvfir(ngtot,ndmag)
+integer, intent(in) :: nr(nspecies),nri(nspecies),np(nspecies)
+integer, intent(in) :: ld
+real(8), intent(inout) :: rvfmt(ld,natmtot,ndmag),rvfir(ngtot,ndmag)
 ! local variables
 integer is,ia,ja,ias,jas
-integer nr,nri,ir,lmmax,lm
-integer isym,lspl,ilspl
-integer lspn,ilspn,md,i
+integer isym,lspl,lspn,md,i
 real(8) sc(3,3),v(3),t0,t1
 ! automatic arrays
 logical done(natmmax)
 ! allocatable arrays
-real(8), allocatable :: rvfmt1(:,:,:,:),rvfmt2(:,:,:)
+real(8), allocatable :: rvfmt1(:,:,:),rvfmt2(:,:)
 !-------------------------!
 !     muffin-tin part     !
 !-------------------------!
-allocate(rvfmt1(lmmaxvr,nrmtmax,natmmax,ndmag))
-allocate(rvfmt2(lmmaxvr,nrmtmax,ndmag))
+allocate(rvfmt1(npmtmax,natmmax,ndmag),rvfmt2(npmtmax,ndmag))
 t0=1.d0/dble(nsymcrys)
 do is=1,nspecies
-  nr=nrmt(is)
-  nri=nrmtinr(is)
 ! make copy of vector field for all atoms of current species
   do i=1,ndmag
     do ia=1,natoms(is)
       ias=idxas(ia,is)
-      call rfmtcopy(nr,nri,lrstp,rvfmt(:,:,ias,i),rvfmt1(:,:,ia,i))
+      rvfmt1(1:np(is),ia,i)=rvfmt(1:np(is),ias,i)
     end do
   end do
   done(:)=.false.
   do ia=1,natoms(is)
     if (done(ia)) cycle
     ias=idxas(ia,is)
-    do i=1,ndmag
-      call rfmtzero(nr,nri,lrstp,rvfmt(:,:,ias,i))
-    end do
+    rvfmt(1:np(is),ias,1:ndmag)=0.d0
 ! begin loop over crystal symmetries
     do isym=1,nsymcrys
 ! equivalent atom
@@ -76,8 +71,8 @@ do is=1,nspecies
 ! parallel transport of vector field
       lspl=lsplsymc(isym)
       do i=1,ndmag
-        call rotrfmt(symlatc(:,:,lspl),nr,nri,lrstp,rvfmt1(:,:,ja,i), &
-         rvfmt2(:,:,i))
+        call rotrfmt(symlatc(:,:,lspl),nr(is),nri(is),rvfmt1(:,ja,i), &
+         rvfmt2(:,i))
       end do
 ! global spin proper rotation matrix in Cartesian coordinates
       lspn=lspnsymc(isym)
@@ -86,32 +81,23 @@ do is=1,nspecies
 ! global spin rotation of vector field
       if (ncmag) then
 ! non-collinear case
-        lmmax=lmmaxinr
-        do ir=1,nr,lrstp
-          do lm=1,lmmax
-            v(:)=sc(:,1)*rvfmt2(lm,ir,1) &
-                +sc(:,2)*rvfmt2(lm,ir,2) &
-                +sc(:,3)*rvfmt2(lm,ir,3)
-            rvfmt(lm,ir,ias,:)=rvfmt(lm,ir,ias,:)+v(:)
-          end do
-          if (ir.eq.nri) lmmax=lmmaxvr
+        do i=1,np(is)
+          v(:)=sc(:,1)*rvfmt2(i,1) &
+              +sc(:,2)*rvfmt2(i,2) &
+              +sc(:,3)*rvfmt2(i,3)
+          rvfmt(i,ias,:)=rvfmt(i,ias,:)+v(:)
         end do
       else
 ! collinear case
         t1=sc(3,3)
-        lmmax=lmmaxinr
-        do ir=1,nr,lrstp
-          rvfmt(1:lmmax,ir,ias,1)=rvfmt(1:lmmax,ir,ias,1) &
-           +t1*rvfmt2(1:lmmax,ir,1)
-          if (ir.eq.nri) lmmax=lmmaxvr
+        do i=1,np(is)
+          rvfmt(i,ias,1)=rvfmt(i,ias,1)+t1*rvfmt2(i,1)
         end do
       end if
 ! end loop over crystal symmetries
     end do
 ! normalise
-    do i=1,ndmag
-      call rfmtscal(nr,nri,lrstp,t0,rvfmt(:,:,ias,i))
-    end do
+    rvfmt(1:np(is),ias,1:ndmag)=t0*rvfmt(1:np(is),ias,1:ndmag)
 ! mark atom as done
     done(ia)=.true.
 ! rotate into equivalent atoms
@@ -120,35 +106,29 @@ do is=1,nspecies
       if (.not.done(ja)) then
         jas=idxas(ja,is)
 ! parallel transport of vector field (using operation inverse)
-        lspl=lsplsymc(isym)
-        ilspl=isymlat(lspl)
+        lspl=isymlat(lsplsymc(isym))
         do i=1,ndmag
-          call rotrfmt(symlatc(:,:,ilspl),nr,nri,lrstp,rvfmt(:,:,ias,i), &
-           rvfmt(:,:,jas,i))
+          call rotrfmt(symlatc(:,:,lspl),nr(is),nri(is),rvfmt(:,ias,i), &
+           rvfmt(:,jas,i))
         end do
 ! inverse of global proper rotation matrix in Cartesian coordinates
-        lspn=lspnsymc(isym)
-        ilspn=isymlat(lspn)
-        md=symlatd(ilspn)
-        sc(:,:)=dble(md)*symlatc(:,:,ilspn)
+        lspn=isymlat(lspnsymc(isym))
+        md=symlatd(lspn)
+        sc(:,:)=dble(md)*symlatc(:,:,lspn)
 ! global spin rotation of vector field
         if (ncmag) then
 ! non-collinear case
-          lmmax=lmmaxinr
-          do ir=1,nr,lrstp
-            do lm=1,lmmax
-              v(:)=rvfmt(lm,ir,jas,:)
-              rvfmt(lm,ir,jas,:)=sc(:,1)*v(1)+sc(:,2)*v(2)+sc(:,3)*v(3)
-            end do
-            if (ir.eq.nri) lmmax=lmmaxvr
+          do i=1,np(is)
+            v(:)=sc(:,1)*rvfmt(i,jas,1) &
+                +sc(:,2)*rvfmt(i,jas,2) &
+                +sc(:,3)*rvfmt(i,jas,3)
+            rvfmt(i,jas,:)=v(:)
           end do
         else
 ! collinear case
           t1=sc(3,3)
-          lmmax=lmmaxinr
-          do ir=1,nr,lrstp
-            rvfmt(1:lmmax,ir,jas,1)=t1*rvfmt(1:lmmax,ir,jas,1)
-            if (ir.eq.nri) lmmax=lmmaxvr
+          do i=1,np(is)
+            rvfmt(i,jas,1)=t1*rvfmt(i,jas,1)
           end do
         end if
 ! mark atom as done

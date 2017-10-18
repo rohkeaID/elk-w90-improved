@@ -36,7 +36,7 @@ call sfacinit
 ! generate the magnetic structure factors
 allocate(zmagh(nhvec))
 do idm=1,ndmag
-  call zftrf(nhvec,ivh,vhc,magmt(:,:,:,idm),magir(:,idm),zmagh)
+  call zftrf(nhvec,ivh,vhc,magmt(:,:,idm),magir(:,idm),zmagh)
   write(fname,'("SFACMAG_",I1.1,".OUT")') idm
   open(50,file=trim(fname),action='WRITE',form='FORMATTED')
   write(50,*)

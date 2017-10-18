@@ -9,32 +9,29 @@ implicit none
 ! arguments
 integer, intent(in) :: ik2
 ! local variables
-integer ik1,iv(3),iq,igq0,ig,jg
+integer ik1,ist1,ist2,jst1,jst2
 integer i1,i2,j1,j2,a1,a2,b1,b2
-integer ist1,ist2,jst1,jst2
+integer iv(3),iq,igq0,ig,jg
 real(8) vl(3),vc(3),t0,t1,t2
 complex(8) zsum
-character(256) fname
 ! automatic arrays
 integer idx(nstsv)
 real(8) vcl(ngrf)
 ! allocatable arrays
-real(8), allocatable :: vgqc(:,:),gqc(:)
+real(8), allocatable :: vgqc(:,:),gqc(:),jlgqr(:,:,:)
 complex(8), allocatable :: ylmgq(:,:),sfacgq(:,:)
-complex(8), allocatable :: wfmt1(:,:,:,:,:),wfir1(:,:,:)
-complex(8), allocatable :: wfmt2(:,:,:,:,:),wfir2(:,:,:)
-complex(8), allocatable :: zrhomt(:,:,:),zrhoir(:)
+complex(8), allocatable :: wfmt1(:,:,:,:),wfir1(:,:,:)
+complex(8), allocatable :: wfmt2(:,:,:,:),wfir2(:,:,:)
+complex(8), allocatable :: zrhomt(:,:),zrhoir(:)
 complex(8), allocatable :: zvv(:,:,:),zcc(:,:,:)
 complex(8), allocatable :: zvc(:,:,:),zcv(:,:,:)
-complex(8), allocatable :: epsinv(:,:,:)
-allocate(vgqc(3,ngvec),gqc(ngvec))
-allocate(ylmgq(lmmaxvr,ngvec),sfacgq(ngvec,natmtot))
-allocate(wfmt1(lmmaxvr,nrcmtmax,natmtot,nspinor,nstsv))
-allocate(wfir1(ngtot,nspinor,nstsv))
-allocate(wfmt2(lmmaxvr,nrcmtmax,natmtot,nspinor,nstsv))
-allocate(wfir2(ngtot,nspinor,nstsv))
+complex(8), allocatable :: epsi(:,:,:)
+allocate(vgqc(3,ngrf),gqc(ngrf),jlgqr(njcmax,nspecies,ngrf))
+allocate(ylmgq(lmmaxo,ngrf),sfacgq(ngrf,natmtot))
+allocate(wfmt1(npcmtmax,natmtot,nspinor,nstsv),wfir1(ngtot,nspinor,nstsv))
+allocate(wfmt2(npcmtmax,natmtot,nspinor,nstsv),wfir2(ngtot,nspinor,nstsv))
 allocate(zvv(ngrf,nvbse,nvbse),zcc(ngrf,ncbse,ncbse))
-allocate(epsinv(ngrf,ngrf,nwrf))
+allocate(epsi(ngrf,ngrf,nwrf))
 if (bsefull) then
   allocate(zvc(ngrf,nvbse,ncbse))
   allocate(zcv(ngrf,ncbse,nvbse))
@@ -45,8 +42,6 @@ do ist1=1,nstsv
 end do
 ! generate the wavefunctions for all states of k-point ik2
 call genwfsvp(.false.,.false.,nstsv,idx,vkl(:,ik2),wfmt2,ngtot,wfir2)
-! filename for inverse dielectric function
-fname='EPSINV_RPA.OUT'
 ! begin loop over ik1
 do ik1=1,nkptnr
 ! generate the wavefunctions for all states of k-point ik1
@@ -59,7 +54,7 @@ do ik1=1,nkptnr
   vl(:)=vkl(:,ik1)-vkl(:,ik2)
   vc(:)=vkc(:,ik1)-vkc(:,ik2)
 ! generate the G+q-vectors and related quantities
-  call gengqrf(vc,igq0,vgqc,gqc,ylmgq,sfacgq)
+  call gengqrf(vc,igq0,vgqc,gqc,jlgqr,ylmgq,sfacgq)
 ! compute the regularised Coulomb interaction
   do ig=1,ngrf
     if (ig.eq.igq0) then
@@ -77,13 +72,13 @@ do ik1=1,nkptnr
 !$OMP PRIVATE(zrhomt,zrhoir,ist1,ist2,i2)
 !$OMP DO
   do i1=1,nvbse
-    allocate(zrhomt(lmmaxvr,nrcmtmax,natmtot),zrhoir(ngtot))
+    allocate(zrhomt(npcmtmax,natmtot),zrhoir(ngtot))
     ist1=istbse(i1,ik1)
     do i2=1,nvbse
       ist2=istbse(i2,ik2)
-      call genzrho(.true.,.true.,wfmt2(:,:,:,:,ist2),wfir2(:,:,ist2), &
-       wfmt1(:,:,:,:,ist1),wfir1(:,:,ist1),zrhomt,zrhoir)
-      call zftzf(ngrf,gqc,ylmgq,ngrf,sfacgq,zrhomt,zrhoir,zvv(:,i1,i2))
+      call genzrho(.true.,.true.,wfmt2(:,:,:,ist2),wfir2(:,:,ist2), &
+       wfmt1(:,:,:,ist1),wfir1(:,:,ist1),zrhomt,zrhoir)
+      call zftzf(ngrf,jlgqr,ylmgq,ngrf,sfacgq,zrhomt,zrhoir,zvv(:,i1,i2))
     end do
     deallocate(zrhomt,zrhoir)
   end do
@@ -94,13 +89,13 @@ do ik1=1,nkptnr
 !$OMP PRIVATE(zrhomt,zrhoir,jst1,jst2,j2)
 !$OMP DO
   do j1=1,ncbse
-    allocate(zrhomt(lmmaxvr,nrcmtmax,natmtot),zrhoir(ngtot))
+    allocate(zrhomt(npcmtmax,natmtot),zrhoir(ngtot))
     jst1=jstbse(j1,ik1)
     do j2=1,ncbse
       jst2=jstbse(j2,ik2)
-      call genzrho(.true.,.true.,wfmt2(:,:,:,:,jst2),wfir2(:,:,jst2), &
-       wfmt1(:,:,:,:,jst1),wfir1(:,:,jst1),zrhomt,zrhoir)
-      call zftzf(ngrf,gqc,ylmgq,ngrf,sfacgq,zrhomt,zrhoir,zcc(:,j1,j2))
+      call genzrho(.true.,.true.,wfmt2(:,:,:,jst2),wfir2(:,:,jst2), &
+       wfmt1(:,:,:,jst1),wfir1(:,:,jst1),zrhomt,zrhoir)
+      call zftzf(ngrf,jlgqr,ylmgq,ngrf,sfacgq,zrhomt,zrhoir,zcc(:,j1,j2))
     end do
     deallocate(zrhomt,zrhoir)
   end do
@@ -113,13 +108,13 @@ do ik1=1,nkptnr
 !$OMP PRIVATE(zrhomt,zrhoir,ist1,jst2,j2)
 !$OMP DO
     do i1=1,nvbse
-      allocate(zrhomt(lmmaxvr,nrcmtmax,natmtot),zrhoir(ngtot))
+      allocate(zrhomt(npcmtmax,natmtot),zrhoir(ngtot))
       ist1=istbse(i1,ik1)
       do j2=1,ncbse
         jst2=jstbse(j2,ik2)
-        call genzrho(.true.,.true.,wfmt2(:,:,:,:,jst2),wfir2(:,:,jst2), &
-         wfmt1(:,:,:,:,ist1),wfir1(:,:,ist1),zrhomt,zrhoir)
-        call zftzf(ngrf,gqc,ylmgq,ngrf,sfacgq,zrhomt,zrhoir,zvc(:,i1,j2))
+        call genzrho(.true.,.true.,wfmt2(:,:,:,jst2),wfir2(:,:,jst2), &
+         wfmt1(:,:,:,ist1),wfir1(:,:,ist1),zrhomt,zrhoir)
+        call zftzf(ngrf,jlgqr,ylmgq,ngrf,sfacgq,zrhomt,zrhoir,zvc(:,i1,j2))
       end do
       deallocate(zrhomt,zrhoir)
     end do
@@ -130,13 +125,13 @@ do ik1=1,nkptnr
 !$OMP PRIVATE(zrhomt,zrhoir,jst1,ist2,i2)
 !$OMP DO
     do j1=1,ncbse
-      allocate(zrhomt(lmmaxvr,nrcmtmax,natmtot),zrhoir(ngtot))
+      allocate(zrhomt(npcmtmax,natmtot),zrhoir(ngtot))
       jst1=jstbse(j1,ik1)
       do i2=1,nvbse
         ist2=istbse(i2,ik2)
-        call genzrho(.true.,.true.,wfmt2(:,:,:,:,ist2),wfir2(:,:,ist2), &
-         wfmt1(:,:,:,:,jst1),wfir1(:,:,jst1),zrhomt,zrhoir)
-        call zftzf(ngrf,gqc,ylmgq,ngrf,sfacgq,zrhomt,zrhoir,zcv(:,j1,i2))
+        call genzrho(.true.,.true.,wfmt2(:,:,:,ist2),wfir2(:,:,ist2), &
+         wfmt1(:,:,:,jst1),wfir1(:,:,jst1),zrhomt,zrhoir)
+        call zftzf(ngrf,jlgqr,ylmgq,ngrf,sfacgq,zrhomt,zrhoir,zcv(:,j1,i2))
       end do
       deallocate(zrhomt,zrhoir)
     end do
@@ -144,7 +139,7 @@ do ik1=1,nkptnr
 !$OMP END PARALLEL
   end if
 ! get RPA inverse epsilon from file
-  call getcf2pt(fname,vl,ngrf,nwrf,epsinv)
+  call getcf2pt('EPSINV.OUT',vl,ngrf,nwrf,epsi)
   t0=wkptnr*omega
   do i1=1,nvbse
     do j1=1,ncbse
@@ -157,7 +152,7 @@ do ik1=1,nkptnr
             t1=t0*vcl(ig)
             do jg=1,ngrf
               t2=t1*vcl(jg)
-              zsum=zsum+t2*epsinv(ig,jg,1)*conjg(zcc(ig,j1,j2))*zvv(jg,i1,i2)
+              zsum=zsum+t2*epsi(ig,jg,1)*conjg(zcc(ig,j1,j2))*zvv(jg,i1,i2)
             end do
           end do
           hmlbse(a1,a2)=hmlbse(a1,a2)-zsum
@@ -171,7 +166,7 @@ do ik1=1,nkptnr
               t1=t0*vcl(ig)
               do jg=1,ngrf
                 t2=t1*vcl(jg)
-                zsum=zsum+t2*epsinv(ig,jg,1)*conjg(zcv(ig,j1,i2))*zvc(jg,i1,j2)
+                zsum=zsum+t2*epsi(ig,jg,1)*conjg(zcv(ig,j1,i2))*zvc(jg,i1,j2)
               end do
             end do
             hmlbse(a1,b2)=hmlbse(a1,b2)-zsum
@@ -185,9 +180,9 @@ do ik1=1,nkptnr
   end do
 ! end loop over ik1
 end do
-deallocate(vgqc,gqc,ylmgq,sfacgq)
+deallocate(vgqc,gqc,jlgqr,ylmgq,sfacgq)
 deallocate(wfmt1,wfmt2,wfir1,wfir2)
-deallocate(zvv,zcc,epsinv)
+deallocate(zvv,zcc,epsi)
 if (bsefull) deallocate(zvc,zcv)
 return
 end subroutine

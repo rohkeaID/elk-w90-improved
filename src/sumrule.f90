@@ -33,24 +33,17 @@ implicit none
 complex(8), intent(inout) :: dynq(nbph,nbph,nqpt)
 ! local variables
 integer iq,i,j,k
-integer lwork,info
 ! allocatable arrays
 real(8), allocatable :: w(:)
-real(8), allocatable :: rwork(:)
-complex(8), allocatable :: work(:)
 complex(8), allocatable :: ev(:,:)
-allocate(w(nbph))
-allocate(rwork(3*nbph))
-lwork=2*nbph
-allocate(work(lwork))
-allocate(ev(nbph,nbph))
+allocate(w(nbph),ev(nbph,nbph))
 ! compute the eigenvalues and vectors of the q = 0 dynamical matrix
 do i=1,nbph
   do j=i,nbph
     ev(i,j)=0.5d0*(dynq(i,j,iq0)+conjg(dynq(j,i,iq0)))
   end do
 end do
-call zheev('V','U',nbph,ev,nbph,w,work,lwork,rwork,info)
+call eveqnz(nbph,nbph,ev,w)
 ! subtract outer products of 3 lowest eigenvectors for q = 0 from all the
 ! dynamical matrices
 do iq=1,nqpt
@@ -62,7 +55,7 @@ do iq=1,nqpt
     end do
   end do
 end do
-deallocate(w,rwork,work,ev)
+deallocate(w,ev)
 return
 end subroutine
 !EOC

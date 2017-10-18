@@ -3,19 +3,24 @@
 ! This file is distributed under the terms of the GNU General Public License.
 ! See the file COPYING for license details.
 
-subroutine getevalfv(fext,vpl,evalfv)
+subroutine getevalfv(fext,ikp,vpl,evalfv)
 use modmain
 implicit none
 ! arguments
 character(*), intent(in) :: fext
+integer, intent(in) :: ikp
 real(8), intent(in) :: vpl(3)
 real(8), intent(out) :: evalfv(nstfv,nspnfv)
 ! local variables
 integer isym,ik
 integer recl,nstfv_,nspnfv_
 real(8) vkl_(3),t1
+if (ikp.gt.0) then
+  ik=ikp
+else
 ! find the k-point number
-call findkpt(vpl,isym,ik)
+  call findkpt(vpl,isym,ik)
+end if
 ! find the record length
 inquire(iolength=recl) vkl_,nstfv_,nspnfv_,evalfv
 !$OMP CRITICAL

@@ -40,7 +40,7 @@ tauatp(:)=tau0atp
 if (allocated(forcetotp)) deallocate(forcetotp)
 allocate(forcetotp(3,natmtot))
 forcetotp(:,:)=0.d0
-! initial lattice vector step size
+! initial lattice optimisation step size
 taulatv(:)=tau0latv
 ! initialise current and previous stress tensor
 stressp(:)=0.d0
@@ -69,9 +69,9 @@ end if
 if (mp_mpi) write(*,*)
 do istp=1,maxlatvstp
   do jstp=1,maxatpstp
+    if (atpopt.eq.0) exit
     if (mp_mpi) then
-      write(*,'("Info(geomopt): Lattice and atomic position optimisation &
-       &steps : ",2I6)') istp,jstp
+      write(*,'("Info(geomopt): Atomic position optimisation step : ",I6)') jstp
     end if
 ! ground-state and forces calculation
     call gndstate
@@ -88,18 +88,15 @@ do istp=1,maxlatvstp
       write(72,'(G18.10)') forcemax
       call flushifc(72)
       write(73,*); write(73,*)
-      write(73,'("! Lattice and atomic position optimisation steps : ",2I6)') &
-       istp,jstp
+      write(73,'("! Atomic position optimisation step : ",I6)') jstp
       call writegeom(73)
       call flushifc(73)
       write(74,*); write(74,*)
-      write(74,'("Lattice and atomic position optimisation steps : ",2I6)') &
-       istp,jstp
+      write(74,'("Atomic position optimisation step : ",I6)') jstp
       call writeiad(74)
       call flushifc(74)
       write(75,*); write(75,*)
-      write(75,'("Lattice and atomic position optimisation steps : ",2I6)') &
-       istp,jstp
+      write(75,'("Atomic position optimisation step : ",I6)') jstp
       call writeforces(75)
       write(75,*)
       write(75,'("Maximum force magnitude over all atoms (target) : ",G18.10,&
@@ -131,6 +128,9 @@ do istp=1,maxlatvstp
   end do
 ! exit lattice optimisation loop if required
   if (latvopt.eq.0) exit
+  if (mp_mpi) then
+    write(*,'("Info(geomopt): Lattice optimisation step : ",I6)') istp
+  end if
 ! generate the stress tensor
   call genstress
 ! take average of current and previous stress tensors
@@ -141,10 +141,24 @@ do istp=1,maxlatvstp
   call latvstep
 ! write stress tensor components and maximum magnitude to file
   if (mp_mpi) then
+    write(71,'(G22.12)') engytot
+    call flushifc(71)
+    write(73,*); write(73,*)
+    write(73,'("! Lattice optimisation step : ",I6)') istp
+    call writegeom(73)
+    call flushifc(73)
+    write(74,*); write(74,*)
+    write(74,'("Lattice optimisation step : ",I6)') istp
+    call writeiad(74)
+    call flushifc(74)
+    if (spinpol) then
+      write(78,'(G22.12)') momtotm
+      call flushifc(78)
+    end if
     write(86,'(G18.10)') stressmax
     call flushifc(86)
     write(87,*)
-    write(87,'("Lattice vector optimisation step : ",I6)') istp
+    write(87,'("Lattice optimisation step : ",I6)') istp
     write(87,'("Derivative of total energy w.r.t. strain tensors :")')
     do i=1,nstrain
       write(87,'(G18.10)') stress(i)
@@ -172,8 +186,8 @@ do istp=1,maxlatvstp
   end if
   if ((istp.eq.maxlatvstp).and.mp_mpi) then
     write(*,*)
-    write(*,'("Warning(geomopt): lattice vector optimisation failed to &
-     &converge in ",I6," steps")') maxlatvstp
+    write(*,'("Warning(geomopt): lattice optimisation failed to converge in ",&
+     &I6," steps")') maxlatvstp
   end if
   stressp(1:nstrain)=stress(1:nstrain)
 ! end loop over lattice optimisation
@@ -186,7 +200,7 @@ if (mp_mpi) then
     close(86); close(87); close(88)
   end if
 end if
-! ground-state should be run again after lattice vector optimisation
+! ground-state should be run again after lattice optimisation
 if (latvopt.ne.0) call gndstate
 ! restore original parameters
 trimvg=trimvg0

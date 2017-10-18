@@ -41,7 +41,7 @@ call init1
 ! allocate array for storing the eigenvalues
 allocate(e(nstsv,nkpt))
 ! maximum angular momentum for band character
-lmax=min(3,lmaxvr)
+lmax=min(3,lmaxo)
 lmmax=(lmax+1)**2
 if (task.eq.21) then
   allocate(bc(0:lmax,natmtot,nstsv,nkpt))
@@ -160,7 +160,7 @@ else
   write(*,*)
   write(*,'("Info(bandstr):")')
   write(*,'(" band structure plot written to BAND_Sss_Aaaaa.OUT")')
-  write(*,'("  for all species and atoms")')
+  write(*,'(" for all species and atoms")')
 end if
 write(*,*)
 write(*,'(" Fermi energy is at zero in plot")')

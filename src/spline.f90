@@ -6,12 +6,11 @@
 !BOP
 ! !ROUTINE: spline
 ! !INTERFACE:
-subroutine spline(n,x,ld,f,cf)
+subroutine spline(n,x,f,cf)
 ! !INPUT/OUTPUT PARAMETERS:
 !   n  : number of points (in,integer)
 !   x  : abscissa array (in,real(n))
-!   ld : leading dimension (in,integer)
-!   f  : input data array (in,real(ld,n))
+!   f  : input data array (in,real(n))
 !   cf : cubic spline coefficients (out,real(3,n))
 ! !DESCRIPTION:
 !   Calculates the coefficients of a cubic spline fitted to input data. In other
@@ -28,9 +27,7 @@ subroutine spline(n,x,ld,f,cf)
 implicit none
 ! arguments
 integer, intent(in) :: n
-real(8), intent(in) :: x(n)
-integer, intent(in) :: ld
-real(8), intent(in) :: f(ld,n)
+real(8), intent(in) :: x(n),f(n)
 real(8), intent(out) :: cf(3,n)
 ! local variables
 integer i
@@ -47,7 +44,7 @@ if (n.eq.1) then
   return
 end if
 if (n.eq.2) then
-  cf(1,1)=(f(1,2)-f(1,1))/(x(2)-x(1))
+  cf(1,1)=(f(2)-f(1))/(x(2)-x(1))
   cf(2:3,1)=0.d0
   cf(1,2)=cf(1,1)
   cf(2:3,2)=0.d0
@@ -57,9 +54,9 @@ if (n.eq.3) then
   x0=x(1)
   x1=x(2)-x0
   x2=x(3)-x0
-  y0=f(1,1)
-  y1=f(1,2)-y0
-  y2=f(1,3)-y0
+  y0=f(1)
+  y1=f(2)-y0
+  y2=f(3)-y0
   t0=1.d0/(x1*x2*(x2-x1))
   t1=x1*y2
   t2=x2*y1
@@ -77,14 +74,14 @@ if (n.eq.3) then
   cf(3,3)=0.d0
   return
 end if
+y0=f(1)
+y1=f(2)-y0
+y2=f(3)-y0
+y3=f(4)-y0
 x0=x(1)
 x1=x(2)-x0
 x2=x(3)-x0
 x3=x(4)-x0
-y0=f(1,1)
-y1=f(1,2)-y0
-y2=f(1,3)-y0
-y3=f(1,4)-y0
 t0=1.d0/(x1*x2*x3*(x1-x2)*(x1-x3)*(x2-x3))
 t1=x1*x2*y3
 t2=x2*x3*y1
@@ -114,14 +111,14 @@ if (n.eq.4) then
   return
 end if
 do i=3,n-2
+  y0=f(i)
+  y1=f(i-1)-y0
+  y2=f(i+1)-y0
+  y3=f(i+2)-y0
   x0=x(i)
   x1=x(i-1)-x0
   x2=x(i+1)-x0
   x3=x(i+2)-x0
-  y0=f(1,i)
-  y1=f(1,i-1)-y0
-  y2=f(1,i+1)-y0
-  y3=f(1,i+2)-y0
   t1=x1*x2*y3
   t2=x2*x3*y1
   t3=x3*x1*y2

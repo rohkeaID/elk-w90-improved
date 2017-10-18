@@ -1,6 +1,7 @@
 
 tasks
   0
+  1
   500
 
 test
@@ -17,7 +18,7 @@ trimvg
  .true.
 
 maxscl
-  1
+  2
 
 avec
   7.2246  0.0     0.0

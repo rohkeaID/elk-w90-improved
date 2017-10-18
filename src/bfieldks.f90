@@ -7,8 +7,11 @@ subroutine bfieldks
 use modmain
 implicit none
 ! local variables
-integer idm,is,ia,ias,nrc
+integer idm,is,ia,ias
+integer nr,nri,nrc,nrci,npc
 real(8) cb,t1
+! allocatable arrays
+real(8), allocatable :: rfmt(:)
 if (.not.spinpol) return
 ! coupling constant of the external field (g_e/4c)
 cb=gfacte/(4.d0*solsc)
@@ -16,25 +19,33 @@ cb=gfacte/(4.d0*solsc)
 !     muffin-tin Kohn-Sham field     !
 !------------------------------------!
 !$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(is,ia,nrc,idm,t1)
+!$OMP PRIVATE(rfmt,is,ia,nr,nri) &
+!$OMP PRIVATE(nrc,nrci,npc,idm,t1)
 !$OMP DO
 do ias=1,natmtot
+  allocate(rfmt(npcmtmax))
   is=idxis(ias)
   ia=idxia(ias)
+  nr=nrmt(is)
+  nri=nrmti(is)
   nrc=nrcmt(is)
+  nrci=nrcmti(is)
+  npc=npcmt(is)
 ! exchange-correlation magnetic field in spherical coordinates
   do idm=1,ndmag
-    call rbsht(nrc,nrcmtinr(is),lradstp,bxcmt(:,:,ias,idm),1,bsmt(:,:,ias,idm))
+    call rfmtftoc(nr,nri,bxcmt(:,ias,idm),rfmt)
+    call rbsht(nrc,nrci,rfmt,bsmt(:,ias,idm))
   end do
 ! add the external magnetic field
   t1=cb*(bfcmt(3,ia,is)+bfieldc(3))
-  bsmt(:,1:nrc,ias,ndmag)=bsmt(:,1:nrc,ias,ndmag)+t1
+  bsmt(1:npc,ias,ndmag)=bsmt(1:npc,ias,ndmag)+t1
   if (ncmag) then
     do idm=1,2
       t1=cb*(bfcmt(idm,ia,is)+bfieldc(idm))
-      bsmt(:,1:nrc,ias,idm)=bsmt(:,1:nrc,ias,idm)+t1
+      bsmt(1:npc,ias,idm)=bsmt(1:npc,ias,idm)+t1
     end do
   end if
+  deallocate(rfmt)
 end do
 !$OMP END DO
 !$OMP END PARALLEL

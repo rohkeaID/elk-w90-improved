@@ -10,20 +10,21 @@ use modpw
 use modmpi
 implicit none
 ! local variables
-integer ik,jk,jspn,idm
+integer ik,jk,iv(3)
+integer jspn,idm
 integer is,ia,ias,ip
-integer iv(3),nwork,n
+integer nwork,n,lp
 ! use Broyden mixing only
 integer, parameter :: mtype=3
 real(8) ddv,a,b
 character(256) fext
 ! allocatable arrays
-real(8), allocatable :: evalfv(:,:),devalsv(:)
+real(8), allocatable :: evalfv(:,:)
 real(8), allocatable :: v(:),work(:)
 complex(8), allocatable :: dyn(:,:)
 complex(8), allocatable :: apwalm(:,:,:,:,:),apwalmq(:,:,:,:,:)
 complex(8), allocatable :: dapwalm(:,:,:,:),dapwalmq(:,:,:,:)
-complex(8), allocatable :: evecfv(:,:,:),devalfv(:,:),devecfv(:,:,:)
+complex(8), allocatable :: evecfv(:,:,:),devecfv(:,:,:)
 complex(8), allocatable :: evecsv(:,:),devecsv(:,:)
 ! initialise universal variables
 call init0
@@ -71,20 +72,21 @@ call olprad
 call hmlrad
 ! generate the spin-orbit coupling radial functions
 call gensocfr
-! generate the first- and second-variational eigenvectors and eigenvalues
-call genevfsv
-! find the occupation numbers
-call occupy
+! get the eigenvalues and occupancies from file
+do ik=1,nkpt
+  call getevalsv(filext,ik,vkl(:,ik),evalsv(:,ik))
+  call getoccsv(filext,ik,vkl(:,ik),occsv(:,ik))
+end do
 ! size of mixing vector (complex array)
-n=2*(lmmaxvr*nrmtmax*natmtot+ngtot)
-if (spinpol) n=n+2*ndmag*(lmmaxvr*nrcmtmax*natmtot+ngtot)
-! allocate mixing arrays
-if (allocated(v)) deallocate(v)
+n=2*(npmtmax*natmtot+ngtot)
+if (spinpol) n=n+2*ndmag*(npcmtmax*natmtot+ngtot)
+! allocate mixing array
 allocate(v(n))
 ! determine the size of the mixer work array
 nwork=-1
 call mixerifc(mtype,n,v,ddv,nwork,v)
 allocate(work(nwork))
+! allocate dynamical matrix column
 allocate(dyn(3,natmtot))
 ! begin new phonon task
 10 continue
@@ -109,10 +111,10 @@ call gendcfun
 ! generate the gradient of the Kohn-Sham potential
 call gengvsmt
 ! initialise the potential derivative
-drhomt(:,:,:)=0.d0
+drhomt(:,:)=0.d0
 drhoir(:)=0.d0
 if (spinpol) then
-  dmagmt(:,:,:,:)=0.d0
+  dmagmt(:,:,:)=0.d0
   dmagir(:,:)=0.d0
 end if
 call dpotks
@@ -129,28 +131,26 @@ do iscl=1,maxscl
 ! compute the Hamiltonian radial integral derivatives
   call dhmlrad
 ! zero the density and magnetisation derivatives
-  drhomt(:,:,:)=0.d0
+  drhomt(:,:)=0.d0
   drhoir(:)=0.d0
   if (spinpol) then
-    dmagmt(:,:,:,:)=0.d0
+    dmagmt(:,:,:)=0.d0
     dmagir(:,:)=0.d0
   end if
 ! parallel loop over k-points
 !$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(evalfv,devalsv,apwalm,apwalmq,dapwalm,dapwalmq) &
-!$OMP PRIVATE(evecfv,devalfv,devecfv,evecsv,devecsv) &
-!$OMP PRIVATE(jk,jspn)
+!$OMP PRIVATE(evalfv,apwalm,apwalmq,dapwalm,dapwalmq) &
+!$OMP PRIVATE(evecfv,devecfv,evecsv,devecsv,jk,jspn)
 !$OMP DO
   do ik=1,nkptnr
 ! distribute among MPI processes
     if (mod(ik-1,np_mpi).ne.lp_mpi) cycle
-    allocate(evalfv(nstfv,nspnfv),devalsv(nstsv))
+    allocate(evalfv(nstfv,nspnfv))
     allocate(apwalm(ngkmax,apwordmax,lmmaxapw,natmtot,nspnfv))
     allocate(apwalmq(ngkmax,apwordmax,lmmaxapw,natmtot,nspnfv))
     allocate(dapwalm(ngkmax,apwordmax,lmmaxapw,nspnfv))
     allocate(dapwalmq(ngkmax,apwordmax,lmmaxapw,nspnfv))
-    allocate(evecfv(nmatmax,nstfv,nspnfv))
-    allocate(devalfv(nstfv,nspnfv),devecfv(nmatmax,nstfv,nspnfv))
+    allocate(evecfv(nmatmax,nstfv,nspnfv),devecfv(nmatmax,nstfv,nspnfv))
     allocate(evecsv(nstsv,nstsv),devecsv(nstsv,nstsv))
 ! equivalent reduced k-point
     jk=ivkik(ivk(1,ik),ivk(2,ik),ivk(3,ik))
@@ -166,15 +166,16 @@ do iscl=1,maxscl
        apwalmq(:,:,:,:,jspn),dapwalmq(:,:,:,jspn))
     end do
 ! get the first- and second-variational eigenvalues and eigenvectors from file
-    call getevalfv(filext,vkl(:,ik),evalfv)
-    call getevecfv(filext,vkl(:,ik),vgkl(:,:,:,ik),evecfv)
-    call getevecsv(filext,vkl(:,ik),evecsv)
+    call getevalfv(filext,0,vkl(:,ik),evalfv)
+    call getevecfv(filext,0,vkl(:,ik),vgkl(:,:,:,ik),evecfv)
+    call getevecsv(filext,0,vkl(:,ik),evecsv)
 ! solve the first-variational eigenvalue equation derivative
     do jspn=1,nspnfv
       call deveqnfv(ngk(jspn,ik),ngkq(jspn,ik),igkig(:,jspn,ik), &
        igkqig(:,jspn,ik),vgkc(:,:,jspn,ik),vgkqc(:,:,jspn,ik),evalfv(:,jspn), &
        apwalm(:,:,:,:,jspn),apwalmq(:,:,:,:,jspn),dapwalm(:,:,:,jspn), &
-       dapwalmq(:,:,:,jspn),evecfv(:,:,jspn),devalfv(:,jspn),devecfv(:,:,jspn))
+       dapwalmq(:,:,:,jspn),evecfv(:,:,jspn),devalfv(:,jspn,ik), &
+       devecfv(:,:,jspn))
     end do
     if (spinsprl) then
 ! solve the spin-spiral second-variational eigenvalue equation derivative
@@ -188,37 +189,46 @@ do iscl=1,maxscl
     end if
 
 !*******
-devecsv=0.d0
-devalsv(:)=dble(devalfv(:,1))
+devalsv(:,ik)=devalfv(:,1,ik)
 !*******
 
 ! write the eigenvalue/vector derivatives to file
-    call putdevalfv(ik,devalfv)
-    call putdevalsv(ik,devalsv)
     call putdevecfv(ik,devecfv)
-    call putdevecsv(ik,devecsv)
+    if (tevecsv) call putdevecsv(ik,devecsv)
 ! add to the density and magnetisation derivatives
     call drhomagk(ngk(:,ik),ngkq(:,ik),igkig(:,:,ik),igkqig(:,:,ik), &
      occsv(:,jk),doccsv(:,ik),apwalm,apwalmq,dapwalm,evecfv,devecfv,evecsv, &
      devecsv)
-    deallocate(evalfv,devalsv,apwalm,apwalmq,dapwalm,dapwalmq)
-    deallocate(evecfv,devalfv,devecfv,evecsv,devecsv)
+    deallocate(evalfv,apwalm,apwalmq,dapwalm,dapwalmq)
+    deallocate(evecfv,devecfv,evecsv,devecsv)
   end do
 !$OMP END DO
 !$OMP END PARALLEL
+! broadcast eigenvalue derivative arrays to every process
+  n=nstfv*nspnfv
+  do ik=1,nkptnr
+    lp=mod(ik-1,np_mpi)
+    call mpi_bcast(devalfv(:,:,ik),n,mpi_double_precision,lp,mpi_comm_kpt, &
+     ierror)
+    call mpi_bcast(devalsv(:,ik),nstsv,mpi_double_precision,lp,mpi_comm_kpt, &
+     ierror)
+  end do
+! convert to spherical harmonic representation
+  call drhomagsh
 ! convert from a coarse to a fine radial mesh
   call zfmtctof(drhomt)
   do idm=1,ndmag
-    call zfmtctof(dmagmt(:,:,:,idm))
+    call zfmtctof(dmagmt(:,:,idm))
   end do
 ! add densities from each process and redistribute
   if (np_mpi.gt.1) then
-    n=lmmaxvr*nrmtmax*natmtot
+    n=npmtmax*natmtot
     call mpi_allreduce(mpi_in_place,drhomt,n,mpi_double_complex,mpi_sum, &
      mpi_comm_kpt,ierror)
     call mpi_allreduce(mpi_in_place,drhoir,ngtot,mpi_double_complex,mpi_sum, &
      mpi_comm_kpt,ierror)
     if (spinpol) then
+      n=npmtmax*natmtot*ndmag
       call mpi_allreduce(mpi_in_place,dmagmt,n,mpi_double_complex,mpi_sum, &
        mpi_comm_kpt,ierror)
       n=ngtot*ndmag
@@ -263,6 +273,8 @@ write(*,'("Warning(phonon): failed to reach self-consistency after ",I4,&
 20 continue
 ! close the RMSDDVS.OUT file
 if (mp_mpi) close(65)
+! synchronise MPI processes
+call mpi_barrier(mpi_comm_kpt,ierror)
 ! generate the dynamical matrix row from force derivatives
 call dforce(dyn)
 ! synchronise MPI processes

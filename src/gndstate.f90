@@ -11,6 +11,7 @@ subroutine gndstate
 use modmain
 use modmpi
 use moddftu
+use modultra
 ! !DESCRIPTION:
 !   Computes the self-consistent Kohn-Sham ground-state. General information is
 !   written to the file {\tt INFO.OUT}. First- and second-variational
@@ -34,10 +35,12 @@ real(8), allocatable :: v(:),work(:)
 ! initialise global variables
 call init0
 call init1
+! initialise q-vector-dependent variables if required
+if (xctype(1).lt.0) call init2
+! apply strain to the G, k, G+k and q-vectors if required
+call straingkq
 ! set the stop signal to .false.
 tstop=.false.
-! initialise OEP variables if required
-if (xctype(1).lt.0) call init2
 if (task.eq.0) trdstate=.false.
 if (task.eq.1) trdstate=.true.
 ! only the MPI master process should write files
@@ -97,8 +100,8 @@ else
 end if
 if (mp_mpi) call flushifc(60)
 ! size of mixing vector
-n=lmmaxvr*nrmtmax*natmtot+ngtot
-if (spinpol) n=n+ndmag*(lmmaxvr*nrcmtmax*natmtot+ngtot)
+n=npmtmax*natmtot+ngtot
+if (spinpol) n=n+ndmag*(npcmtmax*natmtot+ngtot)
 if (tvmatmt) n=n+2*((lmmaxdm*nspinor)**2)*natmtot
 ! allocate mixing array
 allocate(v(n))
@@ -156,6 +159,8 @@ do iscl=1,maxscl
   call gensocfr
 ! generate the first- and second-variational eigenvectors and eigenvalues
   call genevfsv
+! generate the ultracell eigenvectors and eigenvalues if required
+  call genevu
 ! find the occupation numbers and Fermi energy
   call occupy
   if (autoswidth.and.mp_mpi) then

@@ -24,7 +24,7 @@ call init2
 call readfermi
 ! get the eigenvalues from file
 do ik=1,nkpt
-  call getevalsv(filext,vkl(:,ik),evalsv(:,ik))
+  call getevalsv(filext,ik,vkl(:,ik),evalsv(:,ik))
 end do
 allocate(nq(nqpt))
 t1=1.d0/swidth

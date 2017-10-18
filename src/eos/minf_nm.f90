@@ -32,7 +32,7 @@ if (n.lt.0) then
 end if
 ! evaluate the function at each vertex
 do i=1,n+1
-  f(i)=fmin_nm(x(1,i))
+  f(i)=fmin_nm(x(:,i))
 end do
 iter=0
 10 continue

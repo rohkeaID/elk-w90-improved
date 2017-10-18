@@ -13,7 +13,7 @@ integer ist0,ist1
 integer jst0,jst1
 integer i1,i2,i3
 integer j1,j2,j3
-real(8) vc(3,4),e0,e1
+real(8) vc(3,0:3),e0,e1
 ! allocatable arrays
 integer, allocatable :: idx(:)
 real(8), allocatable :: evalfv(:,:),e(:)
@@ -69,7 +69,7 @@ if (tefvit.and.(.not.spinpol)) then
   deallocate(idx,e)
 end if
 ! plotting box in Cartesian coordinates
-do i=1,4
+do i=0,3
   vc(:,i)=bvec(:,1)*kptboxl(1,i)+bvec(:,2)*kptboxl(2,i)+bvec(:,3)*kptboxl(3,i)
 end do
 ! number of files to plot (2 for collinear magnetism, 1 otherwise)
@@ -112,7 +112,7 @@ do f=1,nf
   write(50,'(" BANDGRID_3D_BANDS")')
   write(50,'(I4)') nst
   write(50,'(3I6)') ngridk(:)+1
-  do i=1,4
+  do i=0,3
     write(50,'(3G18.10)') vc(:,i)
   end do
   do ist=ist0,ist1

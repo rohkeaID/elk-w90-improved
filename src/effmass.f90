@@ -7,21 +7,17 @@ subroutine effmass
 use modmain
 implicit none
 ! local variables
-integer, parameter :: lwork=10
 integer ik,ik0,ist,info
 integer i,j,k,l,m,n
 integer i1,i2,i3,j1,j2,j3
 real(8) d(3,3),em(3,3)
 real(8) v1(3),v2(3)
-real(8) w(3),work(lwork)
+real(8) w(3),work(9)
 ! allocatable arrays
 integer, allocatable :: ipiv(:)
-real(8), allocatable :: a(:,:)
-real(8), allocatable :: b(:,:,:,:)
-real(8), allocatable :: c(:,:,:)
+real(8), allocatable :: a(:,:),b(:,:,:,:),c(:,:,:)
 real(8), allocatable :: evalfv(:,:)
-complex(8), allocatable :: evecfv(:,:,:)
-complex(8), allocatable :: evecsv(:,:)
+complex(8), allocatable :: evecfv(:,:,:),evecsv(:,:)
 ! initialise universal variables
 call init0
 call init1
@@ -165,7 +161,7 @@ do ist=1,nstsv
   end do
   write(50,'(" trace : ",G18.10)') em(1,1)+em(2,2)+em(3,3)
 ! find the eigenvalues
-  call dsyev('N','U',3,em,3,w,work,lwork,info)
+  call dsyev('N','U',3,em,3,w,work,9,info)
   write(50,'(" eigenvalues :")')
   write(50,'(3G18.10)') w
 ! end loop over states

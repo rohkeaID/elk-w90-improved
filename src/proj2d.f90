@@ -7,15 +7,15 @@ subroutine proj2d(rvfmt,rvfir)
 use modmain
 implicit none
 ! arguments
-real(8), intent(inout) :: rvfmt(lmmaxvr,nrmtmax,natmtot,3)
+real(8), intent(inout) :: rvfmt(npmtmax,natmtot,3)
 real(8), intent(inout) :: rvfir(ngtot,3)
 ! local variables
-integer is,ias,ir,lm
+integer is,ias,ir,i
 real(8) vl1(3),vl2(3),t1,t2,t3
 real(8) vc1(3),vc2(3),vc3(3),vc4(3)
 ! determine the projection onto the plotting plane
-vl1(:)=vclp2d(:,2)-vclp2d(:,1)
-vl2(:)=vclp2d(:,3)-vclp2d(:,1)
+vl1(:)=vclp2d(:,1)-vclp2d(:,0)
+vl2(:)=vclp2d(:,2)-vclp2d(:,0)
 call r3mv(avec,vl1,vc1)
 call r3mv(avec,vl2,vc2)
 call r3cross(vc1,vc2,vc3)
@@ -37,13 +37,11 @@ vc2(:)=vc2(:)/t1
 ! muffin-tin part
 do ias=1,natmtot
   is=idxis(ias)
-  do ir=1,nrmt(is)
-    do lm=1,lmmaxvr
-      vc4(:)=rvfmt(lm,ir,ias,:)
-      rvfmt(lm,ir,ias,1)=dot_product(vc4(:),vc1(:))
-      rvfmt(lm,ir,ias,2)=dot_product(vc4(:),vc2(:))
-      rvfmt(lm,ir,ias,3)=dot_product(vc4(:),vc3(:))
-    end do
+  do i=1,npmt(is)
+    vc4(:)=rvfmt(i,ias,:)
+    rvfmt(i,ias,1)=dot_product(vc4(:),vc1(:))
+    rvfmt(i,ias,2)=dot_product(vc4(:),vc2(:))
+    rvfmt(i,ias,3)=dot_product(vc4(:),vc3(:))
   end do
 end do
 ! interstitial part

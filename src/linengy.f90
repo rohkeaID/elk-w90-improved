@@ -22,18 +22,30 @@ implicit none
 ! local variables
 logical fnd
 integer is,ia,ja,ias,jas
-integer l,ilo,io,jo,nnf
+integer nr,nri,iro,ir,l,i
+integer ilo,io,jo,nnf
 ! automatic arrays
 logical done(natmmax)
 real(8) vr(nrmtmax)
 nnf=0
 ! begin loops over atoms and species
 do is=1,nspecies
+  nr=nrmt(is)
+  nri=nrmti(is)
+  iro=nri+1
   done(:)=.false.
   do ia=1,natoms(is)
     if (done(ia)) cycle
     ias=idxas(ia,is)
-    vr(1:nrmt(is))=vsmt(1,1:nrmt(is),ias)*y00
+    i=1
+    do ir=1,nri
+      vr(ir)=vsmt(i,ias)*y00
+      i=i+lmmaxi
+    end do
+    do ir=iro,nr
+      vr(ir)=vsmt(i,ias)*y00
+      i=i+lmmaxo
+    end do
 !-----------------------!
 !     APW functions     !
 !-----------------------!
@@ -51,7 +63,7 @@ do is=1,nspecies
           end do
 ! find the band energy starting from default
           apwe(io,l,ias)=apwe0(io,l,is)
-          call findband(solsc,l,nrmt(is),rsp(:,is),vr,epsband,demaxbnd, &
+          call findband(solsc,l,nr,rsp(:,is),vr,epsband,demaxbnd, &
            apwe(io,l,ias),fnd)
           if (.not.fnd) nnf=nnf+1
         else
@@ -79,7 +91,7 @@ do is=1,nspecies
           l=lorbl(ilo,is)
 ! find the band energy starting from default
           lorbe(io,ilo,ias)=lorbe0(io,ilo,is)
-          call findband(solsc,l,nrmt(is),rsp(:,is),vr,epsband,demaxbnd, &
+          call findband(solsc,l,nr,rsp(:,is),vr,epsband,demaxbnd, &
            lorbe(io,ilo,ias),fnd)
           if (.not.fnd) nnf=nnf+1
         else
@@ -118,3 +130,4 @@ end if
 return
 end subroutine
 !EOC
+

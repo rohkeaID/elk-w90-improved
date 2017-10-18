@@ -12,7 +12,7 @@ use modmain
 ! !INPUT/OUTPUT PARAMETERS:
 !   fnum : plot file number (in,integer)
 !   nf   : number of functions (in,integer)
-!   rfmt : real muffin-tin function (in,real(lmmaxvr,nrmtmax,natmtot,nf))
+!   rfmt : real muffin-tin function (in,real(npmtmax,natmtot,nf))
 !   rfir : real intersitial function (in,real(ngtot,nf))
 ! !DESCRIPTION:
 !   Produces a 2D plot of the real functions contained in arrays {\tt rfmt} and
@@ -26,7 +26,7 @@ use modmain
 implicit none
 ! arguments
 integer, intent(in) :: fnum,nf
-real(8), intent(in) :: rfmt(lmmaxvr,nrmtmax,natmtot,nf),rfir(ngtot,nf)
+real(8), intent(in) :: rfmt(npmtmax,natmtot,nf),rfir(ngtot,nf)
 ! local variables
 integer np,ip,i
 real(8) vpnc(3)
@@ -45,7 +45,7 @@ allocate(vpl(3,np),vppc(2,np),fp(np,nf))
 call plotpt2d(avec,ainv,vpnc,vpl,vppc)
 ! evaluate the functions at the grid points
 do i=1,nf
-  call rfplot(np,vpl,rfmt(:,:,:,i),rfir(:,i),fp(:,i))
+  call rfplot(np,vpl,rfmt(:,:,i),rfir(:,i),fp(:,i))
 end do
 ! write the functions to file
 write(fnum,'(2I6," : grid size")') np2d(:)

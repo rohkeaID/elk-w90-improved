@@ -55,7 +55,7 @@ real(8), intent(out) :: f0(nr),f1(nr)
 ! local variables
 integer ir,ir0
 ! rescaling limit
-real(8), parameter :: rsc=1.d100, rsci=1.d0/rsc
+real(8), parameter :: rsc=1.d100
 real(8) ci,e0,t1,t2,t3,t4
 if (nr.lt.4) then
   write(*,*)

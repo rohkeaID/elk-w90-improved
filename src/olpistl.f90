@@ -27,13 +27,13 @@ use modmain
 !BOC
 implicit none
 ! arguments
-integer, intent(in) :: ngp
-integer, intent(in) :: igpig(ngkmax)
+integer, intent(in) :: ngp,igpig(ngkmax)
 integer, intent(in) :: ld
 complex(8), intent(inout) :: o(*)
 ! local variables
 integer iv(3),jv(3),i,j,k
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(k,jv,i,iv)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(k,jv,i,iv)
 !$OMP DO
 do j=1,ngp
   k=(j-1)*ld

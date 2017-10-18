@@ -27,7 +27,7 @@ subroutine vecplot
 use modmain
 implicit none
 ! allocatable arrays
-real(8), allocatable :: rvfmt(:,:,:,:),rvfir(:,:)
+real(8), allocatable :: rvfmt(:,:,:),rvfir(:,:)
 ! initialise universal variables
 call init0
 if ((task.eq.72).or.(task.eq.73).or.(task.eq.82).or.(task.eq.83)) then
@@ -40,39 +40,39 @@ if ((task.eq.72).or.(task.eq.73).or.(task.eq.82).or.(task.eq.83)) then
 end if
 ! read magnetisation from file
 call readstate
-allocate(rvfmt(lmmaxvr,nrmtmax,natmtot,3),rvfir(ngtot,3))
+allocate(rvfmt(npmtmax,natmtot,3),rvfir(ngtot,3))
 select case(task)
 case(72,73)
 ! magnetisation
   if (ncmag) then
 ! non-collinear
-    rvfmt(:,:,:,:)=magmt(:,:,:,:)
+    rvfmt(:,:,:)=magmt(:,:,:)
     rvfir(:,:)=magir(:,:)
   else
 ! collinear
-    rvfmt(:,:,:,1:2)=0.d0
+    rvfmt(:,:,1:2)=0.d0
     rvfir(:,1:2)=0.d0
-    rvfmt(:,:,:,3)=magmt(:,:,:,1)
+    rvfmt(:,:,3)=magmt(:,:,1)
     rvfir(:,3)=magir(:,1)
   end if
 case(82,83)
 ! exchange-correlation magnetic field
   if (ncmag) then
 ! non-collinear
-    rvfmt(:,:,:,:)=bxcmt(:,:,:,:)
+    rvfmt(:,:,:)=bxcmt(:,:,:)
     rvfir(:,:)=bxcir(:,:)
   else
 ! collinear
-    rvfmt(:,:,:,1:2)=0.d0
+    rvfmt(:,:,1:2)=0.d0
     rvfir(:,1:2)=0.d0
-    rvfmt(:,:,:,3)=bxcmt(:,:,:,1)
+    rvfmt(:,:,3)=bxcmt(:,:,1)
     rvfir(:,3)=bxcir(:,1)
   end if
 case(142,143)
 ! electric field
   call gradrf(vclmt,vclir,rvfmt,rvfir)
 ! use the negative of the gradient
-  rvfmt(:,:,:,:)=-rvfmt(:,:,:,:)
+  rvfmt(:,:,:)=-rvfmt(:,:,:)
   rvfir(:,:)=-rvfir(:,:)
 case(152,153)
   if (ndmag.lt.3) then

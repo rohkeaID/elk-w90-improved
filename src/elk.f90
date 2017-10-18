@@ -64,7 +64,7 @@ do itask=1,ntasks
   if (lp_mpi.gt.0) then
     select case(task)
     case(0,1,2,3,5,28,29,120,135,136,170,180,185,188,200,201,205,240,300,320, &
-     330,331,440,460,461)
+     330,331,440,460,461,600,601,602,603,604)
       continue
     case default
       write(*,'("Info(elk): MPI process ",I6," idle for task ",I6)') lp_mpi,task
@@ -83,7 +83,7 @@ do itask=1,ntasks
   case(5)
     call hartfock
   case(10)
-    call dos
+    call writedos
   case(14)
     call writesf
   case(15,16)
@@ -138,10 +138,8 @@ do itask=1,ntasks
     call writeemd
   case(171,172,173)
     call emdplot
-  case(175)
-    call compton
   case(180)
-    call epsinv_rpa
+    call writeepsinv
   case(185)
     call writehmlbse
   case(186)
@@ -192,10 +190,18 @@ do itask=1,ntasks
     call tddft
   case(500)
     call testcheck
+  case(600)
+    call gw
   case(601)
     call writew90win
+  ! case(602)
+    !   call writew90mmn
   case(602)
-    call writew90mmn
+    call genw90input
+  case(603)
+    call runw90
+  case(604)
+    ! call genw90amn
   case default
     write(*,*)
     write(*,'("Error(elk): task not defined : ",I8)') task
@@ -215,8 +221,8 @@ stop
 end program
 
 !BOI
-! !TITLE: {\huge{\sc The Elk Code Manual}}\\ \Large{\sc Version 3.1.12}\\ \vskip 20pt \includegraphics[height=1cm]{elk_silhouette.pdf}
-! !AUTHORS: {\sc J. K. Dewhurst, S. Sharma} \\ {\sc L. Nordstr\"{o}m, F. Cricchio, F. Bultmark, O. Gr\aa n\"{a}s} \\ {\sc E. K. U. Gross}
+! !TITLE: {\huge{\sc The Elk Code Manual}}\\ \Large{\sc Version 4.3.6}\\ \vskip 20pt \includegraphics[height=1cm]{elk_silhouette.pdf}
+! !AUTHORS: {\sc J. K. Dewhurst, S. Sharma} \\ {\sc L. Nordstr\"{o}m, F. Cricchio, O. Gr\aa n\"{a}s} \\ {\sc E. K. U. Gross}
 ! !AFFILIATION:
 ! !INTRODUCTION: Introduction
 !   Welcome to the Elk Code! Elk is an all-electron full-potential linearised
@@ -236,36 +242,35 @@ end program
 !   \section{Acknowledgments}
 !   Lots of people contributed to the Elk code with ideas, checking and testing,
 !   writing code or documentation and general encouragement. They include
-!   Claudia Ambrosch-Draxl, Clas Persson, Christian Brouder, Rickard Armiento,
-!   Andrew Chizmeshya, Per Anderson, Igor Nekrasov, Sushil Auluck, Frank Wagner,
-!   Fateh Kalarasse, J\"{u}rgen Spitaler, Stefano Pittalis, Nektarios
-!   Lathiotakis, Tobias Burnus, Stephan Sagmeister, Christian Meisenbichler,
-!   S\'{e}bastien Leb\`{e}gue, Yigang Zhang, Fritz K\"{o}rmann, Alexey Baranov,
-!   Anton Kozhevnikov, Shigeru Suehara, Frank Essenberger, Antonio Sanna, Tyrel
-!   McQueen, Tim Baldsiefen, Marty Blaber, Anton Filanovich, Torbj\"{o}rn
-!   Bj\"{o}rkman, Martin Stankovski, Jerzy Goraus, Markus Meinert, Daniel Rohr,
-!   Vladimir Nazarov, Kevin Krieger, Pink Floyd, Arkardy Davydov, Florian Eich,
-!   Aldo Romero Castro, Koichi Kitahara, James Glasbrenner, Konrad Bussmann,
-!   Igor Mazin, Matthieu Verstraete, David Ernsting, Stephen Dugdale, Peter
-!   Elliott, Marcin Dulak, Jos\'{e} A. Flores Livas, Stefaan Cottenier and
-!   Yasushi Shinohara. Special mention of David Singh's very useful book on the
-!   LAPW method\footnote{D. J. Singh, {\it Planewaves, Pseudopotentials and the
-!   LAPW Method} (Kluwer Academic Publishers, Boston, 1994).} must also be made.
-!   Finally we would like to acknowledge the generous support of
-!   Karl-Franzens-Universit\"{a}t Graz, as well as the EU Marie-Curie Research
-!   Training Networks initiative.
+!   Claudia Ambrosch-Draxl, Clas Persson, Fredrik Bultmark, Christian Brouder,
+!   Rickard Armiento, Andrew Chizmeshya, Per Anderson, Igor Nekrasov, Sushil
+!   Auluck, Frank Wagner, Fateh Kalarasse, J\"{u}rgen Spitaler, Stefano
+!   Pittalis, Nektarios Lathiotakis, Tobias Burnus, Stephan Sagmeister,
+!   Christian Meisenbichler, S\'{e}bastien Leb\`{e}gue, Yigang Zhang, Fritz
+!   K\"{o}rmann, Alexey Baranov, Anton Kozhevnikov, Shigeru Suehara, Frank
+!   Essenberger, Antonio Sanna, Tyrel McQueen, Tim Baldsiefen, Marty Blaber,
+!   Anton Filanovich, Torbj\"{o}rn Bj\"{o}rkman, Martin Stankovski, Jerzy
+!   Goraus, Markus Meinert, Daniel Rohr, Vladimir Nazarov, Kevin Krieger, Pink
+!   Floyd, Arkardy Davydov, Florian Eich, Aldo Romero Castro, Koichi Kitahara,
+!   James Glasbrenner, Konrad Bussmann, Igor Mazin, Matthieu Verstraete, David
+!   Ernsting, Stephen Dugdale, Peter Elliott, Marcin Dulak, Jos\'{e} A. Flores
+!   Livas, Stefaan Cottenier, Yasushi Shinohara and Michael Fechner. Special
+!   mention of David Singh's very useful book on the LAPW method\footnote{D. J.
+!   Singh, {\it Planewaves, Pseudopotentials and the LAPW Method} (Kluwer
+!   Academic Publishers, Boston, 1994).} must also be made. Finally we would
+!   like to acknowledge the generous support of Karl-Franzens-Universit\"{a}t
+!   Graz, as well as the EU Marie-Curie Research Training Networks initiative.
 !
 !   \vspace{24pt}
 !   Kay Dewhurst\newline
 !   Sangeeta Sharma\newline
 !   Lars Nordstr\"{o}m\newline
 !   Francesco Cricchio\newline
-!   Fredrik Bultmark\newline
 !   Oscar Gr\aa n\"{a}s\newline
 !   Hardy Gross
 !
 !   \vspace{12pt}
-!   Halle and Uppsala, July 2015
+!   Halle and Uppsala, March 2017
 !   \newpage
 !
 !   \section{Units}
@@ -598,7 +603,7 @@ end program
 !
 !   \block{broydpm}{
 !   {\tt broydpm} & Broyden mixing parameters $\alpha$ and $w_0$ & real &
-!    $(0.25,0.01)$}
+!    $(0.4,0.15)$}
 !   See {\tt mixtype} and {\tt mixsdb}.
 !
 !   \block{c\_tb09}{
@@ -639,7 +644,7 @@ end program
 !
 !   \block{deltast}{
 !   {\tt deltast} & size of the change in lattice vectors used for calculating
-!    the stress tensor & real & $0.005$}
+!    the stress tensor & real & $0.001$}
 !   The stress tensor is computed by changing the lattice vector matrix $A$ by
 !   $$ A\rightarrow (1+\delta t\,e_i)A, $$
 !   where $dt$ is an infinitesimal equal in practice to {\tt deltast} and $e_i$
@@ -686,6 +691,19 @@ end program
 !    Fermi energy & real & $-0.1$}
 !   When {\tt autolinengy} is {\tt .true.} then the fixed linearisation energies
 !   are set to the Fermi energy plus {\tt dlefe}.
+!
+!   \block{dncgga}{
+!   {\tt dncgga} & small constant used to stabilise non-collinear GGA &
+!    real & $1\times 10^{-8}$}
+!   This small constant, $d$, is required in order to remove the infinite
+!   gradients obtained when using `Kubler's trick' in conjunction with GGA and
+!   non-collinear magnetism. It is applied by calculating the up and down
+!   densities as
+!   $$ \rho^{\uparrow}({\bf r})=\rho({\bf r})+\widetilde{m}({\bf r})
+!    \qquad \rho^{\downarrow}({\bf r})=\rho({\bf r})-\widetilde{m}({\bf r}), $$
+!   where $\widetilde{m}({\bf r})=\sqrt{{\bf m}^2({\bf r})+d}$,
+!   and should be taken as the smallest value for which the exchange-correlation
+!   magnetic field ${\bf B}_{\rm xc}$ is smooth.
 !
 !   \block{dosmsum}{
 !   {\tt dosmsum} & {\tt .true.} if the partial DOS is to be summed over $m$ &
@@ -783,9 +801,9 @@ end program
 !   this can result in a faster calculation at the expense of accuracy.
 !
 !   \block{fracinr}{
-!   {\tt fracinr} & fraction of the muffin-tin radius up to which {\tt lmaxinr}
-!    is used as the angular momentum cut-off & real & $0.05$}
-!   See {\tt lmaxinr}.
+!   {\tt fracinr} & fraction of the muffin-tin radius up to which {\tt lmaxi}
+!    is used as the angular momentum cut-off & real & $0.01$}
+!   See {\tt lmaxi}.
 !
 !   \block{fsmtype}{
 !   {\tt fsmtype} & 0 for no fixed spin moment (FSM), 1 for total FSM, 2 for
@@ -811,7 +829,7 @@ end program
 !
 !   \block{fxtype}{
 !   {\tt fxctype} & integer defining the type of exchange-correlation kernel
-!    $f_{\rm xc}$ & integer & -1}
+!    $f_{\rm xc}$ & integer & $-1$}
 !   The acceptable values are:
 !   \vskip 6pt
 !   \begin{tabularx}{\textwidth}[h]{lX}
@@ -837,6 +855,20 @@ end program
 !   $$ {\rm gmaxvr}\rightarrow\max\,({\rm gmaxvr},2\times{\rm gkmax}
 !    +{\rm epslat}) $$
 !   See {\tt rgkmax} and {\tt trimvg}.
+!
+!   \block{gwdiag}{
+!   {\tt gwdiag} & type of diagonal approximation for the $GW$ self-energy &
+!    integer & 0}
+!   Calculation of the $GW$ self-energy $\Sigma$ can be made faster, at the
+!   expense of accuracy, by taking $\Sigma_{ij}(i\omega)$ or
+!   the correlation part of the interaction,
+!   $W_c({\bf G},{\bf G}',{\bf q},i\omega)$, to be diagonal. The choices are
+!   \vskip 6pt
+!   \begin{tabularx}{\textwidth}[h]{lX}
+!   0 & $\Sigma$ and $W_c$ are full matrices \\
+!   1 & $\Sigma$ is diagonal in the orbital indices $i,j$ \\
+!   2 & $\Sigma$ as with 1 but $W_c$ is also diagonal in ${\bf G},{\bf G}'$
+!   \end{tabularx}
 !
 !   \block{hdbse}{
 !   {\tt hdbse} & {\tt .true.} if the direct term is to be included in the BSE
@@ -906,8 +938,8 @@ end program
 !   {\tt lmaxdos} & angular momentum cut-off for the partial DOS plot &
 !    integer & $3$}
 !
-!   \block{lmaxinr}{
-!   {\tt lmaxinr} & angular momentum cut-off for the muffin-tin density and
+!   \block{lmaxi}{
+!   {\tt lmaxi} & angular momentum cut-off for the muffin-tin density and
 !    potential on the inner part of the muffin-tin & integer & 2}
 !   Close to the nucleus, the density and potential is almost spherical and
 !   therefore the spherical harmonic expansion can be truncated a low angular
@@ -915,10 +947,10 @@ end program
 !
 !   \block{lmaxmat}{
 !   {\tt lmaxmat} & angular momentum cut-off for the outer-most loop in the
-!    hamiltonian and overlap matrix set up & integer & 6}
+!    hamiltonian and overlap matrix set up & integer & 7}
 !
-!   \block{lmaxvr}{
-!   {\tt lmaxvr} & angular momentum cut-off for the muffin-tin density and
+!   \block{lmaxo}{
+!   {\tt lmaxo} & angular momentum cut-off for the muffin-tin density and
 !    potential & integer & 7}
 !
 !   \block{lmirep}{
@@ -970,8 +1002,8 @@ end program
 !   Currently implemented are:
 !   \vskip 6pt
 !   \begin{tabularx}{\textwidth}[h]{lX}
+!   0 & Linear mixing \\
 !   1 & Adaptive linear mixing \\
-!   2 & Pulay mixing, {\it Chem. Phys. Lett.} {\bf 73}, 393 (1980) \\
 !   3 & Broyden mixing, {\it J. Phys. A: Math. Gen.} {\bf 17}, L317 (1984)
 !   \end{tabularx}
 !
@@ -979,10 +1011,6 @@ end program
 !   {\tt mixsdb} & subspace dimension for Broyden mixing & integer & 5}
 !   This is the number of mixing vectors which define the subspace in which the
 !   Hessian matrix is calculated. See {\tt mixtype} and {\tt broydpm}.
-!
-!   \block{mixsdp}{
-!   {\tt mixsdp} & subspace dimension for Pulay mixing & integer & 3}
-!   See {\tt mixsdb} and {\tt mixtype}.
 !
 !   \block{molecule}{
 !   {\tt molecule} & {\tt .true.} if the system is an isolated molecule &
@@ -1026,14 +1054,6 @@ end program
 !    integer & 3}
 !   See also {\tt nvbse}.
 !
-!   \block{ncgga}{
-!   {\tt ncgga} & set to {\tt .true.} for non-collinear GGA calculations which
-!    are difficult to converge & logical & {\tt .false.}}
-!   Setting this variable to {\tt .true.} results in the second-order
-!   gradients of the spin-density in the interstitial being averaged. This can
-!   improve convergence for non-collinear GGA calculations, but necessarily
-!   makes the exchange-correlation potential non-variational.
-!
 !   \block{ndspem}{
 !   {\tt ndspem} & the number of {\bf k}-vector displacements in each direction
 !    around {\tt vklem} when computing the numerical derivatives for the
@@ -1062,8 +1082,8 @@ end program
 !
 !   \block{ngridq}{
 !   {\tt ngridq } & the phonon $q$-point mesh sizes & integer(3) & $(1,1,1)$}
-!   Same as {\tt ngridk}, except that this mesh is for the phonon $q$-points.
-!   See also {\tt reduceq}.
+!   Same as {\tt ngridk}, except that this mesh is for the phonon $q$-points
+!   and other tasks. See also {\tt reduceq}.
 !
 !   \block{nosource}{
 !   {\tt nosource} & when set to {\tt .true.}, source fields are projected out
@@ -1094,7 +1114,7 @@ end program
 !   \end{tabularx}
 !
 !   \block{ntemp}{
-!   {\tt ntemp} & number of temperature steps & integer & 20}
+!   {\tt ntemp} & number of temperature steps & integer & 40}
 !   This is the number of temperature steps to be used in the Eliashberg gap
 !   and thermodynamic properties calculations.
 !
@@ -1149,11 +1169,11 @@ end program
 !   coordinates.
 !
 !   \block{plot2d}{
-!   {\tt vclp2d(1)} & first corner (origin) & real(3) & $(0.0,0.0,0.0)$ \\
+!   {\tt vclp2d(0)} & zeroth corner (origin) & real(3) & $(0.0,0.0,0.0)$ \\
 !   \hline
-!   {\tt vclp2d(2)} & second corner & real(3) & $(1.0,0.0,0.0)$ \\
+!   {\tt vclp2d(1)} & first corner & real(3) & $(1.0,0.0,0.0)$ \\
 !   \hline
-!   {\tt vclp2d(3)} & third corner & real(3) & $(0.0,1.0,0.0)$ \\
+!   {\tt vclp2d(2)} & second corner & real(3) & $(0.0,1.0,0.0)$ \\
 !   \hline
 !   {\tt np2d} & number of plotting points in both directions & integer(2) &
 !    $(40,40)$}
@@ -1161,13 +1181,13 @@ end program
 !   2D plots.
 !
 !   \block{plot3d}{
-!   {\tt vclp3d(1)} & first corner (origin) & real(3) & $(0.0,0.0,0.0)$ \\
+!   {\tt vclp3d(0)} & zeroth corner (origin) & real(3) & $(0.0,0.0,0.0)$ \\
 !   \hline
-!   {\tt vclp3d(2)} & second corner & real(3) & $(1.0,0.0,0.0)$ \\
+!   {\tt vclp3d(1)} & first corner & real(3) & $(1.0,0.0,0.0)$ \\
 !   \hline
-!   {\tt vclp3d(3)} & third corner & real(3) & $(0.0,1.0,0.0)$ \\
+!   {\tt vclp3d(2)} & second corner & real(3) & $(0.0,1.0,0.0)$ \\
 !   \hline
-!   {\tt vclp3d(4)} & fourth corner & real(3) & $(0.0,0.0,1.0)$ \\
+!   {\tt vclp3d(3)} & third corner & real(3) & $(0.0,0.0,1.0)$ \\
 !   \hline
 !   {\tt np3d} & number of plotting points each direction & integer(3) &
 !    $(20,20,20)$}
@@ -1359,12 +1379,12 @@ end program
 !   3 & Fermi-Dirac
 !   \end{tabularx}
 !   \vskip 6pt
-!   See also {\tt autoswidth} and {\tt swidth}.
+!   See also {\tt autoswidth}, {\tt swidth} and {\tt tempk}.
 !
 !   \block{swidth}{
 !   {\tt swidth} & width of the smooth approximation to the Dirac delta
 !    function & real & $0.001$}
-!   See {\tt stype} for details.
+!   See {\tt stype} for details and the variable {\tt tempk}.
 !
 !   \newpage
 !   \block{tasks}{
@@ -1446,7 +1466,7 @@ end program
 !   196 & Calculation of magnetic structure factors. \\
 !   200 & Calculation of phonon dynamical matrices on a $q$-point set defined by
 !    {\tt ngridq} using the supercell method. \\
-!   201 & Phonon dry run: just produce a set of empty DYN files. \\
+!   202 & Phonon dry run: just produce a set of empty DYN files. \\
 !   205 & Calculation of phonon dynamical matrices using density functional
 !    perturbation theory (DFPT). \\
 !   210 & Phonon density of states. \\
@@ -1468,7 +1488,7 @@ end program
 !    energy contributions. \\
 !   450 & Generates a laser pulse in the form of a time-dependent vector
 !    potential ${\bf A}(t)$ and writes it to AFIELDT.OUT. \\
-!   460 & Time-evolution run using TDDFT under the influence of ${\bf A}(t)$.
+!   460 & Time evolution run using TDDFT under the influence of ${\bf A}(t)$.
 !   \end{tabularx}
 !
 !   \block{tau0atp}{
@@ -1510,14 +1530,10 @@ end program
 !   where $\lambda$ is proportional to {\tt taufsm}. See also {\tt fsmtype},
 !   {\tt momfix} and {\tt spinpol}.
 !
-!   \block{tfibs}{
-!   {\tt tfibs} & set to {\tt .true.} if the IBS correction to the force should
-!    be calculated & logical & {\tt .true.}}
-!   Because calculation of the incomplete basis set (IBS) correction to the
-!   force is fairly time-consuming, it can be switched off by setting
-!   {\tt tfibs} to {\tt .false.} This correction can then be included only when
-!   necessary, i.e. when the atoms are close to equilibrium in a geometry
-!   optimisation run.
+!   \block{tempk}{
+!   {\tt tempk} & temperature $T$ of the electronic system in kelvin & real & -}
+!   Assigning a value to this variable sets {\tt stype} to 3 (Fermi-Dirac) and
+!   the smearing width to $k_{\rm B}T$.
 !
 !   \block{tforce}{
 !   {\tt tforce} & set to {\tt .true.} if the force should be calculated at the
@@ -1631,42 +1647,14 @@ end program
 !    m_y({\bf r})\sin({\bf q \cdot r}),m_z({\bf r})), $$
 !   where $m_x$, $m_y$ and $m_z$ are lattice periodic. See also {\tt spinsprl}.
 !
-!   \block{wann\_bands}{
-!   {\tt wann\_bands} & index of bands to compute Wannier functions for & string & null }
-!   This block is required for Wannier90 output (tasks 601/602). The band indices should
-!   be given as a comma separated list. E.g. 1-5,7,9-12. 
-!
-!   \block{wann\_input}{
-!   {\tt wann\_input} & optional block of input to append to Wannier90 .win file & string
-!   & null }
-!   Can span multiple lines. Must be terminated by a blank line before next input block.
-!
-!   \block{wann\_maxshell}{
-!   {\tt wann\_maxshell} & maximum neighbouring k-point shell to search to determine the
-!   b-vector for Wannier90 & integer & $12$ }
-!   The list of b-vectors must satisfy the completeness relation (B1) of PRB 56 (1997) 12847
-!
-!   \block{wann\_numiter}{
-!   {\tt wann\_numiter} & number of iterations to compute MLWF (passed to Wannier90) 
-!   & integer & $500$ }
-!
-!   \block{wann\_nwf}{
-!   {\tt wann\_nwf} & number of wannier functions to computer & integer & -1}
-!   This is set to be equal to the number of projections specified in {\tt wann\_projections}
-!   by default. If it is greater than the number of projections, additional random 
-!   projections will be added
-!
-!   \block{wann\_projections}{
-!   {\tt wann\_projections} & definition of projections for the Amn overlap matrix & string & null}
-!   This block is required for Wannier90 output (tasks 601/602). The syntax for the 
-!   projections is the same as that used in Wannier90 [see Wannier90 user guide]. 
-!
-!   \block{wann\_seedname}{
-!   {\tt wann\_seedname} & seedname for Wannier90 output files & string & ELK}
-!
-!   \block{wann\_tol}{
-!   {\tt wann\_tol} & tolerance factor for calculation of b-vectors for Wannier90 output 
-!   & real & $1.d-6$ }
+!   \block{wmaxgw}{
+!   {\tt wmaxgw} & maximum Matsubara frequency for $GW$ calculations & real &
+!    $-5.0$}
+!   This defines the cut-off of the Matsubara frequencies on the imaginary
+!   axis for calculating the $GW$ self-energy and solving the Dyson equation.
+!   If this number is negative then the cut-off is taken to be
+!   $|{\tt wmaxgw}|\times\Delta\epsilon$, where $\Delta\epsilon$ is the
+!   difference between the largest and smallest Kohn-Sham valence eigenvalues.
 !
 !   \block{wplot}{
 !   {\tt nwplot} & number of frequency/energy points in the DOS or optics plot &
@@ -1799,4 +1787,3 @@ end program
 !    will be accepted without this.
 !
 !EOI
-

@@ -53,7 +53,7 @@ else
   t1=1.d0/swidth
   do ik=1,nkpt
 ! get the eigenvalues from file
-    call getevalsv(filext,vkl(:,ik),evalsv(:,ik))
+    call getevalsv(filext,ik,vkl(:,ik),evalsv(:,ik))
     do ist=1,nstsv
       x=(efermi-evalsv(ist,ik))*t1
       occsv(ist,ik)=occmax*wkpt(ik)*sdelta(stype,x)*t1
@@ -61,15 +61,15 @@ else
   end do
 end if
 ! set the charge density to zero
-rhomt(:,:,:)=0.d0
+rhomt(:,:)=0.d0
 rhoir(:)=0.d0
 ! compute the charge density with the new occupancies
 allocate(apwalm(ngkmax,apwordmax,lmmaxapw,natmtot,nspnfv))
 allocate(evecfv(nmatmax,nstfv),evecsv(nstsv,nstsv))
 do ik=1,nkpt
 ! get the eigenvectors from file
-  call getevecfv(filext,vkl(:,ik),vgkl(:,:,:,ik),evecfv)
-  call getevecsv(filext,vkl(:,ik),evecsv)
+  call getevecfv(filext,ik,vkl(:,ik),vgkl(:,:,:,ik),evecfv)
+  call getevecsv(filext,ik,vkl(:,ik),evecsv)
 ! find the matching coefficients
   do ispn=1,nspnfv
     call match(ngk(ispn,ik),gkc(:,ispn,ik),tpgkc(:,:,ispn,ik), &
@@ -84,7 +84,7 @@ deallocate(apwalm,evecfv,evecsv)
 call rhomagsh
 ! symmetrise the density for the STM plot
 if (task.eq.162) then
-  call symrf(lradstp,rhomt,rhoir)
+  call symrf(nrcmt,nrcmti,npcmt,npmtmax,rhomt,rhoir)
 end if
 ! convert the density from a coarse to a fine radial mesh
 call rfmtctof(rhomt)

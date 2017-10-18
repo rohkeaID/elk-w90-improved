@@ -28,7 +28,8 @@ use modmain
 implicit none
 ! local variables
 integer is,ia,ja,ias,jas
-integer nr,ir,nn,l,io,jo
+integer nr,nri,ir,i
+integer nn,l,io,jo
 real(8) e,t1
 ! automatic arrays
 logical done(natmmax)
@@ -40,18 +41,28 @@ real(8) fintgt
 external fintgt
 do is=1,nspecies
   nr=nrmt(is)
+  nri=nrmti(is)
   done(:)=.false.
   do ia=1,natoms(is)
     if (done(ia)) cycle
     ias=idxas(ia,is)
 ! use spherical part of potential
-    vr(1:nr)=vsmt(1,1:nr,ias)*y00
+    i=1
+    do ir=1,nri
+      vr(ir)=vsmt(i,ias)*y00
+      i=i+lmmaxi
+    end do
+    do ir=nri+1,nr
+      vr(ir)=vsmt(i,ias)*y00
+      i=i+lmmaxo
+    end do
     do l=0,lmaxapw
       do io=1,apword(l,is)
 ! linearisation energy accounting for energy derivative
         e=apwe(io,l,ias)+dble(apwdm(io,l,is))*deapwlo
 ! integrate the radial Schrodinger equation
         call rschrodint(solsc,l,e,nr,rsp(:,is),vr,nn,p0(:,io),p1,q0,q1)
+! multiply by the linearisation energy
         ep0(1:nr,io)=e*p0(1:nr,io)
 ! normalise radial functions
         fr(1:nr)=p0(1:nr,io)**2

@@ -10,18 +10,26 @@ implicit none
 ! arguments
 character(*), intent(in) :: fext
 ! local variables
-integer is
+integer is,ias
+! allocatable arrays
+complex(8), allocatable :: zfmt(:,:,:)
+allocate(zfmt(lmmaxo,nrmtmax,natmtot))
 open(50,file='DVS'//trim(fext),action='WRITE',form='UNFORMATTED')
 write(50) version
 write(50) nspecies
-write(50) lmmaxvr
+write(50) lmmaxo
 do is=1,nspecies
   write(50) natoms(is)
   write(50) nrmt(is)
 end do
 write(50) ngridg
-write(50) dvsmt,dvsir
+do ias=1,natmtot
+  is=idxis(ias)
+  call zfmtpack(.false.,nrmt(is),nrmti(is),dvsmt(:,ias),zfmt(:,:,ias))
+end do
+write(50) zfmt,dvsir
 close(50)
+deallocate(zfmt)
 return
 end subroutine
 

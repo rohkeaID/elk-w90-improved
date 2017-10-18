@@ -8,20 +8,16 @@ use modmain
 implicit none
 ! arguments
 real(8), intent(in) :: gq0
-real(8), intent(out) :: jlgq0r(0:lmaxvr,nrcmtmax,nspecies)
+real(8), intent(out) :: jlgq0r(0:lmaxo,nrcmtmax,nspecies)
 ! local variables
 integer is,irc
 real(8) t1
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(irc,t1)
-!$OMP DO
 do is=1,nspecies
   do irc=1,nrcmt(is)
     t1=gq0*rcmt(irc,is)
-    call sbessel(lmaxvr,t1,jlgq0r(:,irc,is))
+    call sbessel(lmaxo,t1,jlgq0r(:,irc,is))
   end do
 end do
-!$OMP END DO
-!$OMP END PARALLEL
 return
 end subroutine
 

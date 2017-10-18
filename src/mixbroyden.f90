@@ -22,8 +22,8 @@ integer ipiv(msd)
 real(8) c(msd),beta(msd,msd),gamma(msd)
 real(8) work(msd)
 ! external functions
-real(8) ddot,dnrm2
-external ddot,dnrm2
+real(8) dnrm2
+external dnrm2
 if (n.lt.1) then
   write(*,*)
   write(*,'("Error(mixbroyden): n < 1 : ",I8)') n
@@ -64,10 +64,10 @@ if (t1.gt.1.d-8) t1=1.d0/t1
 call dscal(n,t1,df(:,jc),1)
 u(:,jc)=alpha*df(:,jc)+t1*(mu(:,kp)-mu(:,kc))
 do k=1,m
-  c(k)=ddot(n,df(:,k),1,f(:,kc),1)
+  c(k)=dot_product(df(:,k),f(:,kc))
 end do
 do k=1,m
-  a(k,jc)=ddot(n,df(:,jc),1,df(:,k),1)
+  a(k,jc)=dot_product(df(:,jc),df(:,k))
   a(jc,k)=a(k,jc)
 end do
 beta(:,:)=a(:,:)

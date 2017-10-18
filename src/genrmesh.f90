@@ -47,34 +47,33 @@ do is=1,nspecies
   end do
 end do
 ! set up the coarse radial meshes and find the inner part of the muffin-tin
-! where rho is calculated with lmaxinr
+! where rho is calculated with lmaxi
 if (allocated(rcmt)) deallocate(rcmt)
 allocate(rcmt(nrcmtmax,nspecies))
 if (allocated(r2cmt)) deallocate(r2cmt)
 allocate(r2cmt(nrcmtmax,nspecies))
 do is=1,nspecies
   t1=fracinr*rmt(is)
-  nrmtinr(is)=1
-  nrcmtinr(is)=1
+  nrmti(is)=1
+  nrcmti(is)=1
   irc=0
   do ir=1,nrmt(is),lradstp
     irc=irc+1
     rcmt(irc,is)=rsp(ir,is)
     r2cmt(irc,is)=r2sp(ir,is)
     if (rsp(ir,is).lt.t1) then
-      nrmtinr(is)=ir
-      nrcmtinr(is)=irc
+      nrmti(is)=ir
+      nrcmti(is)=irc
     end if
   end do
-!  nrcmt(is)=irc ! AG
 end do
 ! write to VARIABLES.OUT
 call writevars('nrsp',nv=nspecies,iva=nrsp)
 call writevars('nrmt',nv=nspecies,iva=nrmt)
-call writevars('nrmtinr',nv=nspecies,iva=nrmtinr)
+call writevars('nrmti',nv=nspecies,iva=nrmti)
 call writevars('lradstp',iv=lradstp)
 call writevars('nrcmt',nv=nspecies,iva=nrcmt)
-call writevars('nrcmtinr',nv=nspecies,iva=nrcmtinr)
+call writevars('nrcmti',nv=nspecies,iva=nrcmti)
 do is=1,nspecies
   call writevars('rsp',nv=nrmt(is),rva=rsp(:,is))
 end do

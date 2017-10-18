@@ -23,9 +23,7 @@ subroutine zfftifc(nd,n,sgn,z)
 !BOC
 implicit none
 ! arguments
-integer, intent(in) :: nd
-integer, intent(in) :: n(nd)
-integer, intent(in) :: sgn
+integer, intent(in) :: nd,n(nd),sgn
 complex(8), intent(inout) :: z(*)
 ! interface to modified FFTPACK5
 call cfftnd(nd,n,sgn,z)

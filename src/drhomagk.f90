@@ -19,15 +19,14 @@ complex(8), intent(in) :: evecfv(nmatmax,nstfv,nspnfv)
 complex(8), intent(in) :: devecfv(nmatmax,nstfv,nspnfv)
 complex(8), intent(in) :: evecsv(nstsv,nstsv),devecsv(nstsv,nstsv)
 ! local variables
-integer nst,ist,jst,is,ias
-integer nr,nrci,ir,irc
-integer lmmax
+integer nst,ist,jst
+integer is,ias,npc
 real(8) wo,dwo
 ! automatic arrays
 integer idx(nstsv)
 ! allocatable arrays
-complex(8), allocatable :: wfmt(:,:,:,:,:),wfir(:,:,:)
-complex(8), allocatable :: dwfmt(:,:,:,:,:),dwfir(:,:,:)
+complex(8), allocatable :: wfmt(:,:,:,:),wfir(:,:,:)
+complex(8), allocatable :: dwfmt(:,:,:,:),dwfir(:,:,:)
 ! count and index the occupied states
 nst=0
 do ist=1,nstsv
@@ -37,13 +36,11 @@ do ist=1,nstsv
   end if
 end do
 ! generate the wavefunctions
-allocate(wfmt(lmmaxvr,nrcmtmax,natmtot,nspinor,nst))
-allocate(wfir(ngtot,nspinor,nst))
+allocate(wfmt(npcmtmax,natmtot,nspinor,nst),wfir(ngtot,nspinor,nst))
 call genwfsv(.false.,.false.,nst,idx,ngp,igpig,apwalm,evecfv,evecsv,wfmt, &
  ngtot,wfir)
 ! generate the wavefunction derivatives
-allocate(dwfmt(lmmaxvr,nrcmtmax,natmtot,nspinor,nst))
-allocate(dwfir(ngtot,nspinor,nst))
+allocate(dwfmt(npcmtmax,natmtot,nspinor,nst),dwfir(ngtot,nspinor,nst))
 call gendwfsv(.false.,.false.,nst,idx,ngp,ngpq,igpqig,apwalmq,dapwalm,evecfv, &
  devecfv,evecsv,devecsv,dwfmt,ngtot,dwfir)
 ! loop over occupied states
@@ -56,56 +53,34 @@ do ist=1,nst
 !----------------------------------------------!
   do ias=1,natmtot
     is=idxis(ias)
-    nr=nrmt(is)
-    nrci=nrcmtinr(is)
+    npc=npcmt(is)
 !$OMP CRITICAL
     if (spinpol) then
 ! spin-polarised
       if (ncmag) then
 ! non-collinear
-        lmmax=lmmaxinr
-        irc=0
-        do ir=1,nr,lradstp
-          irc=irc+1
-          call drmk1(lmmax,wo,wfmt(:,irc,ias,1,jst),wfmt(:,irc,ias,2,jst), &
-           dwfmt(:,irc,ias,1,jst),dwfmt(:,irc,ias,2,jst),drhomt(:,ir,ias), &
-           dmagmt(:,ir,ias,1),dmagmt(:,ir,ias,2),dmagmt(:,ir,ias,3))
-          if (tphiq0) then
-            call drmk01(lmmax,dwo,wfmt(:,irc,ias,1,jst),wfmt(:,irc,ias,2,jst), &
-             drhomt(:,ir,ias),dmagmt(:,ir,ias,1),dmagmt(:,ir,ias,2), &
-             dmagmt(:,ir,ias,3))
-          end if
-          if (irc.eq.nrci) lmmax=lmmaxvr
-        end do
+        call drmk1(npc,wo,wfmt(:,ias,1,jst),wfmt(:,ias,2,jst), &
+         dwfmt(:,ias,1,jst),dwfmt(:,ias,2,jst),drhomt(:,ias),dmagmt(:,ias,1), &
+         dmagmt(:,ias,2),dmagmt(:,ias,3))
+        if (tphq0) then
+          call drmk01(npc,dwo,wfmt(:,ias,1,jst),wfmt(:,ias,2,jst), &
+           drhomt(:,ias),dmagmt(:,ias,1),dmagmt(:,ias,2),dmagmt(:,ias,3))
+        end if
       else
 ! collinear
-        lmmax=lmmaxinr
-        irc=0
-        do ir=1,nr,lradstp
-          irc=irc+1
-          call drmk2(lmmax,wo,wfmt(:,irc,ias,1,jst),wfmt(:,irc,ias,2,jst), &
-           dwfmt(:,irc,ias,1,jst),dwfmt(:,irc,ias,2,jst),drhomt(:,ir,ias), &
-           dmagmt(:,ir,ias,1))
-          if (tphiq0) then
-            call drmk02(lmmax,dwo,wfmt(:,irc,ias,1,jst),wfmt(:,irc,ias,2,jst), &
-             drhomt(:,ir,ias),dmagmt(:,ir,ias,1))
-          end if
-          if (irc.eq.nrci) lmmax=lmmaxvr
-        end do
+        call drmk2(npc,wo,wfmt(:,ias,1,jst),wfmt(:,ias,2,jst), &
+         dwfmt(:,ias,1,jst),dwfmt(:,ias,2,jst),drhomt(:,ias),dmagmt(:,ias,1))
+        if (tphq0) then
+          call drmk02(npc,dwo,wfmt(:,ias,1,jst),wfmt(:,ias,2,jst), &
+           drhomt(:,ias),dmagmt(:,ias,1))
+        end if
       end if
     else
 ! spin-unpolarised
-      lmmax=lmmaxinr
-      irc=0
-      do ir=1,nr,lradstp
-        irc=irc+1
-        call drmk3(lmmax,wo,wfmt(:,irc,ias,1,jst),dwfmt(:,irc,ias,1,jst), &
-         drhomt(:,ir,ias))
-        if (tphiq0) then
-          call drmk03(lmmax,dwo,wfmt(:,irc,ias,1,jst),drhomt(:,ir,ias))
-        end if
-        if (irc.eq.nrci) lmmax=lmmaxvr
-      end do
+      call drmk3(npc,wo,wfmt(:,ias,1,jst),dwfmt(:,ias,1,jst),drhomt(:,ias))
+      if (tphq0) then
+        call drmk03(npc,dwo,wfmt(:,ias,1,jst),drhomt(:,ias))
+      end if
     end if
 !$OMP END CRITICAL
   end do
@@ -118,7 +93,7 @@ do ist=1,nst
     if (ncmag) then
       call drmk1(ngtot,wo,wfir(:,1,jst),wfir(:,2,jst),dwfir(:,1,jst), &
        dwfir(:,2,jst),drhoir,dmagir(:,1),dmagir(:,2),dmagir(:,3))
-      if (tphiq0) then
+      if (tphq0) then
         call drmk01(ngtot,dwo,wfir(:,1,jst),wfir(:,2,jst),drhoir,dmagir(:,1), &
          dmagir(:,2),dmagir(:,3))
       end if
@@ -126,14 +101,14 @@ do ist=1,nst
 ! collinear
       call drmk2(ngtot,wo,wfir(:,1,jst),wfir(:,2,jst),dwfir(:,1,jst), &
        dwfir(:,2,jst),drhoir,dmagir)
-      if (tphiq0) then
+      if (tphq0) then
         call drmk02(ngtot,dwo,wfir(:,1,jst),wfir(:,2,jst),drhoir,dmagir)
       end if
     end if
   else
 ! spin-unpolarised
     call drmk3(ngtot,wo,wfir(:,1,jst),dwfir(:,1,jst),drhoir)
-    if (tphiq0) then
+    if (tphq0) then
       call drmk03(ngtot,dwo,wfir(:,1,jst),drhoir)
     end if
   end if

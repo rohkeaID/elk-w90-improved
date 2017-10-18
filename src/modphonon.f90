@@ -13,8 +13,8 @@ use modmain
 integer nbph
 ! current phonon q-point, species, atom and polarisation index
 integer iqph,isph,iaph,iasph,ipph
-! tphiq0 is .true. if q = 0
-logical tphiq0
+! tphq0 is .true. if q = 0
+logical tphq0
 ! number of vectors for writing out frequencies and eigenvectors
 integer nphwrt
 ! vectors in lattice coordinates for writing out frequencies and eigenvectors
@@ -50,7 +50,7 @@ real(8), allocatable :: vgqc(:,:)
 ! G+q-vector lengths
 real(8), allocatable :: gqc(:)
 ! spherical Bessel functions j_l(|G+q|R_mt)
-real(8), allocatable :: jlgqr(:,:,:)
+real(8), allocatable :: jlgqrmt(:,:,:)
 ! spherical harmonics for G+q-vectors
 complex(8), allocatable :: ylmgq(:,:)
 ! structure factors for G+q-vectors
@@ -82,24 +82,24 @@ complex(8), allocatable :: sfacgkq(:,:,:,:)
 !     density functional perturbation theory variables     !
 !----------------------------------------------------------!
 ! density derivative
-complex(8), allocatable :: drhomt(:,:,:),drhoir(:)
+complex(8), allocatable :: drhomt(:,:),drhoir(:)
 ! magnetisation derivative
-complex(8), allocatable :: dmagmt(:,:,:,:),dmagir(:,:)
+complex(8), allocatable :: dmagmt(:,:,:),dmagir(:,:)
 ! Coulomb potential derivative
-complex(8), allocatable :: dvclmt(:,:,:),dvclir(:)
+complex(8), allocatable :: dvclmt(:,:),dvclir(:)
 ! if tphdyn is .true. then the phonon dynamical matrix is being calculated
 logical tphdyn
 data tphdyn / .false. /
 ! nuclear potential without the self-term; used for the phonon dynamical matrix
-complex(8), allocatable :: zvnmt(:,:)
+complex(8), allocatable :: zvnmt(:)
 ! Kohn-Sham potential derivative
-complex(8), allocatable :: dvsmt(:,:,:),dvsir(:)
+complex(8), allocatable :: dvsmt(:,:),dvsir(:)
 ! gradient of vsmt for the displaced muffin-tin
-complex(8), allocatable :: gvsmt(:,:)
+complex(8), allocatable :: gvsmt(:)
 ! G+q-space interstitial Kohn-Sham potential derivative
 complex(8), allocatable :: dvsig(:)
 ! Kohn-Sham effective magnetic field derivative
-complex(8), allocatable :: dbsmt(:,:,:,:),dbsir(:,:)
+complex(8), allocatable :: dbsmt(:,:,:),dbsir(:,:)
 ! spin-orbit coupling radial function derivative
 complex(8), allocatable :: dsocfr(:,:)
 ! APW-APW Hamiltonian integral derivatives
@@ -111,9 +111,13 @@ complex(8), allocatable :: dhlolo(:,:,:,:)
 ! real Gaunt coefficient array
 real(8), allocatable :: gntyyy(:,:,:)
 ! smallest allowed perturbation theory denominator for eigenvector derivatives
-real(8) epsph
+real(8) epsdev
 ! Fermi energy derivative
 real(8) defermi
+! first-variational eigenvalue derivatives
+real(8), allocatable :: devalfv(:,:,:)
+! second-variational eigenvalue derivatives
+real(8), allocatable :: devalsv(:,:)
 ! second-variational occupation number derivatives
 real(8), allocatable :: doccsv(:,:)
 

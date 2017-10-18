@@ -8,12 +8,12 @@ use modmain
 implicit none
 ! arguments
 real(8), intent(in) :: vpl(3)
-complex(8), intent(in) :: expmt(lmmaxvr,nrcmtmax,natmtot)
+complex(8), intent(in) :: expmt(npcmtmax,natmtot)
 complex(8), intent(out) :: emat(nstsv,nstsv)
 ! local variables
 integer ist,jst,ispn,i,j,k,l
 integer is,ia,ias,nrc,nrci
-integer ngp,ngpq,igp,ifg
+integer npc,ngp,ngpq,igp,ifg
 real(8) vpc(3),vpql(3),vpqc(3),t1
 complex(8) zsum
 ! allocatable arrays
@@ -24,7 +24,7 @@ complex(8), allocatable :: sfacgp(:,:),sfacgpq(:,:)
 complex(8), allocatable :: apwalm1(:,:,:,:),apwalm2(:,:,:,:)
 complex(8), allocatable :: evecfv1(:,:),evecfv2(:,:)
 complex(8), allocatable :: evecsv1(:,:),evecsv2(:,:)
-complex(8), allocatable :: wfmt1(:,:),wfmt2(:,:,:)
+complex(8), allocatable :: wfmt1(:),wfmt2(:,:)
 complex(8), allocatable :: zfir(:),x(:),em(:,:)
 ! external functions
 complex(8) zfmtinp,zdotc
@@ -49,7 +49,7 @@ allocate(evecfv1(nmatmax,nstfv),evecfv2(nmatmax,nstfv))
 if (tevecsv) then
   allocate(evecsv1(nstsv,nstsv),evecsv2(nstsv,nstsv))
 end if
-allocate(wfmt1(lmmaxvr,nrcmtmax),wfmt2(lmmaxvr,nrcmtmax,nstfv))
+allocate(wfmt1(npcmtmax),wfmt2(npcmtmax,nstfv))
 allocate(zfir(ngtot),x(ngkmax),em(nstfv,nstfv))
 ! p-vector in Cartesian coordinates
 call r3mv(bvec,vpl,vpc)
@@ -64,7 +64,7 @@ call gensfacgp(ngp,vgpc,ngkmax,sfacgp)
 ! find the matching coefficients for k-point p
 call match(ngp,gpc,tpgpc,sfacgp,apwalm1)
 ! get the eigenvectors for k-point p
-call getevecfv(filext,vpl,vgpl,evecfv1)
+call getevecfv(filext,0,vpl,vgpl,evecfv1)
 ! p+q-vector in lattice coordinates
 vpql(:)=vpl(:)+vecql(:)
 ! p+q-vector in Cartesian coordinates
@@ -80,7 +80,7 @@ call gensfacgp(ngpq,vgpqc,ngkmax,sfacgpq)
 ! find the matching coefficients for k-point p+q
 call match(ngpq,gpqc,tpgpqc,sfacgpq,apwalm2)
 ! get the eigenvectors for k-point p+q
-call getevecfv(filext,vpql,vgpql,evecfv2)
+call getevecfv(filext,0,vpql,vgpql,evecfv2)
 ! set the first-variational matrix element array to zero
 em(:,:)=0.d0
 !------------------------------------!
@@ -88,25 +88,26 @@ em(:,:)=0.d0
 !------------------------------------!
 do is=1,nspecies
   nrc=nrcmt(is)
-  nrci=nrcmtinr(is)
+  nrci=nrcmti(is)
+  npc=npcmt(is)
   do ia=1,natoms(is)
     ias=idxas(ia,is)
     do ist=1,nstfv
 ! calculate the wavefunction for k-point p+q
       call wavefmt(lradstp,ias,ngpq,apwalm2,evecfv2(:,ist),wfmt1)
 ! convert from spherical harmonics to spherical coordinates
-      call zbsht(nrc,nrci,wfmt1,wfmt2(:,:,ist))
+      call zbsht(nrc,nrci,wfmt1,wfmt2(:,ist))
 ! multiply by exp(-iq.r) (conjugate because zfmtinp conjugates first function)
-      call genzrmt1(nrc,nrci,expmt(:,:,ias),wfmt2(:,:,ist),wfmt1)
+      wfmt1(1:npc)=conjg(expmt(1:npc,ias))*wfmt2(1:npc,ist)
 ! convert from spherical coordinates to spherical harmonics
-      call zfsht(nrc,nrci,wfmt1,wfmt2(:,:,ist))
+      call zfsht(nrc,nrci,wfmt1,wfmt2(:,ist))
     end do
     do jst=1,nstfv
 ! calculate the wavefunction for k-point p
       call wavefmt(lradstp,ias,ngp,apwalm1,evecfv1(:,jst),wfmt1)
       do ist=1,nstfv
         em(ist,jst)=em(ist,jst)+zfmtinp(nrc,nrci,rcmt(:,is),r2cmt(:,is), &
-         wfmt2(:,:,ist),wfmt1)
+         wfmt2(:,ist),wfmt1)
       end do
     end do
 ! end loops over atoms and species
@@ -143,8 +144,8 @@ end do
 !-------------------------------------------!
 if (tevecsv) then
 ! get the second-variational eigenvectors
-  call getevecsv(filext,vpl,evecsv1)
-  call getevecsv(filext,vpql,evecsv2)
+  call getevecsv(filext,0,vpl,evecsv1)
+  call getevecsv(filext,0,vpql,evecsv2)
   do i=1,nstsv
     do j=1,nstsv
       zsum=0.d0

@@ -6,9 +6,7 @@
 subroutine zfftifc(nd,n,sgn,z)
 implicit none
 ! arguments
-integer, intent(in) :: nd
-integer, intent(in) :: n(nd)
-integer, intent(in) :: sgn
+integer, intent(in) :: nd,n(nd),sgn
 complex(8), intent(inout) :: z(*)
 ! local variables
 integer, parameter :: FFTW_ESTIMATE=64

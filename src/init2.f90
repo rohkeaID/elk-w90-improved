@@ -10,10 +10,11 @@ use modvars
 implicit none
 ! local variables
 logical lsym(48)
-integer isym,is,ia
-integer ist,ic,m
+integer isym,iv(3)
+integer is,ia,ic
+integer ist,m,n
 real(8) ts0,ts1
-real(8) boxl(3,4),t1
+real(8) boxl(3,0:3),t1
 
 call timesec(ts0)
 
@@ -39,11 +40,30 @@ else
     end if
   end do
 end if
-! OEP, Hartree-Fock, RPA epsilon, TDDFT, BSE or RDMFT
+! OEP, Hartree-Fock, RPA epsilon, TDDFT, BSE, RDMFT or GW
 if ((xctype(1).lt.0).or.(task.eq.5).or.(task.eq.105).or.(task.eq.180).or. &
  (task.eq.185).or.(task.eq.188).or.(task.eq.300).or.(task.eq.320).or. &
  (task.eq.330).or.(task.eq.331)) then
   ngridq(:)=ngridk(:)
+else if (task.eq.600) then
+! GW: allow for the k-point grid to be smaller than the q-point grid
+  if ((ngridq(1).le.0).or.(ngridq(2).le.0).or.(ngridq(3).le.0)) then
+    ngridq(:)=ngridk(:)
+  end if
+else
+  ngridq(:)=abs(ngridq(:))
+end if
+! check that the q-point and k-point grids are commensurate for some tasks
+if ((task.eq.205).or.(task.eq.240).or.(task.eq.600)) then
+  iv(:)=mod(ngridk(:),ngridq(:))
+  if ((iv(1).ne.0).or.(iv(2).ne.0).or.(iv(3).ne.0)) then
+    write(*,*)
+    write(*,'("Error(init2): k-point grid incommensurate with q-point grid")')
+    write(*,'(" ngridk : ",3I6)') ngridk
+    write(*,'(" ngridq : ",3I6)') ngridq
+    write(*,*)
+    stop
+  end if
 end if
 ! allocate the q-point arrays
 if (allocated(iqmap)) deallocate(iqmap)
@@ -61,7 +81,7 @@ if (allocated(wqpt)) deallocate(wqpt)
 allocate(wqpt(nqptnr))
 ! set up the q-point box (offset should always be zero)
 boxl(:,:)=0.d0
-boxl(1,2)=1.d0; boxl(2,3)=1.d0; boxl(3,4)=1.d0;
+boxl(1,1)=1.d0; boxl(2,2)=1.d0; boxl(3,3)=1.d0
 ! generate the q-point set
 ! (note that the vectors vql and vqc are in the first Brillouin zone)
 call genppts(.true.,nsymqpt,symqpt,ngridq,nqptnr,epslat,bvec,boxl,nqpt,iqmap, &
@@ -78,6 +98,13 @@ write(*,'("Error(init2): q = 0 not in q-point set")')
 write(*,*)
 stop
 10 continue
+! find the maximum number of spherical Bessel functions on the coarse radial
+! mesh over all species
+njcmax=1
+do is=1,nspecies
+  n=(lmaxi+1)*nrcmti(is)+(lmaxo+1)*(nrcmt(is)-nrcmti(is))
+  if (n.gt.njcmax) njcmax=n
+end do
 ! write to VARIABLES.OUT
 call writevars('nsymqpt',iv=nsymqpt)
 call writevars('symqpt',nv=9*nsymqpt,iva=symqpt)
@@ -88,11 +115,11 @@ call writevars('ivq',nv=3*nqptnr,iva=ivq)
 call writevars('vql',nv=3*nqptnr,rva=vql)
 call writevars('wqpt',nv=nqpt,rva=wqpt)
 
-!----------------------------------------------------!
-!     OEP, Hartree-Fock, RDMFT and BSE variables     !
-!----------------------------------------------------!
+!--------------------------------------------------------!
+!     OEP, Hartree-Fock, RDMFT, BSE and GW variables     !
+!--------------------------------------------------------!
 if ((xctype(1).lt.0).or.(task.eq.5).or.(task.eq.185).or.(task.eq.300).or. &
- (task.eq.330).or.(task.eq.331)) then
+ (task.eq.330).or.(task.eq.331).or.(task.eq.600)) then
 ! determine the 1/q^2 integral weights if required
   call genwiq2
 ! output the 1/q^2 integrals to WIQ2.OUT
@@ -118,15 +145,15 @@ if (xctype(1).lt.0) then
   end do
 ! allocate and zero the exchange potential and magnetic field
   if (allocated(vxmt)) deallocate(vxmt)
-  allocate(vxmt(lmmaxvr,nrcmtmax,natmtot))
-  vxmt(:,:,:)=0.d0
+  allocate(vxmt(npcmtmax,natmtot))
+  vxmt(:,:)=0.d0
   if (allocated(vxir)) deallocate(vxir)
   allocate(vxir(ngtot))
   vxir(:)=0.d0
   if (spinpol) then
     if (allocated(bxmt)) deallocate(bxmt)
-    allocate(bxmt(lmmaxvr,nrcmtmax,natmtot,ndmag))
-    bxmt(:,:,:,:)=0.d0
+    allocate(bxmt(npcmtmax,natmtot,ndmag))
+    bxmt(:,:,:)=0.d0
     if (allocated(bxir)) deallocate(bxir)
     allocate(bxir(ngtot,ndmag))
     bxir(:,:)=0.d0

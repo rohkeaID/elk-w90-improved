@@ -20,9 +20,9 @@ call init0
 call init1
 allocate(apwalm(ngkmax,apwordmax,lmmaxapw,natmtot,nspnfv))
 allocate(evecfv(nmatmax,nstfv,nspnfv),evecsv(nstsv,nstsv))
-allocate(dmat1(lmmaxvr,nspinor,lmmaxvr,nspinor,natmtot))
-allocate(dmat2(lmmaxvr,nspinor,lmmaxvr,nspinor,nstsv))
-allocate(zlflm(lmmaxvr,3))
+allocate(dmat1(lmmaxo,nspinor,lmmaxo,nspinor,natmtot))
+allocate(dmat2(lmmaxo,nspinor,lmmaxo,nspinor,nstsv))
+allocate(zlflm(lmmaxo,3))
 ! read density and potentials from file
 call readstate
 ! read Fermi energy from file
@@ -38,9 +38,9 @@ if (task.eq.15) then
   dmat1(:,:,:,:,:)=0.d0
   do ik=1,nkpt
 ! get the eigenvectors and occupancies from file
-    call getevecfv(filext,vkl(:,ik),vgkl(:,:,:,ik),evecfv)
-    call getevecsv(filext,vkl(:,ik),evecsv)
-    call getoccsv(filext,vkl(:,ik),occsv(:,ik))
+    call getevecfv(filext,ik,vkl(:,ik),vgkl(:,:,:,ik),evecfv)
+    call getevecsv(filext,ik,vkl(:,ik),evecsv)
+    call getoccsv(filext,ik,vkl(:,ik),occsv(:,ik))
 ! find the matching coefficients
     do ispn=1,nspnfv
       call match(ngk(ispn,ik),gkc(:,ispn,ik),tpgkc(:,:,ispn,ik), &
@@ -51,8 +51,8 @@ if (task.eq.15) then
       do ia=1,natoms(is)
         ias=idxas(ia,is)
 ! generate the density matrix
-        call gendmat(.false.,.false.,0,lmaxvr,ias,ngk(:,ik),apwalm,evecfv, &
-         evecsv,lmmaxvr,dmat2)
+        call gendmat(.false.,.false.,0,lmaxo,ias,ngk(:,ik),apwalm,evecfv, &
+         evecsv,lmmaxo,dmat2)
         do ist=1,nstsv
           t1=wkpt(ik)*occsv(ist,ik)
           dmat1(:,:,:,:,ias)=dmat1(:,:,:,:,ias)+t1*dmat2(:,:,:,:,ist)
@@ -62,7 +62,7 @@ if (task.eq.15) then
 ! end loop over k-points
   end do
 ! symmetrise the density matrix
-  call symdmat(lmaxvr,lmmaxvr,dmat1)
+  call symdmat(lmaxo,lmmaxo,dmat1)
   open(50,file='LSJ.OUT',action='WRITE',form='FORMATTED')
   write(50,*)
   write(50,'("Expectation values are computed only over the muffin-tin")')
@@ -75,15 +75,15 @@ if (task.eq.15) then
 ! compute tr(LD)
       xl(:)=0.d0
       do ispn=1,nspinor
-        do lm=1,lmmaxvr
-          call lopzflm(lmaxvr,dmat1(:,ispn,lm,ispn,ias),lmmaxvr,zlflm)
+        do lm=1,lmmaxo
+          call lopzflm(lmaxo,dmat1(:,ispn,lm,ispn,ias),lmmaxo,zlflm)
           xl(:)=xl(:)+dble(zlflm(lm,:))
         end do
       end do
 ! compute tr(sigma D)
       xs(:)=0.d0
       if (spinpol) then
-        do lm=1,lmmaxvr
+        do lm=1,lmmaxo
           xs(1)=xs(1)+dble(dmat1(lm,2,lm,1,ias)+dmat1(lm,1,lm,2,ias))
           xs(2)=xs(2)+dble(-zi*dmat1(lm,2,lm,1,ias)+zi*dmat1(lm,1,lm,2,ias))
           xs(3)=xs(3)+dble(dmat1(lm,1,lm,1,ias)-dmat1(lm,2,lm,2,ias))
@@ -123,9 +123,9 @@ else
       stop
     end if
 ! get the eigenvectors and occupancies from file
-    call getevecfv(filext,vkl(:,ik),vgkl(:,:,:,ik),evecfv)
-    call getevecsv(filext,vkl(:,ik),evecsv)
-    call getoccsv(filext,vkl(:,ik),occsv(:,ik))
+    call getevecfv(filext,ik,vkl(:,ik),vgkl(:,:,:,ik),evecfv)
+    call getevecsv(filext,ik,vkl(:,ik),evecsv)
+    call getoccsv(filext,ik,vkl(:,ik),occsv(:,ik))
 ! find the matching coefficients
     do ispn=1,nspnfv
       call match(ngk(ispn,ik),gkc(:,ispn,ik),tpgkc(:,:,ispn,ik), &
@@ -136,20 +136,20 @@ else
       do ia=1,natoms(is)
         ias=idxas(ia,is)
 ! generate the density matrix
-        call gendmat(.false.,.false.,0,lmaxvr,ias,ngk(:,ik),apwalm,evecfv, &
-         evecsv,lmmaxvr,dmat2)
+        call gendmat(.false.,.false.,0,lmaxo,ias,ngk(:,ik),apwalm,evecfv, &
+         evecsv,lmmaxo,dmat2)
 ! compute tr(LD)
         xl(:)=0.d0
         do ispn=1,nspinor
-          do lm=1,lmmaxvr
-            call lopzflm(lmaxvr,dmat2(:,ispn,lm,ispn,ist),lmmaxvr,zlflm)
+          do lm=1,lmmaxo
+            call lopzflm(lmaxo,dmat2(:,ispn,lm,ispn,ist),lmmaxo,zlflm)
             xl(:)=xl(:)+dble(zlflm(lm,:))
           end do
         end do
 ! compute tr(sigma D)
         xs(:)=0.d0
         if (spinpol) then
-          do lm=1,lmmaxvr
+          do lm=1,lmmaxo
             xs(1)=xs(1)+dble(dmat2(lm,2,lm,1,ist)+dmat2(lm,1,lm,2,ist))
             xs(2)=xs(2)+dble(-zi*dmat2(lm,2,lm,1,ist)+zi*dmat2(lm,1,lm,2,ist))
             xs(3)=xs(3)+dble(dmat2(lm,1,lm,1,ist)-dmat2(lm,2,lm,2,ist))

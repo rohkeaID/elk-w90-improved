@@ -33,8 +33,7 @@ subroutine sbesseldm(m,lmax,x,djl)
 !BOC
 implicit none
 ! arguments
-integer, intent(in) :: m
-integer, intent(in) :: lmax
+integer, intent(in) :: m,lmax
 real(8), intent(in) :: x
 real(8), intent(out) :: djl(0:lmax)
 ! local variables

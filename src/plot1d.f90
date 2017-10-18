@@ -13,7 +13,7 @@ use modmain
 !   fnum1 : plot file number (in,integer)
 !   fnum2 : vertex location file number (in,integer)
 !   nf    : number of functions (in,integer)
-!   rfmt  : real muffin-tin function (in,real(lmmaxvr,nrmtmax,natmtot,nf))
+!   rfmt  : real muffin-tin function (in,real(npmtmax,natmtot,nf))
 !   rfir  : real intersitial function (in,real(ngtot,nf))
 ! !DESCRIPTION:
 !   Produces a 1D plot of the real functions contained in arrays {\tt rfmt} and
@@ -27,7 +27,7 @@ use modmain
 implicit none
 ! arguments
 integer, intent(in) :: fnum1,fnum2,nf
-real(8), intent(in) :: rfmt(lmmaxvr,nrmtmax,natmtot,nf),rfir(ngtot,nf)
+real(8), intent(in) :: rfmt(npmtmax,natmtot,nf),rfir(ngtot,nf)
 ! local variables
 integer i,ip,iv
 real(8) fmin,fmax,t1
@@ -44,7 +44,7 @@ allocate(fp(npp1d,nf))
 call plotpt1d(avec,nvp1d,npp1d,vvlp1d,vplp1d,dvp1d,dpp1d)
 do i=1,nf
 ! evaluate function at each point
-  call rfplot(npp1d,vplp1d,rfmt(:,:,:,i),rfir(:,i),fp(:,i))
+  call rfplot(npp1d,vplp1d,rfmt(:,:,i),rfir(:,i),fp(:,i))
 end do
 fmin=fp(1,1)
 fmax=fp(1,1)

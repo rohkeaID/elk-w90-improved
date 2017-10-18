@@ -8,14 +8,15 @@ use modmain
 implicit none
 ! arguments
 complex(8), intent(in) :: za
-complex(8), intent(in) :: zfmt(lmmaxvr,nrcmtmax,natmtot),zfir(ngtot)
-real(8), intent(inout) :: rfmt(lmmaxvr,nrcmtmax,natmtot),rfir(ngtot)
+complex(8), intent(in) :: zfmt(npcmtmax,natmtot),zfir(ngtot)
+real(8), intent(inout) :: rfmt(npcmtmax,natmtot),rfir(ngtot)
 ! local variables
-integer ias,is
+integer ias,is,npc
 ! add in muffin-tin region
 do ias=1,natmtot
   is=idxis(ias)
-  call rzfmtadd(nrcmt(is),nrcmtinr(is),za,zfmt(:,:,ias),rfmt(:,:,ias))
+  npc=npcmt(is)
+  rfmt(1:npc,ias)=rfmt(1:npc,ias)+dble(za*zfmt(1:npc,ias))
 end do
 ! add in interstitial region
 rfir(:)=rfir(:)+dble(za*zfir(:))

@@ -25,8 +25,8 @@ use modxcifc
 implicit none
 ! local variables
 integer idm,is,ia,ias
-integer nr,nri,ir,i,n
-real(8) t1,t2,t3,t4
+integer nr,nri,ir,np,i,n
+real(8) t0,t1,t2,t3,t4
 ! allocatable arrays
 real(8), allocatable :: rho(:),rhoup(:),rhodn(:)
 real(8), allocatable :: gvrho(:),gvup(:),gvdn(:)
@@ -34,7 +34,7 @@ real(8), allocatable :: grho(:),gup(:),gdn(:)
 real(8), allocatable :: g2rho(:),g2up(:),g2dn(:)
 real(8), allocatable :: g3rho(:),g3up(:),g3dn(:)
 real(8), allocatable :: grho2(:),gup2(:),gdn2(:),gupdn(:)
-real(8), allocatable :: taumt(:,:,:,:),tauir(:,:)
+real(8), allocatable :: taumt(:,:,:),tauir(:,:)
 real(8), allocatable :: ex(:),ec(:),vxc(:)
 real(8), allocatable :: vx(:),vxup(:),vxdn(:)
 real(8), allocatable :: vc(:),vcup(:),vcdn(:)
@@ -44,20 +44,18 @@ real(8), allocatable :: mag(:,:),bxc(:,:)
 ! meta-GGA variables if required
 if (xcgrad.eq.3) then
 ! generate the kinetic energy density if required
-  allocate(taumt(lmmaxvr,nrmtmax,natmtot,nspinor))
+  allocate(taumt(npmtmax,natmtot,nspinor))
   allocate(tauir(ngtot,nspinor))
   call gentau(taumt,tauir)
 ! compute the Tran-Blaha '09 constant c
   call xc_c_tb09
 end if
 ! allocate local arrays
-n=lmmaxvr*nrmtmax
-allocate(ex(n),ec(n),vxc(n))
+allocate(rho(npmtmax),ex(npmtmax),ec(npmtmax),vxc(npmtmax))
 if (spinpol) then
-  allocate(mag(n,3),bxc(n,3))
+  allocate(mag(npmtmax,3),bxc(npmtmax,3))
 end if
-n=max(n,ngtot)
-allocate(rho(n))
+n=max(npmtmax,ngtot)
 if (spinpol) then
   allocate(rhoup(n),rhodn(n))
   allocate(vxup(n),vxdn(n),vcup(n),vcdn(n))
@@ -92,53 +90,64 @@ end if
 !---------------------------------------!
 do is=1,nspecies
   nr=nrmt(is)
-  nri=nrmtinr(is)
-  n=lmmaxvr*nr
+  nri=nrmti(is)
+  np=npmt(is)
   do ia=1,natoms(is)
     ias=idxas(ia,is)
 ! compute the density in spherical coordinates
-    call rbsht(nr,nri,1,rhomt(:,:,ias),1,rho)
+    call rbsht(nr,nri,rhomt(:,ias),rho)
     if (spinpol) then
 !------------------------!
 !     spin-polarised     !
 !------------------------!
 ! magnetisation in spherical coordinates
       do idm=1,ndmag
-        call rbsht(nr,nri,1,magmt(:,:,ias,idm),1,mag(:,idm))
+        call rbsht(nr,nri,magmt(:,ias,idm),mag(:,idm))
       end do
+! use scaled spin exchange-correlation (SSXC) if required
+      if (tssxc) mag(1:np,1:ndmag)=mag(1:np,1:ndmag)*ssxc
       if (ncmag) then
 ! non-collinear (use Kubler's trick)
-        do i=1,n
+        if (xcgrad.eq.0) then
+! LSDA
+          do i=1,np
 ! compute rhoup=(rho+|m|)/2 and rhodn=(rho-|m|)/2
-          t1=sqrt(mag(i,1)**2+mag(i,2)**2+mag(i,3)**2)
-          rhoup(i)=0.5d0*(rho(i)+t1)
-          rhodn(i)=0.5d0*(rho(i)-t1)
-        end do
+            t0=rho(i)
+            t1=sqrt(mag(i,1)**2+mag(i,2)**2+mag(i,3)**2)
+            rhoup(i)=0.5d0*(t0+t1)
+            rhodn(i)=0.5d0*(t0-t1)
+          end do
+        else
+! functionals which require gradients
+          do i=1,np
+            t0=rho(i)
+            t1=sqrt(mag(i,1)**2+mag(i,2)**2+mag(i,3)**2+dncgga)
+            rhoup(i)=0.5d0*(t0+t1)
+            rhodn(i)=0.5d0*(t0-t1)
+          end do
+        end if
       else
 ! collinear
-        do i=1,n
+        do i=1,np
 ! compute rhoup=(rho+m_z)/2 and rhodn=(rho-m_z)/2
-          rhoup(i)=0.5d0*(rho(i)+mag(i,1))
-          rhodn(i)=0.5d0*(rho(i)-mag(i,1))
+          t0=rho(i)
+          t1=mag(i,1)
+          rhoup(i)=0.5d0*(t0+t1)
+          rhodn(i)=0.5d0*(t0-t1)
         end do
       end if
 ! call the exchange-correlation interface routine
       if (xcgrad.le.0) then
-        call xcifc(xctype,n=n,rhoup=rhoup,rhodn=rhodn,ex=ex,ec=ec,vxup=vxup, &
+        call xcifc(xctype,n=np,rhoup=rhoup,rhodn=rhodn,ex=ex,ec=ec,vxup=vxup, &
          vxdn=vxdn,vcup=vcup,vcdn=vcdn)
       else if (xcgrad.eq.1) then
-        if (ncgga) then
-          rho(1:n)=0.5d0*rho(1:n)
-          call ggamt_sp_1(is,rho,rho,grho,gup,gdn,g2up,g2dn,g3rho,g3up,g3dn)
-        else
-          call ggamt_sp_1(is,rhoup,rhodn,grho,gup,gdn,g2up,g2dn,g3rho,g3up,g3dn)
-        end if
-        call xcifc(xctype,n=n,rhoup=rhoup,rhodn=rhodn,grho=grho,gup=gup, &
+        call ggamt_sp_1(is,rhoup,rhodn,grho,gup,gdn,g2up,g2dn,g3rho,g3up,g3dn)
+        call xcifc(xctype,n=np,rhoup=rhoup,rhodn=rhodn,grho=grho,gup=gup, &
          gdn=gdn,g2up=g2up,g2dn=g2dn,g3rho=g3rho,g3up=g3up,g3dn=g3dn,ex=ex, &
          ec=ec,vxup=vxup,vxdn=vxdn,vcup=vcup,vcdn=vcdn)
       else if (xcgrad.eq.2) then
         call ggamt_sp_2a(is,rhoup,rhodn,g2up,g2dn,gvup,gvdn,gup2,gdn2,gupdn)
-        call xcifc(xctype,n=n,rhoup=rhoup,rhodn=rhodn,gup2=gup2,gdn2=gdn2, &
+        call xcifc(xctype,n=np,rhoup=rhoup,rhodn=rhodn,gup2=gup2,gdn2=gdn2, &
          gupdn=gupdn,ex=ex,ec=ec,vxup=vxup,vxdn=vxdn,vcup=vcup,vcdn=vcdn, &
          dxdgu2=dxdgu2,dxdgd2=dxdgd2,dxdgud=dxdgud,dcdgu2=dcdgu2, &
          dcdgd2=dcdgd2,dcdgud=dcdgud)
@@ -146,23 +155,24 @@ do is=1,nspecies
          dxdgd2,dxdgud,dcdgu2,dcdgd2,dcdgud)
       else if (xcgrad.eq.3) then
         call ggamt_sp_2a(is,rhoup,rhodn,g2up,g2dn,gvup,gvdn,gup2,gdn2,gupdn)
-        call xcifc(xctype,n=n,c_tb09=c_tb09,rhoup=rhoup,rhodn=rhodn,g2up=g2up, &
-         g2dn=g2dn,gup2=gup2,gdn2=gdn2,gupdn=gupdn,tauup=taumt(:,:,ias,1), &
-         taudn=taumt(:,:,ias,2),vxup=vxup,vxdn=vxdn,vcup=vcup,vcdn=vcdn)
-        ex(1:n)=0.d0; ec(1:n)=0.d0
+        call xcifc(xctype,n=np,c_tb09=c_tb09,rhoup=rhoup,rhodn=rhodn, &
+         g2up=g2up,g2dn=g2dn,gup2=gup2,gdn2=gdn2,gupdn=gupdn, &
+         tauup=taumt(:,ias,1),taudn=taumt(:,ias,2),vxup=vxup,vxdn=vxdn, &
+         vcup=vcup,vcdn=vcdn)
+        ex(1:np)=0.d0; ec(1:np)=0.d0
       end if
 ! hybrid functionals
       if (hybrid) then
         t1=1.d0-hybridc
 ! scale exchange part of energy
-        ex(1:n)=t1*ex(1:n)
+        ex(1:np)=t1*ex(1:np)
 ! scale exchange part of potential
-        vxup(1:n)=t1*vxup(1:n)
-        vxdn(1:n)=t1*vxdn(1:n)
+        vxup(1:np)=t1*vxup(1:np)
+        vxdn(1:np)=t1*vxdn(1:np)
       end if
       if (ncmag) then
 ! non-collinear: locally spin rotate the exchange-correlation potential
-        do i=1,n
+        do i=1,np
           t1=vxup(i)+vcup(i)
           t2=vxdn(i)+vcdn(i)
           vxc(i)=0.5d0*(t1+t2)
@@ -175,54 +185,56 @@ do is=1,nspecies
         end do
       else
 ! collinear
-        do i=1,n
+        do i=1,np
           t1=vxup(i)+vcup(i)
           t2=vxdn(i)+vcdn(i)
           vxc(i)=0.5d0*(t1+t2)
           bxc(i,1)=0.5d0*(t1-t2)
         end do
       end if
+! scale B_xc for SSXC if required
+      if (tssxc) bxc(1:np,1:ndmag)=bxc(1:np,1:ndmag)*ssxc
 ! convert field to spherical harmonics
       do idm=1,ndmag
-        call rfsht(nr,nri,1,bxc(:,idm),1,bxcmt(:,:,ias,idm))
+        call rfsht(nr,nri,bxc(:,idm),bxcmt(:,ias,idm))
       end do
     else
 !--------------------------!
 !     spin-unpolarised     !
 !--------------------------!
       if (xcgrad.le.0) then
-        call xcifc(xctype,n=n,rho=rho,ex=ex,ec=ec,vx=vx,vc=vc)
+        call xcifc(xctype,n=np,rho=rho,ex=ex,ec=ec,vx=vx,vc=vc)
       else if (xcgrad.eq.1) then
         call ggamt_1(ias,grho,g2rho,g3rho)
-        call xcifc(xctype,n=n,rho=rho,grho=grho,g2rho=g2rho,g3rho=g3rho,ex=ex, &
-         ec=ec,vx=vx,vc=vc)
+        call xcifc(xctype,n=np,rho=rho,grho=grho,g2rho=g2rho,g3rho=g3rho, &
+         ex=ex,ec=ec,vx=vx,vc=vc)
       else if (xcgrad.eq.2) then
         call ggamt_2a(ias,g2rho,gvrho,grho2)
-        call xcifc(xctype,n=n,rho=rho,grho2=grho2,ex=ex,ec=ec,vx=vx,vc=vc, &
+        call xcifc(xctype,n=np,rho=rho,grho2=grho2,ex=ex,ec=ec,vx=vx,vc=vc, &
          dxdg2=dxdg2,dcdg2=dcdg2)
         call ggamt_2b(is,g2rho,gvrho,vx,vc,dxdg2,dcdg2)
       else if (xcgrad.eq.3) then
         call ggamt_2a(ias,g2rho,gvrho,grho2)
-        call xcifc(xctype,n=n,c_tb09=c_tb09,rho=rho,g2rho=g2rho,grho2=grho2, &
-         tau=taumt(:,:,ias,1),vx=vx,vc=vc)
-        ex(1:n)=0.d0; ec(1:n)=0.d0
+        call xcifc(xctype,n=np,c_tb09=c_tb09,rho=rho,g2rho=g2rho,grho2=grho2, &
+         tau=taumt(:,ias,1),vx=vx,vc=vc)
+        ex(1:np)=0.d0; ec(1:np)=0.d0
       end if
 ! hybrid functionals
       if (hybrid) then
         t1=1.d0-hybridc
 ! scale exchange part of energy
-        ex(1:n)=t1*ex(1:n)
+        ex(1:np)=t1*ex(1:np)
 ! scale exchange part of potential
-        vxc(1:n)=t1*vx(1:n)+vc(1:n)
+        vxc(1:np)=t1*vx(1:np)+vc(1:np)
       else
-        vxc(1:n)=vx(1:n)+vc(1:n)
+        vxc(1:np)=vx(1:np)+vc(1:np)
       end if
     end if
 ! convert exchange and correlation energy densities to spherical harmonics
-    call rfsht(nr,nri,1,ex,1,exmt(:,:,ias))
-    call rfsht(nr,nri,1,ec,1,ecmt(:,:,ias))
+    call rfsht(nr,nri,ex,exmt(:,ias))
+    call rfsht(nr,nri,ec,ecmt(:,ias))
 ! convert exchange-correlation potential to spherical harmonics
-    call rfsht(nr,nri,1,vxc,1,vxcmt(:,:,ias))
+    call rfsht(nr,nri,vxc,vxcmt(:,ias))
   end do
 end do
 !------------------------------------------!
@@ -234,37 +246,42 @@ if (spinpol) then
 !------------------------!
   if (ncmag) then
 ! non-collinear
-    do ir=1,ngtot
-      t1=sqrt(magir(ir,1)**2+magir(ir,2)**2+magir(ir,3)**2)
-      rhoup(ir)=0.5d0*(rhoir(ir)+t1)
-      rhodn(ir)=0.5d0*(rhoir(ir)-t1)
-    end do
+    if (xcgrad.eq.0) then
+! LSDA
+      do ir=1,ngtot
+        t0=rhoir(ir)
+        t1=sqrt(magir(ir,1)**2+magir(ir,2)**2+magir(ir,3)**2)*ssxc
+        rhoup(ir)=0.5d0*(t0+t1)
+        rhodn(ir)=0.5d0*(t0-t1)
+      end do
+    else
+! functionals which require gradients
+      do ir=1,ngtot
+        t0=rhoir(ir)
+        t1=sqrt(magir(ir,1)**2+magir(ir,2)**2+magir(ir,3)**2+dncgga)*ssxc
+        rhoup(ir)=0.5d0*(t0+t1)
+        rhodn(ir)=0.5d0*(t0-t1)
+      end do
+    end if
   else
 ! collinear
     do ir=1,ngtot
-      rhoup(ir)=0.5d0*(rhoir(ir)+magir(ir,1))
-      rhodn(ir)=0.5d0*(rhoir(ir)-magir(ir,1))
+      t0=rhoir(ir)
+      t1=magir(ir,1)*ssxc
+      rhoup(ir)=0.5d0*(t0+t1)
+      rhodn(ir)=0.5d0*(t0-t1)
     end do
   end if
   if (xcgrad.le.0) then
     call xcifc(xctype,n=ngtot,rhoup=rhoup,rhodn=rhodn,ex=exir,ec=ecir, &
      vxup=vxup,vxdn=vxdn,vcup=vcup,vcdn=vcdn)
   else if (xcgrad.eq.1) then
-    if (ncgga) then
-      rho(1:ngtot)=0.5d0*rhoir(1:ngtot)
-      call ggair_sp_1(rho,rho,grho,gup,gdn,g2up,g2dn,g3rho,g3up,g3dn)
-    else
-      call ggair_sp_1(rhoup,rhodn,grho,gup,gdn,g2up,g2dn,g3rho,g3up,g3dn)
-    end if
+    call ggair_sp_1(rhoup,rhodn,grho,gup,gdn,g2up,g2dn,g3rho,g3up,g3dn)
     call xcifc(xctype,n=ngtot,rhoup=rhoup,rhodn=rhodn,grho=grho,gup=gup, &
      gdn=gdn,g2up=g2up,g2dn=g2dn,g3rho=g3rho,g3up=g3up,g3dn=g3dn,ex=exir, &
      ec=ecir,vxup=vxup,vxdn=vxdn,vcup=vcup,vcdn=vcdn)
   else if (xcgrad.eq.2) then
     call ggair_sp_2a(rhoup,rhodn,g2up,g2dn,gvup,gvdn,gup2,gdn2,gupdn)
-    if (ncgga) then
-      g2up(1:ngtot)=0.5d0*(g2up(1:ngtot)+g2dn(1:ngtot))
-      g2dn(1:ngtot)=g2up(1:ngtot)
-    end if
     call xcifc(xctype,n=ngtot,rhoup=rhoup,rhodn=rhodn,gup2=gup2,gdn2=gdn2, &
      gupdn=gupdn,ex=exir,ec=ecir,vxup=vxup,vxdn=vxdn,vcup=vcup,vcdn=vcdn, &
      dxdgu2=dxdgu2,dxdgd2=dxdgd2,dxdgud=dxdgud,dcdgu2=dcdgu2,dcdgd2=dcdgd2, &
@@ -308,6 +325,8 @@ if (spinpol) then
       bxcir(ir,1)=0.5d0*(t1-t2)
     end do
   end if
+! scale field if required
+  if (tssxc) bxcir(:,1:ndmag)=bxcir(:,1:ndmag)*ssxc
 else
 !--------------------------!
 !     spin-unpolarised     !
@@ -343,10 +362,10 @@ end if
 ! optimised effective potential
 if (xctype(1).lt.0) call oepmain
 ! symmetrise the exchange-correlation potential
-call symrf(1,vxcmt,vxcir)
+call symrf(nrmt,nrmti,npmt,npmtmax,vxcmt,vxcir)
 if (spinpol) then
 ! symmetrise the exchange-correlation effective field
-  call symrvf(1,bxcmt,bxcir)
+  call symrvf(nrmt,nrmti,npmt,npmtmax,bxcmt,bxcir)
 ! remove the source contribution if required
   if (nosource) call projsbf
 end if

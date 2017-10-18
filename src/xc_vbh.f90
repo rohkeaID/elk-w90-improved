@@ -30,14 +30,10 @@ subroutine xc_vbh(n,rhoup,rhodn,ex,ec,vxup,vxdn,vcup,vcdn)
 implicit none
 ! arguments
 integer, intent(in) :: n
-real(8), intent(in) :: rhoup(n)
-real(8), intent(in) :: rhodn(n)
-real(8), intent(out) :: ex(n)
-real(8), intent(out) :: ec(n)
-real(8), intent(out) :: vxup(n)
-real(8), intent(out) :: vxdn(n)
-real(8), intent(out) :: vcup(n)
-real(8), intent(out) :: vcdn(n)
+real(8), intent(in) :: rhoup(n),rhodn(n)
+real(8), intent(out) :: ex(n),ec(n)
+real(8), intent(out) :: vxup(n),vxdn(n)
+real(8), intent(out) :: vcup(n),vcdn(n)
 ! local variables
 integer i
 real(8), parameter :: pi=3.1415926535897932385d0

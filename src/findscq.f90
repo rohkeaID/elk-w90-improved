@@ -5,6 +5,7 @@
 
 subroutine findscq(iq,avec0,nsc,vsc)
 use modmain
+use modphonon
 implicit none
 ! arguments
 integer, intent(in) :: iq
@@ -17,7 +18,7 @@ integer scl(3,3),i,n
 real(8) dmin,t1
 real(8) v1(3),v2(3)
 ! check for Gamma-point phonon
-if (iq.eq.iq0) then
+if (tphq0) then
   scl(:,:)=0
   scl(1,1)=1
   scl(2,2)=1

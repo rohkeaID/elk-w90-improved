@@ -47,8 +47,8 @@ if(lmaxproj.gt.3) then
 end if
 lmmaxproj=lmaxproj*(lmaxproj+2)+1
 allocate(rlm(lmmaxproj))
-allocate(wann_projulr(nrmtmax,0:lmaxvr,natmtot,wann_nproj))
-allocate(wann_projclm(lmaxvr*(lmaxvr+2)+1,natmtot,wann_nproj))
+allocate(wann_projulr(nrmtmax,0:lmaxo,natmtot,wann_nproj))
+allocate(wann_projclm(lmaxo*(lmaxo+2)+1,natmtot,wann_nproj))
 allocate(wann_proj_haswt(wann_nproj,natmtot))
 ! at the moment, non-atom centred projections are treated as random (!)
 noweight=.true.
@@ -227,4 +227,3 @@ return
 
 end subroutine
 !EOC
-

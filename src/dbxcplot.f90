@@ -7,11 +7,11 @@ subroutine dbxcplot
 use modmain
 implicit none
 ! local variables
-integer idm,is,ias
+integer idm,is,ias,np
 ! allocatable arrays
-real(8), allocatable :: rvfmt(:,:,:,:),rvfir(:,:)
-real(8), allocatable :: rfmt(:,:,:),rfir(:)
-real(8), allocatable :: grfmt(:,:,:,:),grfir(:,:)
+real(8), allocatable :: rvfmt(:,:,:),rvfir(:,:)
+real(8), allocatable :: rfmt(:,:),rfir(:)
+real(8), allocatable :: grfmt(:,:,:),grfir(:,:)
 ! initialise universal variables
 call init0
 if (.not.spinpol) then
@@ -22,27 +22,28 @@ if (.not.spinpol) then
 end if
 ! read magnetisation from file
 call readstate
-allocate(rvfmt(lmmaxvr,nrmtmax,natmtot,3),rvfir(ngtot,3))
-allocate(rfmt(lmmaxvr,nrmtmax,natmtot),rfir(ngtot))
-allocate(grfmt(lmmaxvr,nrmtmax,natmtot,3),grfir(ngtot,3))
+allocate(rvfmt(npmtmax,natmtot,3),rvfir(ngtot,3))
+allocate(rfmt(npmtmax,natmtot),rfir(ngtot))
+allocate(grfmt(npmtmax,natmtot,3),grfir(ngtot,3))
 if (ncmag) then
 ! non-collinear
-  rvfmt(:,:,:,:)=bxcmt(:,:,:,:)
+  rvfmt(:,:,:)=bxcmt(:,:,:)
   rvfir(:,:)=bxcir(:,:)
 else
 ! collinear
-  rvfmt(:,:,:,1:2)=0.d0
+  rvfmt(:,:,1:2)=0.d0
   rvfir(:,1:2)=0.d0
-  rvfmt(:,:,:,3)=bxcmt(:,:,:,1)
+  rvfmt(:,:,3)=bxcmt(:,:,1)
   rvfir(:,3)=bxcir(:,1)
 end if
-rfmt(:,:,:)=0.d0
+rfmt(:,:)=0.d0
 rfir(:)=0.d0
 do idm=1,3
-  call gradrf(rvfmt(:,:,:,idm),rvfir(:,idm),grfmt,grfir)
+  call gradrf(rvfmt(:,:,idm),rvfir(:,idm),grfmt,grfir)
   do ias=1,natmtot
     is=idxis(ias)
-    call rfmtadd(nrmt(is),nrmtinr(is),1,grfmt(:,:,ias,idm),rfmt(:,:,ias))
+    np=npmt(is)
+    rfmt(1:np,ias)=rfmt(1:np,ias)+grfmt(1:np,ias,idm)
   end do
   rfir(:)=rfir(:)+grfir(:,idm)
 end do

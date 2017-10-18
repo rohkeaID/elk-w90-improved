@@ -9,32 +9,36 @@ implicit none
 ! arguments
 integer, intent(in) :: nr,nri
 real(8), intent(in) :: r(nr),r2(nr)
-complex(8), intent(in) :: zfmt1(lmmaxvr,nr),zfmt2(lmmaxvr,nr)
+complex(8), intent(in) :: zfmt1(*),zfmt2(*)
 ! local variables
-integer ir
+integer ir,i0,i1
 real(8) a,b,t1
 complex(8) z1
 ! automatic arrays
 real(8) fr1(nr),fr2(nr)
 ! external functions
 real(8) fintgt
-complex(8) zdotc
-external fintgt,zdotc
+external fintgt
+i1=0
 do ir=1,nri
-  z1=zdotc(lmmaxinr,zfmt1(:,ir),1,zfmt2(:,ir),1)*r2(ir)
+  i0=i1+1
+  i1=i1+lmmaxi
+  z1=dot_product(zfmt1(i0:i1),zfmt2(i0:i1))*r2(ir)
   fr1(ir)=dble(z1)
   fr2(ir)=aimag(z1)
 end do
-t1=dble(lmmaxinr)/dble(lmmaxvr)
+t1=dble(lmmaxi)/dble(lmmaxo)
 do ir=nri+1,nr
-  z1=zdotc(lmmaxvr,zfmt1(:,ir),1,zfmt2(:,ir),1)*(t1*r2(ir))
+  i0=i1+1
+  i1=i1+lmmaxo
+  z1=dot_product(zfmt1(i0:i1),zfmt2(i0:i1))*(t1*r2(ir))
   fr1(ir)=dble(z1)
   fr2(ir)=aimag(z1)
 end do
 ! integrate
 a=fintgt(-1,nr,r,fr1)
 b=fintgt(-1,nr,r,fr2)
-zfcmtinp=(fourpi/lmmaxinr)*cmplx(a,b,8)
+zfcmtinp=(fourpi/dble(lmmaxi))*cmplx(a,b,8)
 return
 end function
 

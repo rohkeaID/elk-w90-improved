@@ -13,9 +13,9 @@ integer ip,i1,i2,i3
 real(8) v1(3),v2(3),v3(3)
 real(8) t1,t2,t3
 ! generate 3D grid from corner vectors
-v1(:)=vclp3d(:,2)-vclp3d(:,1)
-v2(:)=vclp3d(:,3)-vclp3d(:,1)
-v3(:)=vclp3d(:,4)-vclp3d(:,1)
+v1(:)=vclp3d(:,1)-vclp3d(:,0)
+v2(:)=vclp3d(:,2)-vclp3d(:,0)
+v3(:)=vclp3d(:,3)-vclp3d(:,0)
 ip=0
 do i3=0,np3d(3)-1
   t3=dble(i3)/dble(np3d(3))
@@ -24,7 +24,7 @@ do i3=0,np3d(3)-1
     do i1=0,np3d(1)-1
       t1=dble(i1)/dble(np3d(1))
       ip=ip+1
-      vpl(:,ip)=t1*v1(:)+t2*v2(:)+t3*v3(:)+vclp3d(:,1)
+      vpl(:,ip)=t1*v1(:)+t2*v2(:)+t3*v3(:)+vclp3d(:,0)
     end do
   end do
 end do

@@ -22,37 +22,45 @@ use modtest
 !BOC
 implicit none
 ! local variables
-integer is,ia,ias
-integer nr,ik,ist
+integer ik,ist,is,ia,ias
+integer nr,nri,ir,i
 real(8) vn,t1
 complex(8) z1
 ! allocatable arrays
-real(8), allocatable :: rfmt(:,:)
+real(8), allocatable :: rfmt(:)
 complex(8), allocatable :: evecsv(:,:)
 ! external functions
 real(8) rfmtinp
 complex(8) zdotc
 external rfmtinp,zdotc
-allocate(rfmt(lmmaxvr,nrmtmax))
+allocate(rfmt(npmtmax))
 ! Coulomb energy from core states
 engyvcl=0.d0
 do ias=1,natmtot
   is=idxis(ias)
   nr=nrmt(is)
-  rfmt(:,:)=0.d0
-  if (spincore) then
-    rfmt(1,1:nr)=(rhocr(1:nr,ias,1)+rhocr(1:nr,ias,2))/y00
-  else
-    rfmt(1,1:nr)=rhocr(1:nr,ias,1)/y00
-  end if
-  engyvcl=engyvcl+rfmtinp(nr,nrmtinr(is),1,rsp(:,is),r2sp(:,is),rfmt, &
-   vclmt(:,:,ias))
+  nri=nrmti(is)
+  rfmt(1:npmt(is))=0.d0
+  i=1
+  do ir=1,nr
+    if (spincore) then
+      rfmt(i)=(rhocr(ir,ias,1)+rhocr(ir,ias,2))/y00
+    else
+      rfmt(i)=rhocr(ir,ias,1)/y00
+    end if
+    if (ir.le.nri) then
+      i=i+lmmaxi
+    else
+      i=i+lmmaxo
+    end if
+  end do
+  engyvcl=engyvcl+rfmtinp(nr,nri,rsp(:,is),r2sp(:,is),rfmt,vclmt(:,ias))
 end do
 deallocate(rfmt)
 engykn=engykncr
 allocate(evecsv(nstsv,nstsv))
 do ik=1,nkpt
-  call getevecsv(filext,vkl(:,ik),evecsv)
+  call getevecsv(filext,ik,vkl(:,ik),evecsv)
   do ist=1,nstsv
     t1=wkpt(ik)*occsv(ist,ik)
 ! Coulomb energy from valence states
@@ -70,7 +78,7 @@ do is=1,nspecies
   call potnucl(ptnucl,1,rsp(:,is),spzn(is),vn)
   do ia=1,natoms(is)
     ias=idxas(ia,is)
-    engymad=engymad+0.5d0*spzn(is)*(vclmt(1,1,ias)*y00-vn)
+    engymad=engymad+0.5d0*spzn(is)*(vclmt(1,ias)*y00-vn)
   end do
 end do
 ! exchange-correlation energy

@@ -10,11 +10,11 @@ subroutine zpotclmt(nr,nri,r,zrhomt,zvclmt)
 ! !USES:
 use modmain
 ! !INPUT/OUTPUT PARAMETERS:
-!   nr      : number of radial mesh points (in,integer)
-!   nri     : number of points on inner part of muffin-tin (in,integer)
-!   r       : radial mesh (in,real(nr))
-!   zrhomt  : muffin-tin charge density (in,complex(lmmaxvr,nr))
-!   zvclmt  : muffin-tin Coulomb potential (out,complex(lmmaxvr,nr))
+!   nr     : number of radial mesh points (in,integer)
+!   nri    : number of points on inner part of muffin-tin (in,integer)
+!   r      : radial mesh (in,real(nr))
+!   zrhomt : muffin-tin charge density (in,complex(*))
+!   zvclmt : muffin-tin Coulomb potential (out,complex(*))
 ! !DESCRIPTION:
 !   Solves the Poisson equation for the charge density contained in an isolated
 !   muffin-tin using the Green's function approach. In other words, the
@@ -32,65 +32,105 @@ implicit none
 ! arguments
 integer, intent(in) :: nr,nri
 real(8), intent(in) :: r(nr)
-complex(8), intent(in) :: zrhomt(lmmaxvr,nr)
-complex(8), intent(out) :: zvclmt(lmmaxvr,nr)
+complex(8), intent(in) :: zrhomt(*)
+complex(8), intent(out) :: zvclmt(*)
 ! local variables
 integer nro,iro,ir
-integer l,m,lm
+integer l,m,lm,npi,i
 real(8) t1,t2,t3,t4
 ! automatic arrays
-real(8) ri(nr),rl1(nr),rl2(nr),rl3(nr),rl4(nr)
-real(8) fr1(nr),fr2(nr),fr3(nr),fr4(nr),fr5(nr)
+real(8) ri(nr),r1(nr),r2(nr),r3(nr),r4(nr)
+real(8) f1(nr),f2(nr),f3(nr),f4(nr),f5(nr)
 ! initialise r^l, r^(-l-1), r^(l+2) and r^(-l+1)
 do ir=1,nr
   ri(ir)=1.d0/r(ir)
-  rl1(ir)=1.d0
-  rl2(ir)=ri(ir)
+  r1(ir)=1.d0
+  r2(ir)=ri(ir)
   t1=fourpi*r(ir)
-  rl3(ir)=t1*r(ir)
-  rl4(ir)=t1
+  r3(ir)=t1*r(ir)
+  r4(ir)=t1
 end do
+nro=nr-nri
+iro=nri+1
+npi=lmmaxi*nri
 lm=0
-do l=0,lmaxvr
-  if (l.le.lmaxinr) then
-    nro=nr
-    iro=1
-  else
-    nro=nr-nri
-    iro=nri+1
+do l=0,lmaxi
+  if (l.gt.0) then
+    t1=fourpi/dble(2*l+1)
+    do ir=1,nr
+      r1(ir)=r1(ir)*r(ir)
+      r2(ir)=r2(ir)*ri(ir)
+      t2=t1*r(ir)**2
+      r3(ir)=r1(ir)*t2
+      r4(ir)=r2(ir)*t2
+    end do
   end if
   do m=-l,l
     lm=lm+1
-    do ir=iro,nr
-      t1=dble(zrhomt(lm,ir))
-      t2=aimag(zrhomt(lm,ir))
-      fr1(ir)=t1*rl3(ir)
-      fr2(ir)=t2*rl3(ir)
-      fr3(ir)=t1*rl4(ir)
-      fr4(ir)=t2*rl4(ir)
+    i=lm
+    do ir=1,nri
+      t1=dble(zrhomt(i)); t2=aimag(zrhomt(i))
+      f1(ir)=t1*r3(ir); f2(ir)=t2*r3(ir)
+      f3(ir)=t1*r4(ir); f4(ir)=t2*r4(ir)
+      i=i+lmmaxi
     end do
-    call fderiv(-1,nro,r(iro),fr1(iro),fr5(iro))
-    call fderiv(-1,nro,r(iro),fr2(iro),fr1(iro))
-    call fderiv(-1,nro,r(iro),fr3(iro),fr2(iro))
-    call fderiv(-1,nro,r(iro),fr4(iro),fr3(iro))
-    t1=fr2(nr)
-    t2=fr3(nr)
     do ir=iro,nr
-      t3=rl2(ir)*fr5(ir)+rl1(ir)*(t1-fr2(ir))
-      t4=rl2(ir)*fr1(ir)+rl1(ir)*(t2-fr3(ir))
-      zvclmt(lm,ir)=cmplx(t3,t4,8)
+      t1=dble(zrhomt(i)); t2=aimag(zrhomt(i))
+      f1(ir)=t1*r3(ir); f2(ir)=t2*r3(ir)
+      f3(ir)=t1*r4(ir); f4(ir)=t2*r4(ir)
+      i=i+lmmaxo
+    end do
+    call fderiv(-1,nr,r,f1,f5)
+    call fderiv(-1,nr,r,f2,f1)
+    call fderiv(-1,nr,r,f3,f2)
+    call fderiv(-1,nr,r,f4,f3)
+    t1=f2(nr); t2=f3(nr)
+    i=lm
+    do ir=1,nri
+      t3=r2(ir)*f5(ir)+r1(ir)*(t1-f2(ir))
+      t4=r2(ir)*f1(ir)+r1(ir)*(t2-f3(ir))
+      zvclmt(i)=cmplx(t3,t4,8)
+      i=i+lmmaxi
+    end do
+    do ir=iro,nr
+      t3=r2(ir)*f5(ir)+r1(ir)*(t1-f2(ir))
+      t4=r2(ir)*f1(ir)+r1(ir)*(t2-f3(ir))
+      zvclmt(i)=cmplx(t3,t4,8)
+      i=i+lmmaxo
     end do
   end do
-  if (l.lt.lmaxvr) then
-    t1=fourpi/dble(2*(l+1)+1)
+end do
+do l=lmaxi+1,lmaxo
+  t1=fourpi/dble(2*l+1)
+  do ir=iro,nr
+    r1(ir)=r1(ir)*r(ir)
+    r2(ir)=r2(ir)*ri(ir)
+    t2=t1*r(ir)**2
+    r3(ir)=r1(ir)*t2
+    r4(ir)=r2(ir)*t2
+  end do
+  do m=-l,l
+    lm=lm+1
+    i=npi+lm
     do ir=iro,nr
-      rl1(ir)=rl1(ir)*r(ir)
-      rl2(ir)=rl2(ir)*ri(ir)
-      t2=t1*r(ir)**2
-      rl3(ir)=rl1(ir)*t2
-      rl4(ir)=rl2(ir)*t2
+      t1=dble(zrhomt(i)); t2=aimag(zrhomt(i))
+      f1(ir)=t1*r3(ir); f2(ir)=t2*r3(ir)
+      f3(ir)=t1*r4(ir); f4(ir)=t2*r4(ir)
+      i=i+lmmaxo
     end do
-  end if
+    call fderiv(-1,nro,r(iro),f1(iro),f5(iro))
+    call fderiv(-1,nro,r(iro),f2(iro),f1(iro))
+    call fderiv(-1,nro,r(iro),f3(iro),f2(iro))
+    call fderiv(-1,nro,r(iro),f4(iro),f3(iro))
+    t1=f2(nr); t2=f3(nr)
+    i=npi+lm
+    do ir=iro,nr
+      t3=r2(ir)*f5(ir)+r1(ir)*(t1-f2(ir))
+      t4=r2(ir)*f1(ir)+r1(ir)*(t2-f3(ir))
+      zvclmt(i)=cmplx(t3,t4,8)
+      i=i+lmmaxo
+    end do
+  end do
 end do
 return
 end subroutine

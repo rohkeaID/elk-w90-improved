@@ -31,8 +31,7 @@ subroutine ylmroty(beta,lmax,ld,dy)
 implicit none
 ! arguments
 real(8), intent(in) :: beta
-integer, intent(in) :: lmax
-integer, intent(in) :: ld
+integer, intent(in) :: lmax,ld
 real(8), intent(out) :: dy(ld,*)
 ! local variables
 integer j,k,l,m1,m2,lm1,lm2
@@ -54,8 +53,11 @@ do l=0,lmax
       do k=0,min(l+m1,l-m2)
         if (((l+m1-k).ge.0).and.((l-m2-k).ge.0).and.((m2-m1+k).ge.0)) then
           j=2*(l-k)+m1-m2
-          t1=1.d0
-          if (j.ne.0) t1=t1*cb**j
+          if (j.eq.0) then
+            t1=1.d0
+          else
+            t1=cb**j
+          end if
           j=2*k+m2-m1
           if (j.ne.0) t1=t1*sb**j
           t2=t1/(factnm(k,1)*factnm(l+m1-k,1)*factnm(l-m2-k,1) &

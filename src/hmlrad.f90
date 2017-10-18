@@ -1,5 +1,5 @@
 
-! Copyright (C) 2002-2005 J. K. Dewhurst, S. Sharma and C. Ambrosch-Draxl.
+! Copyright (C) 2002-2016 J. K. Dewhurst, S. Sharma and C. Ambrosch-Draxl.
 ! This file is distributed under the terms of the GNU General Public License.
 ! See the file COPYING for license details.
 
@@ -25,23 +25,36 @@ use modmain
 !
 ! !REVISION HISTORY:
 !   Created December 2003 (JKD)
+!   Updated for compressed muffin-tin functions, March 2016 (JKD)
 !EOP
 !BOC
 implicit none
 ! local variables
-integer is,ias,nr,ir
+integer is,ias
+integer nr,nri,nro
+integer iro,ir,npi,i
 integer l1,l2,l3,m2,lm2
-integer ilo,jlo,io,jo
+integer io,jo,ilo,jlo
 real(8) t1
-! automatic arrays
-real(8) fr(nrmtmax)
+! allocatable arrays
+real(8), allocatable :: fr(:)
 ! external functions
 real(8) fintgt
 external fintgt
 ! begin loops over atoms and species
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(fr,is,nr,nri,nro,iro,npi) &
+!$OMP PRIVATE(l1,l2,l3,io,jo,ir,t1) &
+!$OMP PRIVATE(lm2,m2,i,ilo,jlo)
+!$OMP DO
 do ias=1,natmtot
+  allocate(fr(nrmtmax))
   is=idxis(ias)
   nr=nrmt(is)
+  nri=nrmti(is)
+  nro=nr-nri
+  iro=nri+1
+  npi=npmti(is)
 !---------------------------!
 !     APW-APW integrals     !
 !---------------------------!
@@ -60,14 +73,35 @@ do ias=1,natmtot
           end if
           if (l1.ge.l3) then
             lm2=1
-            do l2=1,lmaxvr
+            do l2=1,lmaxi
               do m2=-l2,l2
                 lm2=lm2+1
-                do ir=1,nr
+                i=lm2
+                do ir=1,nri
                   t1=apwfr(ir,1,io,l1,ias)*apwfr(ir,1,jo,l3,ias)*r2sp(ir,is)
-                  fr(ir)=t1*vsmt(lm2,ir,ias)
+                  fr(ir)=t1*vsmt(i,ias)
+                  i=i+lmmaxi
+                end do
+                do ir=iro,nr
+                  t1=apwfr(ir,1,io,l1,ias)*apwfr(ir,1,jo,l3,ias)*r2sp(ir,is)
+                  fr(ir)=t1*vsmt(i,ias)
+                  i=i+lmmaxo
                 end do
                 t1=fintgt(-1,nr,rsp(:,is),fr)
+                haa(lm2,jo,l3,io,l1,ias)=t1
+                haa(lm2,io,l1,jo,l3,ias)=t1
+              end do
+            end do
+            do l2=lmaxi+1,lmaxo
+              do m2=-l2,l2
+                lm2=lm2+1
+                i=npi+lm2
+                do ir=iro,nr
+                  t1=apwfr(ir,1,io,l1,ias)*apwfr(ir,1,jo,l3,ias)*r2sp(ir,is)
+                  fr(ir)=t1*vsmt(i,ias)
+                  i=i+lmmaxo
+                end do
+                t1=fintgt(-1,nro,rsp(iro,is),fr(iro))
                 haa(lm2,jo,l3,io,l1,ias)=t1
                 haa(lm2,io,l1,jo,l3,ias)=t1
               end do
@@ -94,14 +128,34 @@ do ias=1,natmtot
           hloa(1,io,l3,ilo,ias)=0.d0
         end if
         lm2=1
-        do l2=1,lmaxvr
+        do l2=1,lmaxi
           do m2=-l2,l2
             lm2=lm2+1
-            do ir=1,nr
+            i=lm2
+            do ir=1,nri
               t1=lofr(ir,1,ilo,ias)*apwfr(ir,1,io,l3,ias)*r2sp(ir,is)
-              fr(ir)=t1*vsmt(lm2,ir,ias)
+              fr(ir)=t1*vsmt(i,ias)
+              i=i+lmmaxi
+            end do
+            do ir=nri+1,nr
+              t1=lofr(ir,1,ilo,ias)*apwfr(ir,1,io,l3,ias)*r2sp(ir,is)
+              fr(ir)=t1*vsmt(i,ias)
+              i=i+lmmaxo
             end do
             t1=fintgt(-1,nr,rsp(:,is),fr)
+            hloa(lm2,io,l3,ilo,ias)=t1
+          end do
+        end do
+        do l2=lmaxi+1,lmaxo
+          do m2=-l2,l2
+            lm2=lm2+1
+            i=npi+lm2
+            do ir=iro,nr
+              t1=lofr(ir,1,ilo,ias)*apwfr(ir,1,io,l3,ias)*r2sp(ir,is)
+              fr(ir)=t1*vsmt(i,ias)
+              i=i+lmmaxo
+            end do
+            t1=fintgt(-1,nro,rsp(iro,is),fr(iro))
             hloa(lm2,io,l3,ilo,ias)=t1
           end do
         end do
@@ -125,21 +179,44 @@ do ias=1,natmtot
         hlolo(1,jlo,ilo,ias)=0.d0
       end if
       lm2=1
-      do l2=1,lmaxvr
+      do l2=1,lmaxi
         do m2=-l2,l2
           lm2=lm2+1
-          do ir=1,nr
+          i=lm2
+          do ir=1,nri
             t1=lofr(ir,1,ilo,ias)*lofr(ir,1,jlo,ias)*r2sp(ir,is)
-            fr(ir)=t1*vsmt(lm2,ir,ias)
+            fr(ir)=t1*vsmt(i,ias)
+            i=i+lmmaxi
+          end do
+          do ir=iro,nr
+            t1=lofr(ir,1,ilo,ias)*lofr(ir,1,jlo,ias)*r2sp(ir,is)
+            fr(ir)=t1*vsmt(i,ias)
+            i=i+lmmaxo
           end do
           t1=fintgt(-1,nr,rsp(:,is),fr)
           hlolo(lm2,jlo,ilo,ias)=t1
         end do
       end do
+      do l2=lmaxi+1,lmaxo
+        do m2=-l2,l2
+          lm2=lm2+1
+          i=npi+lm2
+          do ir=iro,nr
+            t1=lofr(ir,1,ilo,ias)*lofr(ir,1,jlo,ias)*r2sp(ir,is)
+            fr(ir)=t1*vsmt(i,ias)
+            i=i+lmmaxo
+          end do
+          t1=fintgt(-1,nro,rsp(iro,is),fr(iro))
+          hlolo(lm2,jlo,ilo,ias)=t1
+        end do
+      end do
     end do
   end do
+  deallocate(fr)
 ! end loops over atoms and species
 end do
+!$OMP END DO
+!$OMP END PARALLEL
 return
 end subroutine
 !EOC

@@ -15,8 +15,8 @@ use modmain
 !   r     : radial mesh (in,real(nr))
 !   r2    : r^2 on radial mesh (in,real(nr))
 !   zfmt1 : first complex muffin-tin function in spherical harmonics
-!           (in,complex(lmmaxvr,nr))
-!   zfmt2 : second complex muffin-tin function (in,complex(lmmaxvr,nr))
+!           (in,complex(*))
+!   zfmt2 : second complex muffin-tin function (in,complex(*))
 ! !DESCRIPTION:
 !   Calculates the inner product of two complex fuctions in the muffin-tin. In
 !   other words, given two complex functions of the form
@@ -29,15 +29,16 @@ use modmain
 ! !REVISION HISTORY:
 !   Created November 2003 (Sharma)
 !   Modified, September 2013 (JKD)
+!   Modified for packed functions, June 2016 (JKD)
 !EOP
 !BOC
 implicit none
 ! arguments
 integer, intent(in) :: nr,nri
 real(8), intent(in) :: r(nr),r2(nr)
-complex(8), intent(in) :: zfmt1(lmmaxvr,nr),zfmt2(lmmaxvr,nr)
+complex(8), intent(in) :: zfmt1(*),zfmt2(*)
 ! local variables
-integer ir
+integer ir,i
 real(8) a,b
 complex(8) z1
 ! automatic arrays
@@ -46,15 +47,18 @@ real(8) fr1(nr),fr2(nr)
 real(8) fintgt
 complex(8) zdotc
 external fintgt,zdotc
+i=1
 do ir=1,nri
-  z1=zdotc(lmmaxinr,zfmt1(:,ir),1,zfmt2(:,ir),1)*r2(ir)
+  z1=zdotc(lmmaxi,zfmt1(i),1,zfmt2(i),1)*r2(ir)
   fr1(ir)=dble(z1)
   fr2(ir)=aimag(z1)
+  i=i+lmmaxi
 end do
 do ir=nri+1,nr
-  z1=zdotc(lmmaxvr,zfmt1(:,ir),1,zfmt2(:,ir),1)*r2(ir)
+  z1=zdotc(lmmaxo,zfmt1(i),1,zfmt2(i),1)*r2(ir)
   fr1(ir)=dble(z1)
   fr2(ir)=aimag(z1)
+  i=i+lmmaxo
 end do
 ! integrate
 a=fintgt(-1,nr,r,fr1)

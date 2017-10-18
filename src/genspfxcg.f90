@@ -13,16 +13,16 @@ integer ig,jg,kg
 integer iv(3),i,j
 complex(8) z1
 ! allocatable arrays
-real(8), allocatable :: fxcmt(:,:,:,:,:),fxcir(:,:,:)
+real(8), allocatable :: fxcmt(:,:,:,:),fxcir(:,:,:)
 complex(8), allocatable :: fxcg(:)
-allocate(fxcmt(lmmaxvr,nrmtmax,natmtot,4,4),fxcir(ngtot,4,4))
+allocate(fxcmt(npmtmax,natmtot,4,4),fxcir(ngtot,4,4))
 allocate(fxcg(ngtot))
 ! generate the kernel f_xc in real-space
 call genspfxcr(.true.,fxcmt,fxcir)
 ! Fourier transform the kernel to G-space
 do i=1,4
   do j=i,4
-    call zftrf(ngtot,ivg,vgc,fxcmt(:,:,:,i,j),fxcir(:,i,j),fxcg)
+    call zftrf(ngtot,ivg,vgc,fxcmt(:,:,i,j),fxcir(:,i,j),fxcg)
     do ig=1,ngrf
       do jg=1,ngrf
         iv(:)=ivg(:,ig)-ivg(:,jg)

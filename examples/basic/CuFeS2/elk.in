@@ -6,6 +6,10 @@
 tasks
   0
 
+! large smearing width for better convergence
+swidth
+  0.01
+
 ! automatic determination of the primitive unit cell
 primcell
   .true.

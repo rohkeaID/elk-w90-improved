@@ -13,28 +13,15 @@ complex(8), intent(in) :: a(nbph,nbph)
 real(8), intent(out) :: w(nbph)
 ! local variables
 integer i,j,k
-integer lwork,info
 real(8) t1,t2
 complex(8) z1
 ! automatic arrays
 real(8) wt(nbph)
-! allocatable arrays
-real(8), allocatable :: rwork(:)
-complex(8), allocatable :: work(:)
 ! external functions
 complex(8) zdotc
 external zdotc
-allocate(rwork(3*nbph))
-lwork=2*nbph
-allocate(work(lwork))
-call zheev('V','U',nbph,a,nbph,w,work,lwork,rwork,info)
-if (info.ne.0) then
-  write(*,*)
-  write(*,'("Error(dynevs): diagonalisation failed")')
-  write(*,'(" ZHEEV returned INFO = ",I8)') info
-  write(*,*)
-  stop
-end if
+! find the eigenvalues and eigenvectors of the matrix a
+call eveqnz(nbph,nbph,a,w)
 ! reorder eigenvalues so that the eigenvectors maximally overlap with ev
 wt(:)=w(:)
 do i=1,nbph
@@ -50,7 +37,6 @@ do i=1,nbph
   end do
   w(i)=wt(j)
 end do
-deallocate(rwork,work)
 return
 end subroutine
 

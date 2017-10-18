@@ -8,23 +8,22 @@ use modmain
 use modphonon
 implicit none
 ! local variables
-integer idm,is,ias,ir
+integer idm,is,ias
 integer nr,nri,nrc,nrci
+integer ir,np
 ! allocatable arrays
-real(8), allocatable :: fxcmt(:,:,:,:,:),fxcir(:,:,:)
-complex(8), allocatable :: dvmt(:,:),dbmt(:,:,:)
+real(8), allocatable :: fxcmt(:,:,:,:),fxcir(:,:,:)
+complex(8), allocatable :: dvmt(:),dbmt(:,:),zfmt(:)
 ! compute the exchange-correlation kernel
 if (spinpol) then
-  allocate(fxcmt(lmmaxvr,nrmtmax,natmtot,4,4))
-  allocate(fxcir(ngtot,4,4))
+  allocate(fxcmt(npmtmax,natmtot,4,4),fxcir(ngtot,4,4))
   call genspfxcr(.false.,fxcmt,fxcir)
 else
-  allocate(fxcmt(lmmaxvr,nrmtmax,natmtot,1,1))
-  allocate(fxcir(ngtot,1,1))
+  allocate(fxcmt(npmtmax,natmtot,1,1),fxcir(ngtot,1,1))
   call genfxcr(.false.,fxcmt,fxcir)
 end if
-allocate(dvmt(lmmaxvr,nrmtmax))
-if (spinpol) allocate(dbmt(lmmaxvr,nrmtmax,3))
+allocate(dvmt(npmtmax))
+if (spinpol) allocate(dbmt(npmtmax,3),zfmt(npcmtmax))
 !---------------------------------------!
 !     muffin-tin potential and field    !
 !---------------------------------------!
@@ -32,59 +31,55 @@ if (spinpol) allocate(dbmt(lmmaxvr,nrmtmax,3))
 do ias=1,natmtot
   is=idxis(ias)
   nr=nrmt(is)
-  nri=nrmtinr(is)
+  nri=nrmti(is)
   nrc=nrcmt(is)
-  nrci=nrcmtinr(is)
+  nrci=nrcmti(is)
+  np=npmt(is)
 ! charge-charge contribution to potential derivative
-  do ir=1,nr
-    dvmt(:,ir)=fxcmt(:,ir,ias,1,1)*drhomt(:,ir,ias)
-  end do
+  dvmt(1:np)=fxcmt(1:np,ias,1,1)*drhomt(1:np,ias)
 ! spin-polarised case
   if (spinpol) then
     if (ncmag) then
 ! non-collinear
-      do ir=1,nr
 ! add charge-spin contribution to potential derivative
-        dvmt(:,ir)=dvmt(:,ir) &
-         +fxcmt(:,ir,ias,1,2)*dmagmt(:,ir,ias,1) &
-         +fxcmt(:,ir,ias,1,3)*dmagmt(:,ir,ias,2) &
-         +fxcmt(:,ir,ias,1,4)*dmagmt(:,ir,ias,3)
+      dvmt(1:np)=dvmt(1:np) &
+       +fxcmt(1:np,ias,1,2)*dmagmt(1:np,ias,1) &
+       +fxcmt(1:np,ias,1,3)*dmagmt(1:np,ias,2) &
+       +fxcmt(1:np,ias,1,4)*dmagmt(1:np,ias,3)
 ! spin-charge contribution to B-field derivative
-        dbmt(:,ir,1)=fxcmt(:,ir,ias,1,2)*drhomt(:,ir,ias)
-        dbmt(:,ir,2)=fxcmt(:,ir,ias,1,3)*drhomt(:,ir,ias)
-        dbmt(:,ir,3)=fxcmt(:,ir,ias,1,4)*drhomt(:,ir,ias)
+      dbmt(1:np,1)=fxcmt(1:np,ias,1,2)*drhomt(1:np,ias)
+      dbmt(1:np,2)=fxcmt(1:np,ias,1,3)*drhomt(1:np,ias)
+      dbmt(1:np,3)=fxcmt(1:np,ias,1,4)*drhomt(1:np,ias)
 ! add spin-spin contribution to B-field derivative
 ! (note: fxc is stored as an upper triangular matrix)
-        dbmt(:,ir,1)=dbmt(:,ir,1) &
-         +fxcmt(:,ir,ias,2,2)*dmagmt(:,ir,ias,1) &
-         +fxcmt(:,ir,ias,2,3)*dmagmt(:,ir,ias,2) &
-         +fxcmt(:,ir,ias,2,4)*dmagmt(:,ir,ias,3)
-        dbmt(:,ir,2)=dbmt(:,ir,2) &
-         +fxcmt(:,ir,ias,2,3)*dmagmt(:,ir,ias,1) &
-         +fxcmt(:,ir,ias,3,3)*dmagmt(:,ir,ias,2) &
-         +fxcmt(:,ir,ias,3,4)*dmagmt(:,ir,ias,3)
-        dbmt(:,ir,3)=dbmt(:,ir,3) &
-         +fxcmt(:,ir,ias,2,4)*dmagmt(:,ir,ias,1) &
-         +fxcmt(:,ir,ias,3,4)*dmagmt(:,ir,ias,2) &
-         +fxcmt(:,ir,ias,4,4)*dmagmt(:,ir,ias,3)
-      end do
+      dbmt(1:np,1)=dbmt(1:np,1) &
+       +fxcmt(1:np,ias,2,2)*dmagmt(1:np,ias,1) &
+       +fxcmt(1:np,ias,2,3)*dmagmt(1:np,ias,2) &
+       +fxcmt(1:np,ias,2,4)*dmagmt(1:np,ias,3)
+      dbmt(1:np,2)=dbmt(1:np,2) &
+       +fxcmt(1:np,ias,2,3)*dmagmt(1:np,ias,1) &
+       +fxcmt(1:np,ias,3,3)*dmagmt(1:np,ias,2) &
+       +fxcmt(1:np,ias,3,4)*dmagmt(1:np,ias,3)
+      dbmt(1:np,3)=dbmt(1:np,3) &
+       +fxcmt(1:np,ias,2,4)*dmagmt(1:np,ias,1) &
+       +fxcmt(1:np,ias,3,4)*dmagmt(1:np,ias,2) &
+       +fxcmt(1:np,ias,4,4)*dmagmt(1:np,ias,3)
     else
 ! collinear
-      do ir=1,nr
 ! add charge-spin contribution to potential derivative
-        dvmt(:,ir)=dvmt(:,ir)+fxcmt(:,ir,ias,1,4)*dmagmt(:,ir,ias,1)
+      dvmt(1:np)=dvmt(1:np)+fxcmt(1:np,ias,1,4)*dmagmt(1:np,ias,1)
 ! spin-charge contribution to B-field derivative
-        dbmt(:,ir,1)=fxcmt(:,ir,ias,1,4)*drhomt(:,ir,ias)
+      dbmt(1:np,1)=fxcmt(1:np,ias,1,4)*drhomt(1:np,ias)
 ! add spin-spin contribution to B-field derivative
-        dbmt(:,ir,1)=dbmt(:,ir,1)+fxcmt(:,ir,ias,4,4)*dmagmt(:,ir,ias,1)
-      end do
+      dbmt(1:np,1)=dbmt(1:np,1)+fxcmt(1:np,ias,4,4)*dmagmt(1:np,ias,1)
     end if
   end if
 ! convert potential derivative to spherical harmonics
-  call zfsht(nr,nri,dvmt,dvsmt(:,:,ias))
-! convert magnetic field derivative to spherical harmonics
+  call zfsht(nr,nri,dvmt,dvsmt(:,ias))
+! convert magnetic field derivative to spherical harmonics on coarse mesh
   do idm=1,ndmag
-    call zfsht(nrc,nrci,dbmt(:,:,idm),dbsmt(:,:,ias,idm))
+    call zfmtftoc(nr,nri,dbmt(:,idm),zfmt)
+    call zfsht(nrc,nrci,zfmt,dbsmt(:,ias,idm))
   end do
 end do
 !------------------------------------------!
@@ -135,7 +130,7 @@ if (spinpol) then
   end if
 end if
 deallocate(fxcmt,fxcir,dvmt)
-if (spinpol) deallocate(dbmt)
+if (spinpol) deallocate(dbmt,zfmt)
 return
 end subroutine
 

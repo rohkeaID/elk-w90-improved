@@ -21,27 +21,28 @@ use modmain
 !BOC
 implicit none
 ! local variables
-integer, parameter :: lmax=1
-integer is,ia,ias
-integer nr,nrc,nro,ir,irc
-integer l,m,lm,ig,ifg
+integer lmax,is,ia,ias
+integer nr,nri,nro,ir
+integer nrc,nrci,irco,irc
+integer l,m,lm,ig,ifg,i
 real(8) x,t1,t2
 complex(8) z1,z2,z3
 ! allocatable arrays
 real(8), allocatable :: jl(:,:),ffg(:),fr(:)
-complex(8), allocatable :: zfmt(:,:),zfft(:)
+complex(8), allocatable :: zfmt(:),zfft(:)
 ! external functions
 real(8) fintgt
 external fintgt
-allocate(zfft(ngtot))
+lmax=min(lmaxi,1)
 ! zero the charge density and magnetisation arrays
-rhomt(:,:,:)=0.d0
+rhomt(:,:)=0.d0
 rhoir(:)=0.d0
 if (spinpol) then
-  magmt(:,:,:,:)=0.d0
+  magmt(:,:,:)=0.d0
   magir(:,:)=0.d0
 end if
 ! compute the superposition of all the atomic density tails
+allocate(zfft(ngtot))
 zfft(:)=0.d0
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP PRIVATE(ffg,fr,nr,nro,ig) &
@@ -50,7 +51,7 @@ zfft(:)=0.d0
 do is=1,nspecies
   allocate(ffg(ngvec),fr(nrspmax))
   nr=nrmt(is)
-  nro=nrsp(is)-nrmt(is)+1
+  nro=nrsp(is)-nr+1
   do ig=1,ngvec
     do ir=nr,nrsp(is)
 ! spherical bessel function j_0(x)
@@ -80,15 +81,17 @@ end do
 !$OMP END PARALLEL
 ! compute the tails in each muffin-tin
 !$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(jl,zfmt,is,nrc,ig,ifg) &
-!$OMP PRIVATE(irc,x,z1,z2,z3,lm,l,m)
+!$OMP PRIVATE(jl,zfmt,is,nrc,nrci) &
+!$OMP PRIVATE(irco,ig,ifg,irc,x) &
+!$OMP PRIVATE(z1,z2,z3,lm,l,m,i)
 !$OMP DO
 do ias=1,natmtot
-  allocate(jl(0:lmax,nrcmtmax))
-  allocate(zfmt(lmmaxvr,nrcmtmax))
+  allocate(jl(0:lmax,nrcmtmax),zfmt(npcmtmax))
   is=idxis(ias)
   nrc=nrcmt(is)
-  zfmt(:,:)=0.d0
+  nrci=nrcmti(is)
+  irco=nrci+1
+  zfmt(1:npcmt(is))=0.d0
   do ig=1,ngvec
     ifg=igfft(ig)
     do irc=1,nrc
@@ -102,13 +105,19 @@ do ias=1,natmtot
       do m=-l,l
         lm=lm+1
         z3=z2*conjg(ylmg(lm,ig))
-        do irc=1,nrc
-          zfmt(lm,irc)=zfmt(lm,irc)+jl(l,irc)*z3
+        i=lm
+        do irc=1,nrci
+          zfmt(i)=zfmt(i)+jl(l,irc)*z3
+          i=i+lmmaxi
+        end do
+        do irc=irco,nrc
+          zfmt(i)=zfmt(i)+jl(l,irc)*z3
+          i=i+lmmaxo
         end do
       end do
     end do
   end do
-  call ztorfmt(nrc,nrcmtinr(is),1,zfmt,lradstp,rhomt(:,:,ias))
+  call ztorfmt(nrc,nrci,zfmt,rhomt(:,ias))
   deallocate(jl,zfmt)
 end do
 !$OMP END DO
@@ -119,9 +128,18 @@ call rfmtctof(rhomt)
 t1=chgexs/omega
 do ias=1,natmtot
   is=idxis(ias)
-  do ir=1,nrmt(is)
+  nr=nrmt(is)
+  nri=nrmti(is)
+  i=1
+  do ir=1,nri
     t2=(t1+rhosp(ir,is))/y00
-    rhomt(1,ir,ias)=rhomt(1,ir,ias)+t2
+    rhomt(i,ias)=rhomt(i,ias)+t2
+    i=i+lmmaxi
+  end do
+  do ir=nri+1,nr
+    t2=(t1+rhosp(ir,is))/y00
+    rhomt(i,ias)=rhomt(i,ias)+t2
+    i=i+lmmaxo
   end do
 end do
 ! interstitial density determined from the atomic tails and excess charge

@@ -6,29 +6,33 @@
 !BOP
 ! !ROUTINE: zpotcoul
 ! !INTERFACE:
-subroutine zpotcoul(nr,nri,ld1,r,igp0,gpc,jlgpr,ylmgp,sfacgp,zrhoir,ld2, &
- zvclmt,zvclir,zrho0)
+subroutine zpotcoul(nr,nri,np,npi,ld1,r,ngp,igp0,gpc,ld2,jlgprmt,ylmgp,sfacgp, &
+ zrhoir,ld3,zvclmt,zvclir,zgp0)
 ! !USES:
 use modmain
 use modphonon
 ! !INPUT/OUTPUT PARAMETERS:
-!   nr     : number of radial points for each species (in,integer(nspecies))
-!   nri    : number of points on inner part of muffin-tin (in,integer(nspecies))
-!   ld1    : leading dimension (in,integer)
-!   r      : radial mesh for each species (in,real(ld1,nspecies))
-!   igp0   : index of the shortest G+p-vector (in,integer)
-!   gpc    : G+p-vector lengths (in,real(ngvec))
-!   jlgpr  : spherical Bessel functions for evergy G+p-vector and muffin-tin
-!            radius (in,real(0:lnpsd,ngvec,nspecies))
-!   ylmgp  : spherical harmonics of the G+p-vectors (in,complex(lmmaxvr,ngvec))
-!   sfacgp : structure factors of the G+p-vectors (in,complex(ngvec,natmtot))
-!   zrhoir : interstitial charge density (in,complex(ngtot))
-!   ld2    : leading dimension (in,integer)
-!   zvclmt : muffin-tin Coulomb potential, with the contribution from the
-!            isolated muffin-tin density precalculated and passed in
-!            (inout,complex(lmmaxvr,ld2,natmtot))
-!   zvclir : interstitial Coulomb potential (out,complex(ngtot))
-!   zrho0  : G+p=0 term of the pseudocharge density (out,complex)
+!   nr      : number of radial points for each species (in,integer(nspecies))
+!   nri     : number of radial points on inner part (in,integer(nspecies))
+!   np      : total number of points in muffin-tins (in,integer(nspecies))
+!   npi     : number of points on inner part (in,integer(nspecies))
+!   ld1     : leading dimension (in,integer)
+!   r       : radial mesh for each species (in,real(ld1,nspecies))
+!   ngp     : number of G+p-vectors (in,integer)
+!   igp0    : index of the shortest G+p-vector (in,integer)
+!   gpc     : G+p-vector lengths (in,real(ngp))
+!   ld2     : leading dimension (in,integer)
+!   jlgprmt : spherical Bessel functions for evergy G+p-vector and muffin-tin
+!             radius (in,real(0:lnpsd,ld2,nspecies))
+!   ylmgp   : spherical harmonics of the G+p-vectors (in,complex(lmmaxo,ngp))
+!   sfacgp  : structure factors of the G+p-vectors (in,complex(ld2,natmtot))
+!   zrhoir  : interstitial charge density (in,complex(ngtot))
+!   ld3     : leading dimension (in,integer)
+!   zvclmt  : muffin-tin Coulomb potential, with the contribution from the
+!             isolated muffin-tin density precalculated and passed in
+!             (inout,complex(ld3,natmtot))
+!   zvclir  : interstitial Coulomb potential (out,complex(ngtot))
+!   zgp0    : G+p=0 term of the pseudocharge density (out,complex)
 ! !DESCRIPTION:
 !   Calculates the Coulomb potential of a complex charge density by solving
 !   Poisson's equation using the method of M. Weinert, {\it J. Math. Phys.}
@@ -94,47 +98,50 @@ use modphonon
 implicit none
 ! arguments
 integer, intent(in) :: nr(nspecies),nri(nspecies)
+integer, intent(in) :: np(nspecies),npi(nspecies)
 integer, intent(in) :: ld1
 real(8), intent(in) :: r(ld1,nspecies)
-integer, intent(in) :: igp0
-real(8), intent(in) :: gpc(ngvec)
-real(8), intent(in) :: jlgpr(0:lnpsd,ngvec,nspecies)
-complex(8), intent(in) :: ylmgp(lmmaxvr,ngvec)
-complex(8), intent(in) :: sfacgp(ngvec,natmtot)
-complex(8), intent(in) :: zrhoir(ngtot)
+integer, intent(in) :: ngp,igp0
+real(8), intent(in) :: gpc(ngp)
 integer, intent(in) :: ld2
-complex(8), intent(inout) :: zvclmt(lmmaxvr,ld2,natmtot)
-complex(8), intent(out) :: zvclir(ngtot)
-complex(8), intent(out) :: zrho0
+real(8), intent(in) :: jlgprmt(0:lnpsd,ld2,nspecies)
+complex(8), intent(in) :: ylmgp(lmmaxo,ngp),sfacgp(ld2,natmtot)
+complex(8), intent(in) :: zrhoir(ngtot)
+integer, intent(in) :: ld3
+complex(8), intent(inout) :: zvclmt(ld3,natmtot)
+complex(8), intent(out) :: zvclir(ngtot),zgp0
 ! local variables
-integer is,ia,ias,iro,ir
-integer l,m,lm,ig,ifg
+integer is,ia,ias
+integer ir,l,m,lm
+integer ig,ifg,i,j
 real(8) t0,t1,t2,t3
 complex(8) zsum1,zsum2,z1,z2
 ! automatic arrays
-real(8) rmtl(0:lmaxvr+3,nspecies)
-real(8) rl(ld1,0:lmaxvr)
-complex(8) qlm(lmmaxvr,natmtot)
-complex(8) zl(0:lmaxvr),zlm(lmmaxvr)
+real(8) rmtl(0:lmaxo+3,nspecies),rl(ld1,0:lmaxo)
+complex(8) qlm(lmmaxo,natmtot)
+complex(8) zl(0:lmaxo),zlm(lmmaxo)
+complex(8) zhmt(ld3)
 ! external functions
 real(8) factnm
 external factnm
 ! compute (R_mt)^l
 do is=1,nspecies
   rmtl(0,is)=1.d0
-  do l=1,lmaxvr+3
+  do l=1,lmaxo+3
     rmtl(l,is)=rmtl(l-1,is)*rmt(is)
   end do
 end do
 ! compute the multipole moments from the muffin-tin potentials
 do ias=1,natmtot
   is=idxis(ias)
+  i=np(is)-lmmaxo
   lm=0
-  do l=0,lmaxvr
+  do l=0,lmaxo
     t1=dble(2*l+1)*rmtl(l+1,is)/fourpi
     do m=-l,l
       lm=lm+1
-      qlm(lm,ias)=t1*zvclmt(lm,nr(is),ias)
+      i=i+1
+      qlm(lm,ias)=t1*zvclmt(i,ias)
     end do
   end do
 end do
@@ -143,18 +150,18 @@ call zcopy(ngtot,zrhoir,1,zvclir,1)
 call zfftifc(3,ngridg,-1,zvclir)
 ! subtract the multipole moments of the interstitial charge density
 do is=1,nspecies
-  do l=0,lmaxvr
+  do l=0,lmaxo
     zl(l)=fourpi*zil(l)*rmtl(l+2,is)
   end do
   do ia=1,natoms(is)
     ias=idxas(ia,is)
-    do ig=1,ngvec
+    do ig=1,ngp
       ifg=igfft(ig)
       if (gpc(ig).gt.epslat) then
         z1=zvclir(ifg)*sfacgp(ig,ias)/gpc(ig)
         lm=0
-        do l=0,lmaxvr
-          z2=jlgpr(l+1,ig,is)*z1*zl(l)
+        do l=0,lmaxo
+          z2=jlgprmt(l+1,ig,is)*z1*zl(l)
           do m=-l,l
             lm=lm+1
             qlm(lm,ias)=qlm(lm,ias)-z2*conjg(ylmgp(lm,ig))
@@ -174,7 +181,7 @@ t1=factnm(2*lnpsd+1,2)
 do ias=1,natmtot
   is=idxis(ias)
   lm=0
-  do l=0,lmaxvr
+  do l=0,lmaxo
     t2=t1/(factnm(2*l+1,2)*rmtl(l,is))
     z1=t2*zilc(l)
     do m=-l,l
@@ -183,14 +190,14 @@ do ias=1,natmtot
     end do
   end do
 ! add the pseudocharge and real interstitial densities in G-space
-  do ig=1,ngvec
+  do ig=1,ngp
     ifg=igfft(ig)
     if (gpc(ig).gt.epslat) then
       t2=gpc(ig)*rmt(is)
       t3=1.d0/t2**lnpsd
       zsum1=t3*zlm(1)*ylmgp(1,ig)
       lm=1
-      do l=1,lmaxvr
+      do l=1,lmaxo
         lm=lm+1
         zsum2=zlm(lm)*ylmgp(lm,ig)
         do m=1-l,l
@@ -200,7 +207,7 @@ do ias=1,natmtot
         t3=t3*t2
         zsum1=zsum1+t3*zsum2
       end do
-      z1=t0*jlgpr(lnpsd,ig,is)*conjg(sfacgp(ig,ias))
+      z1=t0*jlgprmt(lnpsd,ig,is)*conjg(sfacgp(ig,ias))
       zvclir(ifg)=zvclir(ifg)+z1*zsum1
     else
       t2=t0*y00/factnm(2*lnpsd+1,2)
@@ -213,14 +220,14 @@ do ig=1,igp0-1
   ifg=igfft(ig)
   zvclir(ifg)=(fourpi/gpc(ig)**2)*zvclir(ifg)
 end do
-do ig=igp0+1,ngvec
+do ig=igp0+1,ngp
   ifg=igfft(ig)
   zvclir(ifg)=(fourpi/gpc(ig)**2)*zvclir(ifg)
 end do
-! set zrho0 (pseudocharge density coefficient of the smallest G+p-vector)
+! set zgp0 (pseudocharge density coefficient of the smallest G+p-vector)
 if (igp0.gt.0) then
   ifg=igfft(igp0)
-  zrho0=zvclir(ifg)
+  zgp0=zvclir(ifg)
   zvclir(ifg)=0.d0
 end if
 ! match potentials at muffin-tin boundary by adding homogeneous solution
@@ -230,7 +237,7 @@ do is=1,nspecies
   do ir=1,nr(is)
     t2=t1*r(ir,is)
     rl(ir,0)=1.d0
-    do l=1,lmaxvr
+    do l=1,lmaxo
       rl(ir,l)=rl(ir,l-1)*t2
     end do
   end do
@@ -239,41 +246,55 @@ do is=1,nspecies
 ! find the spherical harmonic expansion of the interstitial potential at the
 ! muffin-tin radius
     zlm(:)=0.d0
-    do ig=1,ngvec
+    do ig=1,ngp
       ifg=igfft(ig)
       z1=fourpi*zvclir(ifg)*sfacgp(ig,ias)
       lm=0
-      do l=0,lmaxvr
-        z2=jlgpr(l,ig,is)*z1*zil(l)
+      do l=0,lmaxo
+        z2=jlgprmt(l,ig,is)*z1*zil(l)
         do m=-l,l
           lm=lm+1
           zlm(lm)=zlm(lm)+z2*conjg(ylmgp(lm,ig))
         end do
       end do
     end do
-! add homogenous solution
+! calculate the homogenous solution
+    i=np(is)-lmmaxo
     lm=0
-    do l=0,lmaxvr
-      if (l.le.lmaxinr) then
-        iro=1
-      else
-        iro=nri(is)+1
-      end if
+    do l=0,lmaxi
       do m=-l,l
         lm=lm+1
-        z1=zlm(lm)-zvclmt(lm,nr(is),ias)
-! store the nuclear potential without the self-term for the phonon dynamical
-! matrix calculation
-        if (tphdyn) then
-          if (ias.eq.iasph) then
-            zvnmt(lm,iro:nr(is))=z1*rl(iro:nr(is),l)
-          end if
-        end if
-        do ir=iro,nr(is)
-          zvclmt(lm,ir,ias)=zvclmt(lm,ir,ias)+z1*rl(ir,l)
+        i=i+1
+        z1=zlm(lm)-zvclmt(i,ias)
+        j=lm
+        do ir=1,nri(is)
+          zhmt(j)=z1*rl(ir,l)
+          j=j+lmmaxi
+        end do
+        do ir=nri(is)+1,nr(is)
+          zhmt(j)=z1*rl(ir,l)
+          j=j+lmmaxo
         end do
       end do
     end do
+    do l=lmaxi+1,lmaxo
+      do m=-l,l
+        lm=lm+1
+        i=i+1
+        z1=zlm(lm)-zvclmt(i,ias)
+        j=npi(is)+lm
+        do ir=nri(is)+1,nr(is)
+          zhmt(j)=z1*rl(ir,l)
+          j=j+lmmaxo
+        end do
+      end do
+    end do
+    zvclmt(1:np(is),ias)=zvclmt(1:np(is),ias)+zhmt(1:np(is))
+! store the nuclear potential without the self-term for the phonon dynamical
+! matrix calculation
+    if (tphdyn) then
+      if (ias.eq.iasph) zvnmt(1:np(is))=zhmt(1:np(is))
+    end if
   end do
 end do
 ! Fourier transform interstitial potential to real-space

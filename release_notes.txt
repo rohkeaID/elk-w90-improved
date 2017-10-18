@@ -1,3 +1,72 @@
+elk-4.3.6
+-GW approximation now available thanks to Arkadiy Davydov; this is a finite
+ temperature Matsubara implementation; currently it only calculates the k-point
+ resolved spectral function on the real axis; see the 'examples/GW' directory
+ (experimental)
+-the GW approximation works with spin-orbit coupling and non-collinear
+ magnetism; it can also be run after the optimized effective potential (OEP)
+ method
+-significant optimisations for Hartree-Fock, OEP, RDMFT and BSE
+-fixed an minor bug in BSE
+-greatly improved the stability of lattice optimisation; also reduced the
+ variable 'deltast' to 0.001
+-improved the convergence of the electron-phonon coupling parameter with respect
+ to k-points; thanks to Xianxin Wu for the careful testing
+-removed the variable 'epseph' which determined the sampling window for
+ electron-phonon coupling
+-added new automatic test for TDDFT time-evolution
+-upgraded to LAPACK 3.7.0
+-Elk now uses the LAPACK routine zheevd for diagonalisation which is faster
+ than zheev
+-changed the variable 'rstsf' to 'ssxc'
+-the smearing width 'swidth' can now be set with temperature in kelvin using the
+ variable 'tempk'
+
+elk-4.0.15
+-changed muffin-tin functions to a 'packed' convention; this improves the memory
+ efficiency and speed for the whole code; completely backward and forward
+ compatible
+-Michael Fechner found a serious bug in DFT+U which has now been fixed; may
+ affect systems with atoms to which DFT+U is applied and which have symmetric
+ equivalents; MF added to list of contributors
+-fixed a problem with the laser pulse power density plot (AFPDT.OUT) thanks to
+ Peter Elliot and Tristan Mueller
+-added the ability to randomize the orbitals at the start of a time-evolution
+ run; use the variable 'rndevt0' to set the random amplitude
+-improved the accuracy of the Hellmann-Feynman force on the atoms; this also
+ improves the supercell phonon calculations
+-added the reduced Stoner theory (RST) modification to the exchange-correlation
+ functionals, see: L. Ortenzi, I. I. Mazin, P. Blaha, and L. Boeri,
+ Phys. Rev. B 86, 064437 (2012); use the parameter `rstsf´ to adjust the spin
+ scaling
+-removed the Pulay mixer (mixtype=2) as it was consistently inferior to Broyden
+-changed the variables 'lmaxinr' and 'lmaxvr' to 'lmaxi' and 'lmaxo',
+ respectively; the old variables still work in elk.in
+
+elk-3.3.15
+-lots of optimisations of both speed and memory; many tasks should be noticeably
+ faster
+-added new 'robust adaptive mixer' (mixtype=4) which should be able to converge
+ almost anything; there are no mixing parameters for this mixer; useful for
+ materials searches when you have to be guaranteed convergence; slower to
+ converge than the default mixing and Broyden mixing
+-added missing term to DFPT phonons corresponding to the first-order change in
+ occupancies and the Fermi energy for q=0; the phonon dispersion for MgB2 is now
+ in excellent agreement with experiment and previous calculations
+-the electron-phonon coupling code was greatly improved; produces very good
+ coupling constants for Al, Nb, Pb and MgB2; all of which are in the
+ 'examples/phonons-superconductivity' directory
+-new variable 'epseph' controls the Fermi surface sampling of the
+ electron-phonon coupling matrix elements
+-Markus Meinert created a script for calculating optical constants from the
+ diagonal components of the dielectric tensor; it calculates the complex
+ refractive index, reflectivity, absorption coefficient and EELS spectrum;
+ available in the utilities directory
+-real-time TDDFT now outputs a time-dependent DOS and effective temperature at
+ each time step
+-setting 'uhighq=.true.' results in an ultra-high-quality calculation; when you
+ absolutely have to have the best
+
 elk-3.1.12
 -Important: fixed an inaccuracy in the scalar relativistic part of the code
  which has existed for around 12 years; this may slightly affect calculations of

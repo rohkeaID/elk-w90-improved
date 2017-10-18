@@ -7,22 +7,22 @@ subroutine gradzf(zfmt,zfir,gzfmt,gzfir)
 use modmain
 implicit none
 ! arguments
-complex(8), intent(in) :: zfmt(lmmaxvr,nrmtmax,natmtot),zfir(ngtot)
-complex(8), intent(out) :: gzfmt(lmmaxvr,nrmtmax,natmtot,3),gzfir(ngtot,3)
+complex(8), intent(in) :: zfmt(npmtmax,natmtot),zfir(ngtot)
+complex(8), intent(out) :: gzfmt(npmtmax,natmtot,3),gzfir(ngtot,3)
 ! local variables
-integer is,ias,nr
+integer is,ias,np
 integer ig,ifg,i
 complex(8) z1
 ! allocatable arrays
-complex(8), allocatable :: gzfmt1(:,:,:),zfft(:)
+complex(8), allocatable :: gzfmt1(:,:),zfft(:)
 ! muffin-tin gradient
-allocate(gzfmt1(lmmaxvr,nrmtmax,3))
+allocate(gzfmt1(npmtmax,3))
 do ias=1,natmtot
   is=idxis(ias)
-  nr=nrmt(is)
-  call gradzfmt(nr,nrmtinr(is),rsp(:,is),zfmt(:,:,ias),nrmtmax,gzfmt1)
+  np=npmt(is)
+  call gradzfmt(nrmt(is),nrmti(is),rsp(:,is),zfmt(:,ias),npmtmax,gzfmt1)
   do i=1,3
-    gzfmt(:,1:nr,ias,i)=gzfmt1(:,1:nr,i)
+    gzfmt(1:np,ias,i)=gzfmt1(1:np,i)
   end do
 end do
 deallocate(gzfmt1)

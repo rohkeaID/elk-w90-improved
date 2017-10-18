@@ -16,7 +16,7 @@ real(8) a,b,t1
 real(8) ft0(3,maxatoms*maxspecies)
 complex(8) z1,z2
 ! allocatable arrays
-real(8), allocatable :: vsmt0(:,:,:),vsir0(:)
+real(8), allocatable :: vsmt0(:,:),vsir0(:)
 complex(8), allocatable :: dyn(:,:)
 ! store original parameters
 natoms0(:)=natoms(:)
@@ -43,6 +43,7 @@ call init0
 call init2
 ! store original parameters
 natmtot0=natmtot
+idxis0(1:natmtot)=idxis(1:natmtot)
 bvec0(:,:)=bvec(:,:)
 binv0(:,:)=binv(:,:)
 atposc0(:,:,:)=atposc(:,:,:)
@@ -56,12 +57,13 @@ allocate(igfft0(ngtot0))
 igfft0(:)=igfft(:)
 ! allocate the Kohn-Sham potential derivative arrays
 if (allocated(dvsmt)) deallocate(dvsmt)
-allocate(dvsmt(lmmaxvr,nrmtmax,natmtot))
+allocate(dvsmt(npmtmax,natmtot))
 if (allocated(dvsir)) deallocate(dvsir)
 allocate(dvsir(ngtot))
 ! allocate supercell offset vector array
 if (allocated(vscph)) deallocate(vscph)
 allocate(vscph(3,nqptnr))
+! allocate dynamical matrix column
 allocate(dyn(3,natmtot))
 ! begin new phonon task
 10 continue
@@ -90,7 +92,7 @@ if (task.eq.202) goto 10
 ! zero the dynamical matrix row
 dyn(:,:)=0.d0
 ! zero the Kohn-Sham potential derivative
-dvsmt(:,:,:)=0.d0
+dvsmt(:,:)=0.d0
 dvsir(:)=0.d0
 ! check to see if mass is considered infinite
 if (spmass(isph).le.0.d0) goto 20
@@ -119,8 +121,8 @@ do p=0,nph
     ft0(:,ias)=forcetot(:,ias)
   end do
 ! store the Kohn-Sham potential for the first displacement
-  allocate(vsmt0(lmmaxvr,nrmtmax,natmtot),vsir0(ngtot))
-  vsmt0(:,:,:)=vsmt(:,:,:)
+  allocate(vsmt0(npmtmax,natmtot),vsir0(ngtot))
+  vsmt0(:,:)=vsmt(:,:)
   vsir0(:)=vsir(:)
 ! generate the supercell again with positive displacement
   call genscph(p,deltaph)
@@ -172,6 +174,8 @@ if (mp_mpi) then
   close(80)
 ! write the complex Kohn-Sham potential derivative to file
   natoms(:)=natoms0(:)
+  natmtot=natmtot0
+  idxis(1:natmtot)=idxis0(1:natmtot)
   ngridg(:)=ngridg0(:)
   call writedvs(filext)
 ! delete the non-essential files

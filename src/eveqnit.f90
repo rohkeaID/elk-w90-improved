@@ -31,8 +31,8 @@ n2=2*nmatp
 ns=2*nstfv
 if (iscl.ge.2) then
 ! read in the eigenvalues/vectors from file
-  call getevalfv(filext,vpl,evalfv)
-  call getevecfv(filext,vpl,vgpl,evecfv)
+  call getevalfv(filext,0,vpl,evalfv)
+  call getevecfv(filext,0,vpl,vgpl,evecfv)
 else
 ! initialise the eigenvectors to canonical basis vectors
   evecfv(1:nmatp,:)=0.d0
@@ -50,8 +50,8 @@ do i=1,nmatp
   h(1:i,i)=0.d0
 end do
 do ias=1,natmtot
-  call hmlaa(ias,ngp,apwalm,nmatp,h)
-  call hmlalo(ias,ngp,apwalm,nmatp,h)
+  call hmlaa(ias,ngp,apwalm(:,:,:,ias),nmatp,h)
+  call hmlalo(ias,ngp,apwalm(:,:,:,ias),nmatp,h)
   call hmllolo(ias,ngp,nmatp,h)
 end do
 call hmlistl(ngp,igpig,vgpc,nmatp,h)
@@ -61,8 +61,8 @@ do i=1,nmatp
   o(1:i,i)=0.d0
 end do
 do ias=1,natmtot
-  call olpaa(ias,ngp,apwalm,nmatp,o)
-  call olpalo(ias,ngp,apwalm,nmatp,o)
+  call olpaa(ias,ngp,apwalm(:,:,:,ias),nmatp,o)
+  call olpalo(ias,ngp,apwalm(:,:,:,ias),nmatp,o)
   call olplolo(ias,ngp,nmatp,o)
 end do
 call olpistl(ngp,igpig,nmatp,o)

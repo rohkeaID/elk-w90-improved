@@ -12,12 +12,9 @@ complex(8), intent(in) :: dynp(nbph,nbph)
 real(8), intent(out) :: w(nbph)
 complex(8), intent(out) :: ev(nbph,nbph)
 ! local variables
-integer is,ia,ip,js,ja,jp
-integer i,j,lwork,info
+integer is,ia,js,ja
+integer ip,jp,i,j
 real(8) t1
-! allocatable arrays
-real(8), allocatable :: rwork(:)
-complex(8), allocatable :: work(:)
 ev(:,:)=0.d0
 i=0
 do is=1,nspecies
@@ -46,17 +43,8 @@ do is=1,nspecies
     end do
   end do
 end do
-allocate(rwork(3*nbph))
-lwork=2*nbph
-allocate(work(lwork))
-call zheev('V','U',nbph,ev,nbph,w,work,lwork,rwork,info)
-if (info.ne.0) then
-  write(*,*)
-  write(*,'("Error(dynev): diagonalisation failed")')
-  write(*,'(" ZHEEV returned INFO = ",I8)') info
-  write(*,*)
-  stop
-end if
+! find the eigenvalues and eigenvectors of the dynamical matrix
+call eveqnz(nbph,nbph,ev,w)
 do i=1,nbph
   if (w(i).ge.0.d0) then
     w(i)=sqrt(w(i))
@@ -64,7 +52,6 @@ do i=1,nbph
     w(i)=-sqrt(abs(w(i)))
   end if
 end do
-deallocate(rwork,work)
 return
 end subroutine
 

@@ -3,11 +3,12 @@
 ! This file is distributed under the terms of the GNU General Public License.
 ! See the file COPYING for license details.
 
-subroutine getevecsv(fext,vpl,evecsv)
+subroutine getevecsv(fext,ikp,vpl,evecsv)
 use modmain
 implicit none
 ! arguments
 character(*), intent(in) :: fext
+integer, intent(in) :: ikp
 real(8), intent(in) :: vpl(3)
 complex(8), intent(out) :: evecsv(nstsv,nstsv)
 ! local variables
@@ -15,8 +16,12 @@ integer isym,lspn,ik,ist,i
 integer recl,nstsv_
 real(8) vkl_(3),det,v(3),th,t1
 complex(8) su2(2,2),z1,z2
+if (ikp.gt.0) then
+  ik=ikp
+else
 ! find the k-point number
-call findkpt(vpl,isym,ik)
+  call findkpt(vpl,isym,ik)
+end if
 ! find the record length
 inquire(iolength=recl) vkl_,nstsv_,evecsv
 !$OMP CRITICAL
@@ -44,6 +49,8 @@ if (nstsv.ne.nstsv_) then
 end if
 ! if eigenvectors are spin-unpolarised return
 if (.not.spinpol) return
+! if p = k then return
+if (ikp.gt.0) return
 ! index to global spin rotation in lattice point group
 lspn=lspnsymc(isym)
 ! if symmetry element is the identity return

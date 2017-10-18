@@ -20,7 +20,7 @@ subroutine genppts(tfbz,nsym,sym,ngridp,npptnr,epslat,bvec,boxl,nppt,ipvip, &
 !   epslat  : tolerance for determining identical vectors (in,real)
 !   bvec    : reciprocal lattice vectors (in,real(3,3))
 !   boxl    : corners of box containing p-points in lattice coordinates, the
-!             first vector is the origin (in,real(3,4))
+!             zeroth vector is the origin (in,real(3,0:3))
 !   nppt    : total number of p-points (out,integer)
 !   ipvip   : map from (i1,i2,i3) to reduced p-point index
 !             (out,integer(0:ngridp(1)-1,0:ngridp(2)-1,0:ngridp(3)-1))
@@ -66,7 +66,7 @@ logical, intent(in) :: tfbz
 integer, intent(in) :: nsym,sym(3,3,*)
 integer, intent(in) :: ngridp(3),npptnr
 real(8), intent(in) :: epslat
-real(8), intent(in) :: bvec(3,3),boxl(3,4)
+real(8), intent(in) :: bvec(3,3),boxl(3,0:3)
 integer, intent(out) :: nppt
 integer, intent(out) :: ipvip(0:ngridp(1)-1,0:ngridp(2)-1,0:ngridp(3)-1)
 integer, intent(out) :: ipvipnr(0:ngridp(1)-1,0:ngridp(2)-1,0:ngridp(3)-1)
@@ -92,9 +92,9 @@ if (npptnr.ne.ngridp(1)*ngridp(2)*ngridp(3)) then
   stop
 end if
 ! box vector matrix
-b(:,1)=boxl(:,2)-boxl(:,1)
-b(:,2)=boxl(:,3)-boxl(:,1)
-b(:,3)=boxl(:,4)-boxl(:,1)
+b(:,1)=boxl(:,1)-boxl(:,0)
+b(:,2)=boxl(:,2)-boxl(:,0)
+b(:,3)=boxl(:,3)-boxl(:,0)
 ! weight of each non-reduced p-point
 wpptnr=1.d0/dble(ngridp(1)*ngridp(2)*ngridp(3))
 ip=0
@@ -106,7 +106,7 @@ do i3=0,ngridp(3)-1
     do i1=0,ngridp(1)-1
       v1(1)=dble(i1)/dble(ngridp(1))
       call r3mv(b,v1,v2)
-      v2(:)=v2(:)+boxl(:,1)
+      v2(:)=v2(:)+boxl(:,0)
       if (nsym.gt.1) then
 ! determine if this point is equivalent to one already in the set
         do isym=1,nsym

@@ -15,19 +15,18 @@ real(8) wmin,wmax,wd,dw
 real(8) tmax,temp(ntemp),s(ntemp)
 real(8) v(3),t1,t2
 ! allocatable arrays
-real(8), allocatable :: wp(:),w(:),gw(:)
-real(8), allocatable :: f(:),g(:)
+real(8), allocatable :: wp(:),w(:),gw(:),f(:)
 complex(8), allocatable :: dynq(:,:,:),dynr(:,:,:)
 complex(8), allocatable :: dynp(:,:),ev(:,:)
+! external functions
+real(8) fintgt
+external fintgt
 ! initialise universal variables
 call init0
 call init2
-allocate(wp(nbph),w(nwplot),gw(nwplot))
-allocate(f(nwplot),g(nwplot))
-allocate(dynq(nbph,nbph,nqpt))
-allocate(dynr(nbph,nbph,nqptnr))
-allocate(dynp(nbph,nbph))
-allocate(ev(nbph,nbph))
+allocate(wp(nbph),w(nwplot),gw(nwplot),f(nwplot))
+allocate(dynq(nbph,nbph,nqpt),dynr(nbph,nbph,nqptnr))
+allocate(dynp(nbph,nbph),ev(nbph,nbph))
 ! read in the dynamical matrices
 call readdyn(dynq)
 ! apply the acoustic sum rule
@@ -75,7 +74,7 @@ end do
 t1=1.d0/(dw*dble(ngrkf)**3)
 gw(:)=t1*gw(:)
 ! smooth phonon DOS if required
-if (nswplot.gt.0) call fsmooth(nswplot,nwplot,1,gw)
+if (nswplot.gt.0) call fsmooth(nswplot,nwplot,gw)
 ! write phonon DOS to file
 open(50,file='PHDOS.OUT',action='WRITE',form='FORMATTED')
 do iw=1,nwplot
@@ -99,8 +98,8 @@ open(50,file='THERMO.OUT',action='WRITE',form='FORMATTED')
 do iw=1,nwplot
   f(iw)=gw(iw)*w(iw)
 end do
-call fderiv(-1,nwplot,w,f,g)
-t1=0.5d0*dble(natmtot)*g(nwplot)
+t1=fintgt(-1,nwplot,w,f)
+t1=0.5d0*dble(natmtot)*t1
 write(50,*)
 write(50,'("Zero-point energy : ",G18.10)') t1
 ! vibrational energy
@@ -115,8 +114,8 @@ do i=1,ntemp
       f(iw)=0.d0
     end if
   end do
-  call fderiv(-1,nwplot,w,f,g)
-  t1=0.5d0*dble(natmtot)*g(nwplot)
+  t1=fintgt(-1,nwplot,w,f)
+  t1=0.5d0*dble(natmtot)*t1
   write(50,'(2G18.10)') temp(i),t1
   s(i)=t1
 end do
@@ -132,8 +131,8 @@ do i=1,ntemp
       f(iw)=0.d0
     end if
   end do
-  call fderiv(-1,nwplot,w,f,g)
-  t1=dble(natmtot)*kboltz*temp(i)*g(nwplot)
+  t1=fintgt(-1,nwplot,w,f)
+  t1=dble(natmtot)*kboltz*temp(i)*t1
   write(50,'(2G18.10)') temp(i),t1
 ! compute entropy from S = (F-E)/T
   s(i)=(s(i)-t1)/temp(i)
@@ -157,15 +156,15 @@ do i=1,ntemp
       f(iw)=0.d0
     end if
   end do
-  call fderiv(-1,nwplot,w,f,g)
-  t1=dble(natmtot)*kboltz*g(nwplot)
+  t1=fintgt(-1,nwplot,w,f)
+  t1=dble(natmtot)*kboltz*t1
   write(50,'(2G18.10)') temp(i),t1
 end do
 close(50)
 write(*,'(" thermodynamic properties written to THERMO.OUT")')
 ! write phonon DOS to test file
 call writetest(210,'phonon DOS',nv=nwplot,tol=1.d-2,rva=gw)
-deallocate(wp,w,gw,f,g,dynq,dynr,dynp,ev)
+deallocate(wp,w,gw,f,dynq,dynr,dynp,ev)
 return
 end subroutine
 

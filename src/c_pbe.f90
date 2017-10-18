@@ -4,16 +4,8 @@
 subroutine c_pbe(beta,rs,z,t,uu,vv,ww,ec,vcup,vcdn)
 implicit none
 ! arguments
-real(8), intent(in) :: beta
-real(8), intent(in) :: rs
-real(8), intent(in) :: z
-real(8), intent(in) :: t
-real(8), intent(in) :: uu
-real(8), intent(in) :: vv
-real(8), intent(in) :: ww
-real(8), intent(out) :: ec
-real(8), intent(out) :: vcup
-real(8), intent(out) :: vcdn
+real(8), intent(in) :: beta,rs,z,t,uu,vv,ww
+real(8), intent(out) :: ec,vcup,vcdn
 ! local variables
 real(8), parameter :: thrd=1.d0/3.d0
 real(8), parameter :: thrdm=-thrd

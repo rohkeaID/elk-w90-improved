@@ -27,8 +27,9 @@ use modmain
 implicit none
 ! local variables
 integer is,ia,ja,ias,jas
-integer nr,ir,ilo,jlo,io,jo
-integer np,nn,j,l,info
+integer nr,nri,ir,i
+integer ilo,jlo,io,jo
+integer nn,np,l,info
 real(8) e,t1
 ! automatic arrays
 logical done(natmmax)
@@ -50,12 +51,21 @@ allocate(xa(np),ya(np),c(np))
 allocate(a(np,np),b(np))
 do is=1,nspecies
   nr=nrmt(is)
+  nri=nrmti(is)
   done(:)=.false.
   do ia=1,natoms(is)
     if (done(ia)) cycle
     ias=idxas(ia,is)
 ! use spherical part of potential
-    vr(1:nr)=vsmt(1,1:nr,ias)*y00
+    i=1
+    do ir=1,nri
+      vr(ir)=vsmt(i,ias)*y00
+      i=i+lmmaxi
+    end do
+    do ir=nri+1,nr
+      vr(ir)=vsmt(i,ias)*y00
+      i=i+lmmaxo
+    end do
     do ilo=1,nlorb(is)
       l=lorbl(ilo,is)
       do jo=1,lorbord(ilo,is)
@@ -71,10 +81,10 @@ do is=1,nspecies
         call dscal(nr,t1,p0(:,jo),1)
         call dscal(nr,t1,ep0(:,jo),1)
 ! set up the matrix of radial derivatives
-        do j=1,np
-          ir=nr-np+j
-          xa(j)=rsp(ir,is)
-          ya(j)=p0(ir,jo)/rsp(ir,is)
+        do i=1,np
+          ir=nr-np+i
+          xa(i)=rsp(ir,is)
+          ya(i)=p0(ir,jo)/rsp(ir,is)
         end do
         do io=1,lorbord(ilo,is)
           a(io,jo)=polynom(io-1,np,xa,ya,c,rmt(is))

@@ -6,12 +6,8 @@
 subroutine x_wc06(rho,s,u,v,ex,vx)
 implicit none
 ! arguments
-real(8), intent(in) :: rho
-real(8), intent(in) :: s
-real(8), intent(in) :: u
-real(8), intent(in) :: v
-real(8), intent(out) :: ex
-real(8), intent(out) :: vx
+real(8), intent(in) :: rho,s,u,v
+real(8), intent(out) :: ex,vx
 ! local variables
 real(8), parameter :: ax=-0.7385587663820224059d0
 real(8), parameter :: mu=0.2195149727645171d0

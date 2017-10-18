@@ -9,17 +9,16 @@ use modmpi
 implicit none
 ! local variables
 integer ik,ist,jst,is,ia
-integer nrc,nrci,m1,m2
+integer nrc,nrci,npc,m1,m2
 complex(8) z1
 ! allocatable arrays
-complex(8), allocatable :: wfcr1(:,:,:),wfcr2(:,:,:)
-complex(8), allocatable :: zrhomt(:,:),zvclmt(:,:),zfmt(:,:)
+complex(8), allocatable :: wfcr1(:,:),wfcr2(:,:)
+complex(8), allocatable :: zrhomt(:),zvclmt(:),zfmt(:)
 ! external functions
 complex(8) zfmtinp
 external zfmtinp
-allocate(wfcr1(lmmaxvr,nrcmtmax,2),wfcr2(lmmaxvr,nrcmtmax,2))
-allocate(zrhomt(lmmaxvr,nrcmtmax),zvclmt(lmmaxvr,nrcmtmax))
-allocate(zfmt(lmmaxvr,nrcmtmax))
+allocate(wfcr1(npcmtmax,2),wfcr2(npcmtmax,2))
+allocate(zrhomt(npcmtmax),zvclmt(npcmtmax),zfmt(npcmtmax))
 ! zero the exchange energy
 engyx=0.d0
 !--------------------------------------------------!
@@ -46,20 +45,20 @@ call mpi_allreduce(mpi_in_place,engyx,1,mpi_double_precision,mpi_sum, &
 ! begin loops over atoms and species
 do is=1,nspecies
   nrc=nrcmt(is)
-  nrci=nrcmtinr(is)
+  nrci=nrcmti(is)
+  npc=npcmt(is)
   do ia=1,natoms(is)
     do jst=1,nstsp(is)
       if (spcore(jst,is)) then
         do m2=-ksp(jst,is),ksp(jst,is)-1
 ! generate the core wavefunction in spherical coordinates (pass in m-1/2)
-          call wavefcr(.false.,lradstp,is,ia,jst,m2,nrcmtmax,wfcr2)
+          call wavefcr(.false.,lradstp,is,ia,jst,m2,npcmtmax,wfcr2)
           do ist=1,nstsp(is)
             if (spcore(ist,is)) then
               do m1=-ksp(ist,is),ksp(ist,is)-1
-                call wavefcr(.false.,lradstp,is,ia,ist,m1,nrcmtmax,wfcr1)
+                call wavefcr(.false.,lradstp,is,ia,ist,m1,npcmtmax,wfcr1)
 ! calculate the complex overlap density
-                call genzrmt2(nrc,nrci,wfcr1(:,:,1),wfcr1(:,:,2),wfcr2(:,:,1), &
-                 wfcr2(:,:,2),zfmt)
+                call zrho2(npc,wfcr1(:,1),wfcr1(:,2),wfcr2(:,1),wfcr2(:,2),zfmt)
                 call zfsht(nrc,nrci,zfmt,zrhomt)
 ! calculate the Coulomb potential
                 call zpotclmt(nrc,nrci,rcmt(:,is),zrhomt,zvclmt)
@@ -78,5 +77,17 @@ do is=1,nspecies
 end do
 deallocate(wfcr1,wfcr2,zrhomt,zvclmt,zfmt)
 return
+
+contains
+
+subroutine zrho2(n,x1,x2,y1,y2,z)
+implicit none
+integer, intent(in) :: n
+complex(8), intent(in) :: x1(n),x2(n),y1(n),y2(n)
+complex(8), intent(out) :: z(n)
+z(:)=conjg(x1(:))*y1(:)+conjg(x2(:))*y2(:)
+return
+end subroutine
+
 end subroutine
 

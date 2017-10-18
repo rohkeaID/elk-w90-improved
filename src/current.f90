@@ -26,7 +26,7 @@ do ik=1,nkpt
   allocate(pmat(nstsv,nstsv,3))
   allocate(a(nstsv,nstsv),b(nstsv,nstsv))
 ! get the time-dependent Kohn-Sham eigenvectors from file
-  call getevecsv(filext,vkl(:,ik),evecsvt)
+  call getevecsv(filext,ik,vkl(:,ik),evecsvt)
 ! get the first-variational basis momentum matrix elements from file
   call getpmat(.true.,vkl(:,ik),pmat)
   do i=1,3

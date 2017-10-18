@@ -1,7 +1,5 @@
 
-! US in FM structure with LDA+SOC+U and calculation of tensor moments.
-! The Slater parameters are determined through a Yukawa potential with screening
-! length corresponding to large U=4.0eV.
+! DFT+U test
 
 tasks
   0

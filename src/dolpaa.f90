@@ -10,8 +10,8 @@ implicit none
 ! arguments
 integer, intent(in) :: ias
 integer, intent(in) :: ngp,ngpq
-complex(8), intent(in) :: apwalm(ngkmax,apwordmax,lmmaxapw,natmtot)
-complex(8), intent(in) :: apwalmq(ngkmax,apwordmax,lmmaxapw,natmtot)
+complex(8), intent(in) :: apwalm(ngkmax,apwordmax,lmmaxapw)
+complex(8), intent(in) :: apwalmq(ngkmax,apwordmax,lmmaxapw)
 complex(8), intent(in) :: dapwalm(ngkmax,apwordmax,lmmaxapw)
 complex(8), intent(in) :: dapwalmq(ngkmax,apwordmax,lmmaxapw)
 integer, intent(in) :: ld
@@ -27,10 +27,10 @@ do l=0,lmaxmat
   do m=-l,l
     lm=lm+1
     do io=1,apword(l,is)
-      x(1:ngpq)=conjg(apwalmq(1:ngpq,io,lm,ias))
+      x(1:ngpq)=conjg(apwalmq(1:ngpq,io,lm))
       call zgerci(ngpq,ngp,zone,x,dapwalm(:,io,lm),ld,od)
       x(1:ngpq)=conjg(dapwalmq(1:ngpq,io,lm))
-      call zgerci(ngpq,ngp,zone,x,apwalm(:,io,lm,ias),ld,od)
+      call zgerci(ngpq,ngp,zone,x,apwalm(:,io,lm),ld,od)
     end do
   end do
 end do

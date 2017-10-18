@@ -7,43 +7,52 @@ subroutine energynn
 use modmain
 implicit none
 ! local variables
-integer is,ia,ias,ir
+integer is,ia,ias
+integer nr,nri,ir,np,i
 real(8) t1
-complex(8) zrho0
+complex(8) zg0
 ! automatic arrays
 real(8) vn(nrmtmax),vn0(nspecies)
 ! allocatable arrays
-complex(8), allocatable :: zrhoir(:),zvclmt(:,:,:),zvclir(:)
-allocate(zrhoir(ngtot))
-allocate(zvclmt(lmmaxvr,nrmtmax,natmtot))
-allocate(zvclir(ngtot))
-! set the density to zero
-zrhoir(:)=0.d0
+complex(8), allocatable :: zvclmt(:,:),zvclir(:),zrhoir(:)
+allocate(zvclmt(npmtmax,natmtot),zvclir(ngtot))
 ! generate the nuclear monopole potentials
 t1=1.d0/y00
 do is=1,nspecies
-  call potnucl(ptnucl,nrmt(is),rsp(:,is),spzn(is),vn)
+  nr=nrmt(is)
+  nri=nrmti(is)
+  np=npmt(is)
+  call potnucl(ptnucl,nr,rsp(:,is),spzn(is),vn)
   vn0(is)=vn(1)
   do ia=1,natoms(is)
     ias=idxas(ia,is)
-    do ir=1,nrmt(is)
-      zvclmt(1,ir,ias)=t1*vn(ir)
-      zvclmt(2:,ir,ias)=0.d0
+    zvclmt(1:np,ias)=0.d0
+    i=1
+    do ir=1,nri
+      zvclmt(i,ias)=t1*vn(ir)
+      i=i+lmmaxi
+    end do
+    do ir=nri+1,nr
+      zvclmt(i,ias)=t1*vn(ir)
+      i=i+lmmaxo
     end do
   end do
 end do
+! set the interstitial density to zero
+allocate(zrhoir(ngtot))
+zrhoir(:)=0.d0
 ! solve the complex Poisson's equation
-call zpotcoul(nrmt,nrmtinr,nrspmax,rsp,1,gc,jlgr,ylmg,sfacg,zrhoir,nrmtmax, &
- zvclmt,zvclir,zrho0)
+call zpotcoul(nrmt,nrmti,npmt,npmti,nrspmax,rsp,ngvec,1,gc,ngvec,jlgrmt,ylmg, &
+ sfacg,zrhoir,npmtmax,zvclmt,zvclir,zg0)
 ! compute the nuclear-nuclear energy
 engynn=0.d0
 do ias=1,natmtot
   is=idxis(ias)
-  t1=dble(zvclmt(1,1,ias))*y00-vn0(is)
+  t1=dble(zvclmt(1,ias))*y00-vn0(is)
   engynn=engynn+spzn(is)*t1
 end do
 engynn=0.5d0*engynn
-deallocate(zrhoir,zvclmt,zvclir)
+deallocate(zvclmt,zvclir,zrhoir)
 return
 end subroutine
 

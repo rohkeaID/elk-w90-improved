@@ -23,12 +23,13 @@ tasks
 latvopt
   2
 
+! high-quality calculation for precise total energies
+highq
+ .true.
+
 ! speed the calculation up with Broyden mixing
 mixtype
   3
-
-ngridk
-  6  6  4
 
 avec
   5.8316944  0.0          0.0

@@ -4,15 +4,8 @@
 subroutine c_pbe_gcor(a,a1,b1,b2,b3,b4,rtrs,gg,ggrs)
 implicit none
 ! arguments
-real(8), intent(in) :: a
-real(8), intent(in) :: a1
-real(8), intent(in) :: b1
-real(8), intent(in) :: b2
-real(8), intent(in) :: b3
-real(8), intent(in) :: b4
-real(8), intent(in) :: rtrs
-real(8), intent(out) :: gg
-real(8), intent(out) :: ggrs
+real(8), intent(in) :: a,a1,b1,b2,b3,b4,rtrs
+real(8), intent(out) :: gg,ggrs
 ! local variables
 real(8) q0,q1,q2,q3
 q0=-2.d0*a*(1.d0+a1*rtrs*rtrs)

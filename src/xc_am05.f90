@@ -28,14 +28,8 @@ subroutine xc_am05(n,rho,grho,g2rho,g3rho,ex,ec,vx,vc)
 implicit none
 ! arguments
 integer, intent(in) :: n
-real(8), intent(in) :: rho(n)
-real(8), intent(in) :: grho(n)
-real(8), intent(in) :: g2rho(n)
-real(8), intent(in) :: g3rho(n)
-real(8), intent(out) :: ex(n)
-real(8), intent(out) :: ec(n)
-real(8), intent(out) :: vx(n)
-real(8), intent(out) :: vc(n)
+real(8), intent(in) :: rho(n),grho(n),g2rho(n),g3rho(n)
+real(8), intent(out) :: ex(n),ec(n),vx(n),vc(n)
 ! local variables
 integer i
 real(8), parameter :: pi=3.1415926535897932385d0

@@ -14,9 +14,9 @@ integer ig,jg,kg,iv(3)
 real(8) t0
 complex(8) z1
 ! allocatable arrays
-real(8), allocatable :: fxcmt(:,:,:),fxcir(:)
+real(8), allocatable :: fxcmt(:,:),fxcir(:)
 complex(8), allocatable :: fxcg(:)
-allocate(fxcmt(lmmaxvr,nrmtmax,natmtot),fxcir(ngtot))
+allocate(fxcmt(npmtmax,natmtot),fxcir(ngtot))
 allocate(fxcg(ngtot))
 ! generate the kernel f_xc in real-space
 call genfxcr(.true.,fxcmt,fxcir)

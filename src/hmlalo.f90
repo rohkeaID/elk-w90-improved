@@ -7,9 +7,8 @@ subroutine hmlalo(ias,ngp,apwalm,ld,h)
 use modmain
 implicit none
 ! arguments
-integer, intent(in) :: ias
-integer, intent(in) :: ngp
-complex(8), intent(in) :: apwalm(ngkmax,apwordmax,lmmaxapw,natmtot)
+integer, intent(in) :: ias,ngp
+complex(8), intent(in) :: apwalm(ngkmax,apwordmax,lmmaxapw)
 integer, intent(in) :: ld
 complex(8), intent(inout) :: h(*)
 ! local variables
@@ -29,7 +28,7 @@ do ilo=1,nlorb(is)
         lm3=lm3+1
         do io=1,apword(l3,is)
           zsum=0.d0
-          do l2=0,lmaxvr
+          do l2=0,lmaxo
             if (mod(l1+l2+l3,2).eq.0) then
               do m2=-l2,l2
                 lm2=idxlm(l2,m2)
@@ -42,7 +41,7 @@ do ilo=1,nlorb(is)
             k=(j-1)*ld
             do i=1,ngp
               k=k+1
-              h(k)=h(k)+conjg(zsum*apwalm(i,io,lm3,ias))
+              h(k)=h(k)+conjg(zsum*apwalm(i,io,lm3))
             end do
           end if
         end do

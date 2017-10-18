@@ -1,7 +1,5 @@
 
-! NiO in AFMII structure with LDA+U and calculation of tensor moments.
-! The values of Slater parameters are calculated through a Yukawa potential 
-! with screening length corresponding to U=8eV.
+! DFT+U test
 
 tasks
   0

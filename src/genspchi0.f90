@@ -6,15 +6,16 @@
 !BOP
 ! !ROUTINE: genspchi0
 ! !INTERFACE:
-subroutine genspchi0(ikp,scsr,vqpl,gqc,ylmgq,sfacgq,chi0)
+subroutine genspchi0(ik,scsr,vqpl,jlgqr,ylmgq,sfacgq,chi0)
 ! !USES:
 use modmain
 ! !INPUT/OUTPUT PARAMETERS:
-!   ikp    : k-point from non-reduced set (in,integer)
+!   ik     : k-point from non-reduced set (in,integer)
 !   scsr   : scissor correction (in,real)
 !   vqpl   : input q-point in lattice coordinates (in,real(3))
-!   gqc    : length of G+q-vectors (in,real(ngrf))
-!   ylmgq  : spherical harmonics of the G+q-vectors (in,complex(lmmaxvr,ngrf))
+!   jlgqr  : spherical Bessel functions evaluated on the coarse radial mesh for
+!            all species and G+q-vectors (in,real(njcmax,nspecies,ngrf))
+!   ylmgq  : spherical harmonics of the G+q-vectors (in,complex(lmmaxo,ngrf))
 !   sfacgq : structure factors of G+q-vectors (in,complex(ngrf,natmtot))
 !   chi0   : spin-dependent Kohn-Sham response function in G-space
 !            (out,complex(ngrf,4,ngrf,4,nwrf))
@@ -57,16 +58,13 @@ use modmain
 !BOC
 implicit none
 ! local variables
-integer, intent(in) :: ikp
-real(8), intent(in) :: scsr
-real(8), intent(in) :: vqpl(3)
-real(8), intent(in) :: gqc(ngrf)
-complex(8), intent(in) :: ylmgq(lmmaxvr,ngrf)
-complex(8), intent(in) :: sfacgq(ngrf,natmtot)
+integer, intent(in) :: ik
+real(8), intent(in) :: scsr,vqpl(3),jlgqr(njcmax,nspecies,ngrf)
+complex(8), intent(in) :: ylmgq(lmmaxo,ngrf),sfacgq(ngrf,natmtot)
 complex(8), intent(inout) :: chi0(nwrf,ngrf,4,ngrf,4)
 ! local variables
 logical tz(4)
-integer isym,jkp,jkpq
+integer isym,jk,jkq
 integer iw,nst,nstq
 integer ist,jst,kst,lst
 integer ig,jg,a,b,i,j
@@ -75,9 +73,9 @@ complex(8) z1,z2
 ! automatic arrays
 integer idx(nstsv),idxq(nstsv)
 ! allocatable arrays
-complex(8), allocatable :: wfmt(:,:,:,:,:),wfir(:,:,:)
-complex(8), allocatable :: wfmtq(:,:,:,:,:),wfirq(:,:,:)
-complex(8), allocatable :: zrhomt(:,:,:),zrhoir(:)
+complex(8), allocatable :: wfmt(:,:,:,:),wfir(:,:,:)
+complex(8), allocatable :: wfmtq(:,:,:,:),wfirq(:,:,:)
+complex(8), allocatable :: zrhomt(:,:),zrhoir(:)
 complex(8), allocatable :: zrhoig(:,:),zw(:)
 if (.not.spinpol) then
   write(*,*)
@@ -86,31 +84,29 @@ if (.not.spinpol) then
   stop
 end if
 ! k+q-vector in lattice coordinates
-vkql(:)=vkl(:,ikp)+vqpl(:)
+vkql(:)=vkl(:,ik)+vqpl(:)
 ! equivalent reduced k-points for k and k+q
-call findkpt(vkl(:,ikp),isym,jkp)
-call findkpt(vkql,isym,jkpq)
+call findkpt(vkl(:,ik),isym,jk)
+call findkpt(vkql,isym,jkq)
 ! count and index states at k and k+q in energy window
 nst=0
 do ist=1,nstsv
-  if (abs(evalsv(ist,jkp)-efermi).lt.emaxrf) then
+  if (abs(evalsv(ist,jk)-efermi).lt.emaxrf) then
     nst=nst+1
     idx(nst)=ist
   end if
 end do
 nstq=0
 do jst=1,nstsv
-  if (abs(evalsv(jst,jkpq)-efermi).lt.emaxrf) then
+  if (abs(evalsv(jst,jkq)-efermi).lt.emaxrf) then
     nstq=nstq+1
     idxq(nstq)=jst
   end if
 end do
 ! generate the wavefunctions for all states at k and k+q in energy window
-allocate(wfmt(lmmaxvr,nrcmtmax,natmtot,nspinor,nst))
-allocate(wfir(ngtot,nspinor,nst))
-call genwfsvp(.false.,.false.,nst,idx,vkl(:,ikp),wfmt,ngtot,wfir)
-allocate(wfmtq(lmmaxvr,nrcmtmax,natmtot,nspinor,nstq))
-allocate(wfirq(ngtot,nspinor,nstq))
+allocate(wfmt(npcmtmax,natmtot,nspinor,nst),wfir(ngtot,nspinor,nst))
+call genwfsvp(.false.,.false.,nst,idx,vkl(:,ik),wfmt,ngtot,wfir)
+allocate(wfmtq(npcmtmax,natmtot,nspinor,nstq),wfirq(ngtot,nspinor,nstq))
 call genwfsvp(.false.,.false.,nstq,idxq,vkql,wfmtq,ngtot,wfirq)
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP PRIVATE(zrhomt,zrhoir,zrhoig,zw) &
@@ -118,14 +114,14 @@ call genwfsvp(.false.,.false.,nstq,idxq,vkql,wfmtq,ngtot,wfirq)
 !$OMP PRIVATE(i,j,a,b,tz,ig,jg,z1,z2)
 !$OMP DO
 do ist=1,nst
-  allocate(zrhomt(lmmaxvr,nrcmtmax,natmtot),zrhoir(ngtot))
+  allocate(zrhomt(npcmtmax,natmtot),zrhoir(ngtot))
   allocate(zrhoig(ngrf,4),zw(nwrf))
   kst=idx(ist)
   do jst=1,nstq
     lst=idxq(jst)
-    t1=wkptnr*omega*(occsv(kst,jkp)-occsv(lst,jkpq))
+    t1=wkptnr*omega*(occsv(kst,jk)-occsv(lst,jkq))
     if (abs(t1).lt.1.d-8) cycle
-    eij=evalsv(kst,jkp)-evalsv(lst,jkpq)
+    eij=evalsv(kst,jk)-evalsv(lst,jkq)
 ! scissor operator
     if (abs(scsr).gt.1.d-8) then
       if (eij.gt.0.d0) then
@@ -154,9 +150,9 @@ do ist=1,nst
             cycle
           end if
         end if
-        call genzrho(.true.,.false.,wfmt(:,:,:,a,ist),wfir(:,a,ist), &
-         wfmtq(:,:,:,b,jst),wfirq(:,b,jst),zrhomt,zrhoir)
-        call zftzf(ngrf,gqc,ylmgq,ngrf,sfacgq,zrhomt,zrhoir,zrhoig(:,i))
+        call genzrho(.true.,.false.,wfmt(:,:,a,ist),wfir(:,a,ist), &
+         wfmtq(:,:,b,jst),wfirq(:,b,jst),zrhomt,zrhoir)
+        call zftzf(ngrf,jlgqr,ylmgq,ngrf,sfacgq,zrhomt,zrhoir,zrhoig(:,i))
       end do
     end do
 !$OMP CRITICAL

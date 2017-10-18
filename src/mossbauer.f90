@@ -25,25 +25,36 @@ use modmain
 !BOC
 implicit none
 ! local variables
-integer is,ia,ias,ir,nrt
-real(8) rt,vt,rho0,mc,bc,t1
+integer idm,is,ia,ias
+integer nr,nri,nrn,nrt,ir
+real(8) rt,vt,mc,bc,t1
+real(8) rho0,rhon,rhoa
 ! allocatable arrays
-real(8), allocatable :: fr(:),gr(:)
+real(8), allocatable :: fr(:,:)
+! external functions
+real(8) fintgt
+external fintgt
 ! initialise universal variables
 call init0
 ! read density and potentials from file
 call readstate
 ! allocate local arrays
-allocate(fr(nrmtmax),gr(nrmtmax))
+allocate(fr(nrmtmax,3))
 open(50,file='MOSSBAUER.OUT',action='WRITE',form='FORMATTED')
 ! loop over species
 do is=1,nspecies
+  nr=nrmt(is)
+  nri=nrmti(is)
+  nrn=nrnucl(is)
 ! Thomson radius and volume
   rt=abs(spzn(is))/solsc**2
-  do ir=1,nrmt(is)-1
-    if (rsp(ir,is).gt.rt) exit
+  nrt=nr
+  do ir=1,nr
+    if (rsp(ir,is).gt.rt) then
+      nrt=ir
+      exit
+    end if
   end do
-  nrt=ir
   rt=rsp(nrt,is)
   vt=(4.d0/3.d0)*pi*rt**3
 ! loop over atoms
@@ -52,39 +63,39 @@ do is=1,nspecies
 !--------------------------------!
 !     contact charge density     !
 !--------------------------------!
-    do ir=1,nrnucl(is)
-      fr(ir)=rhomt(1,ir,ias)*r2sp(ir,is)
-    end do
-    call fderiv(-1,nrnucl(is),rsp(:,is),fr,gr)
-    rho0=fourpi*y00*gr(nrnucl(is))/vnucl(is)
+    call rfmtlm(1,nr,nri,rhomt(:,ias),fr)
+    rho0=fr(1,1)*y00
+    rhon=fr(nrn,1)*y00
+    fr(1:nrn,1)=fr(1:nrn,1)*r2sp(1:nrn,is)
+    t1=fintgt(-1,nrn,rsp(:,is),fr)
+    rhoa=fourpi*y00*t1/vnucl(is)
     write(50,*)
     write(50,*)
     write(50,'("Species : ",I4," (",A,"), atom : ",I4)') is,trim(spsymb(is)),ia
     write(50,*)
     write(50,'(" approximate nuclear radius : ",G18.10)') rnucl(is)
-    write(50,'(" number of mesh points to nuclear radius : ",I6)') nrnucl(is)
-    write(50,'(" density at nuclear center      : ",G18.10)') rhomt(1,1,ias)*y00
-    write(50,'(" density at nuclear surface     : ",G18.10)') &
-     rhomt(1,nrnucl(is),ias)*y00
-    write(50,'(" average contact charge density : ",G18.10)') rho0
+    write(50,'(" number of mesh points to nuclear radius : ",I6)') nrn
+    write(50,'(" density at nuclear center      : ",G18.10)') rho0
+    write(50,'(" density at nuclear surface     : ",G18.10)') rhon
+    write(50,'(" average contact charge density : ",G18.10)') rhoa
 !------------------------------------------!
 !     contact magnetic hyperfine field     !
 !------------------------------------------!
     if (spinpol) then
-      do ir=1,nrt
-        if (ncmag) then
-! non-collinear
-          t1=sqrt(magmt(1,ir,ias,1)**2 &
-                 +magmt(1,ir,ias,2)**2 &
-                 +magmt(1,ir,ias,3)**2)
-        else
-! collinear
-          t1=magmt(1,ir,ias,1)
-        end if
-        fr(ir)=t1*r2sp(ir,is)
+      do idm=1,ndmag
+        call rfmtlm(1,nr,nri,magmt(:,ias,idm),fr(:,idm))
       end do
-      call fderiv(-1,nrt,rsp(:,is),fr,gr)
-      mc=fourpi*y00*gr(nrt)/vt
+      if (ncmag) then
+! non-collinear
+        fr(1:nrt,1)=sqrt(fr(1:nrt,1)**2 &
+                        +fr(1:nrt,2)**2 &
+                        +fr(1:nrt,3)**2)*r2sp(1:nrt,is)
+      else
+! collinear
+        fr(1:nrt,1)=abs(fr(1:nrt,1))*r2sp(1:nrt,is)
+      end if
+      t1=fintgt(-1,nrt,rsp(:,is),fr)
+      mc=fourpi*y00*t1/vt
       write(50,*)
       write(50,'(" Thomson radius : ",G18.10)') rt
       write(50,'(" number of mesh points to Thomson radius : ",I6)') nrt
@@ -99,7 +110,8 @@ close(50)
 write(*,*)
 write(*,'("Info(mossbauer):")')
 write(*,'(" Mossbauer parameters written to MOSSBAUER.OUT")')
-deallocate(fr,gr)
+deallocate(fr)
 return
 end subroutine
 !EOC
+

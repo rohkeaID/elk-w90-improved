@@ -79,25 +79,28 @@ use modmpi
 !BOC
 implicit none
 ! local variables
-integer ik,is,ias
+integer ik,idm,is,ias
 integer nr,nri,i
 real(8) sum,t1
 real(8) ts0,ts1
 ! allocatable arrays
-real(8), allocatable :: grfmt(:,:,:)
+real(8), allocatable :: rfmt(:,:),grfmt(:,:)
 ! external functions
-real(8) rfmtinp
-external rfmtinp
+real(8) rfmtinp,fintgt
+external rfmtinp,fintgt
 call timesec(ts0)
-allocate(grfmt(lmmaxvr,nrmtmax,3))
+allocate(grfmt(npmtmax,3))
 !--------------------------------!
 !     Hellmann-Feynman force     !
 !--------------------------------!
-! compute the gradient of the Coulomb potential at the nuclear surface
 do ias=1,natmtot
   is=idxis(ias)
-  call gradrfmt(nrmt(is),nrmtinr(is),rsp(:,is),vclmt(:,:,ias),nrmtmax,grfmt)
-  forcehf(:,ias)=-spzn(is)*grfmt(1,nrnucl(is),:)*y00
+  nr=nrmt(is)
+  nri=nrmti(is)
+  call gradrfmt(nr,nri,rsp(:,is),vclmt(:,ias),npmtmax,grfmt)
+  do i=1,3
+    forcehf(i,ias)=-spzn(is)*grfmt(1,i)*y00
+  end do
 end do
 ! symmetrise Hellmann-Feynman force
 call symvect(.false.,forcehf)
@@ -106,36 +109,55 @@ call symvect(.false.,forcehf)
 !---------------------------------!
 ! set the IBS forces to zero
 forceibs(:,:)=0.d0
-if (tfibs) then
 ! compute k-point dependent contribution to the IBS force
 !$OMP PARALLEL DEFAULT(SHARED)
 !$OMP DO
-  do ik=1,nkpt
+do ik=1,nkpt
 ! distribute among MPI processes
-    if (mod(ik-1,np_mpi).ne.lp_mpi) cycle
-    call forcek(ik)
-  end do
+  if (mod(ik-1,np_mpi).ne.lp_mpi) cycle
+  call forcek(ik)
+end do
 !$OMP END DO
 !$OMP END PARALLEL
 ! add IBS forces from each process and redistribute
-  if (np_mpi.gt.1) then
-    call mpi_allreduce(mpi_in_place,forceibs,3*natmtot,mpi_double_precision, &
-     mpi_sum,mpi_comm_kpt,ierror)
-  end if
+if (np_mpi.gt.1) then
+  call mpi_allreduce(mpi_in_place,forceibs,3*natmtot,mpi_double_precision, &
+   mpi_sum,mpi_comm_kpt,ierror)
+end if
 ! integral of Kohn-Sham potential with gradient of density
-  do ias=1,natmtot
-    is=idxis(ias)
-    nr=nrmt(is)
-    nri=nrmtinr(is)
-    call gradrfmt(nr,nri,rsp(:,is),rhomt(:,:,ias),nrmtmax,grfmt)
-    do i=1,3
-      t1=rfmtinp(nr,nri,1,rsp(:,is),r2sp(:,is),vsmt(:,:,ias),grfmt(:,:,i))
-      forceibs(i,ias)=forceibs(i,ias)+t1
+do ias=1,natmtot
+  is=idxis(ias)
+  nr=nrmt(is)
+  nri=nrmti(is)
+  call gradrfmt(nr,nri,rsp(:,is),rhomt(:,ias),npmtmax,grfmt)
+  do i=1,3
+    t1=rfmtinp(nr,nri,rsp(:,is),r2sp(:,is),vsmt(:,ias),grfmt(:,i))
+    forceibs(i,ias)=forceibs(i,ias)+t1
+  end do
+end do
+if (spinpol) then
+  allocate(rfmt(npmtmax,natmtot))
+  do idm=1,ndmag
+    do ias=1,natmtot
+      is=idxis(ias)
+      call rfsht(nrcmt(is),nrcmti(is),bsmt(:,ias,idm),rfmt(:,ias))
+    end do
+    call rfmtctof(rfmt)
+    do ias=1,natmtot
+      is=idxis(ias)
+      nr=nrmt(is)
+      nri=nrmti(is)
+      call gradrfmt(nr,nri,rsp(:,is),magmt(:,ias,idm),npmtmax,grfmt)
+      do i=1,3
+        t1=rfmtinp(nr,nri,rsp(:,is),r2sp(:,is),rfmt(:,ias),grfmt(:,i))
+        forceibs(i,ias)=forceibs(i,ias)+t1
+      end do
     end do
   end do
-! symmetrise IBS force
-  call symvect(.false.,forceibs)
+  deallocate(rfmt)
 end if
+! symmetrise IBS force
+call symvect(.false.,forceibs)
 ! total force
 do ias=1,natmtot
   forcetot(:,ias)=forcehf(:,ias)+forceibs(:,ias)

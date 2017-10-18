@@ -4,7 +4,6 @@
 ! See the file COPYING for license details.
 
 subroutine phdelete
-use modmain
 use modphonon
 implicit none
 character(256) fext

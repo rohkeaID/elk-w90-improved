@@ -6,18 +6,17 @@
 !BOP
 ! !ROUTINE: rfmtinp
 ! !INTERFACE:
-real(8) function rfmtinp(nr,nri,lrstp,r,r2,rfmt1,rfmt2)
+real(8) function rfmtinp(nr,nri,r,r2,rfmt1,rfmt2)
 ! !USES:
 use modmain
 ! !INPUT/OUTPUT PARAMETERS:
 !   nr    : number of radial mesh points (in,integer)
 !   nri   : number of radial mesh points on the inner part of the muffin-tin
 !           (in,integer)
-!   lrstp : radial step length (in,integer)
 !   r     : radial mesh (in,real(nr))
 !   r2    : r^2 on radial mesh (in,real(nr))
-!   rfmt1 : first real function inside muffin-tin (in,real(lmmaxvr,nr))
-!   rfmt2 : second real function inside muffin-tin (in,real(lmmaxvr,nr))
+!   rfmt1 : first real function inside muffin-tin (in,real(*))
+!   rfmt2 : second real function inside muffin-tin (in,real(*))
 ! !DESCRIPTION:
 !   Calculates the inner product of two real functions in the muffin-tin. So
 !   given two real functions of the form
@@ -35,43 +34,31 @@ use modmain
 !BOC
 implicit none
 ! arguments
-integer, intent(in) :: nr,nri,lrstp
+integer, intent(in) :: nr,nri
 real(8), intent(in) :: r(nr),r2(nr)
-real(8), intent(in) :: rfmt1(lmmaxvr,nr),rfmt2(lmmaxvr,nr)
+real(8), intent(in) :: rfmt1(*),rfmt2(*)
 ! local variables
-integer ir,irc
+integer ir,i0,i1
 ! automatic arrays
-real(8) rc(nr),fr(nr)
+real(8) fr(nr)
 ! external functions
-real(8) ddot,fintgt
-external ddot,fintgt
-if (lrstp.le.0) then
-  write(*,*)
-  write(*,'("Error(rfmtinp): lrstp <= 0 : ",I8)') lrstp
-  write(*,*)
-  stop
-end if
-if (nr.le.0) then
-  write(*,*)
-  write(*,'("Error(rfmtinp): nr <= 0 : ",I8)') nr
-  write(*,*)
-  stop
-end if
-irc=0
+real(8) fintgt
+external fintgt
 ! inner part of muffin-tin
-do ir=1,nri,lrstp
-  irc=irc+1
-  rc(irc)=r(ir)
-  fr(irc)=ddot(lmmaxinr,rfmt1(:,ir),1,rfmt2(:,ir),1)*r2(ir)
+i1=0
+do ir=1,nri
+  i0=i1+1
+  i1=i1+lmmaxi
+  fr(ir)=dot_product(rfmt1(i0:i1),rfmt2(i0:i1))*r2(ir)
 end do
 ! outer part of muffin-tin
-do ir=nri+lrstp,nr,lrstp
-  irc=irc+1
-  rc(irc)=r(ir)
-  fr(irc)=ddot(lmmaxvr,rfmt1(:,ir),1,rfmt2(:,ir),1)*r2(ir)
+do ir=nri+1,nr
+  i0=i1+1
+  i1=i1+lmmaxo
+  fr(ir)=dot_product(rfmt1(i0:i1),rfmt2(i0:i1))*r2(ir)
 end do
 ! integrate
-rfmtinp=fintgt(-1,irc,rc,fr)
+rfmtinp=fintgt(-1,nr,r,fr)
 return
 end function
 !EOC

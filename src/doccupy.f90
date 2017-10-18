@@ -8,46 +8,46 @@ use modmain
 use modphonon
 implicit none
 ! local variables
-integer ik,jk,ist
-real(8) sum1,sum2
-real(8) x,dx,t1,t2
-! allocatable arrays
-real(8), allocatable :: devalsv(:)
+integer, parameter :: maxit=1000
+integer ik,jk,ist,it
+real(8) de0,de1,de
+real(8) dchg,x,dx,t1
 ! external functions
 real(8) sdelta
 external sdelta
-if (.not.tphiq0) return
-allocate(devalsv(nstsv))
+if (.not.tphq0) return
+de0=1.d6
+de1=-1.d6
+do ik=1,nkptnr
+  do ist=1,nstsv
+    de=devalsv(ist,ik)
+    if (de.lt.de0) de0=de
+    if (de.gt.de1) de1=de
+  end do
+end do
 t1=1.d0/swidth
-! compute the derivative of the Fermi energy
-sum1=0.d0
-sum2=0.d0
-do ik=1,nkptnr
-  jk=ivkik(ivk(1,ik),ivk(2,ik),ivk(3,ik))
-  call getdevalsv(ik,iqph,isph,iaph,ipph,devalsv)
-  do ist=1,nstsv
-    x=(efermi-evalsv(ist,jk))*t1
-    t2=wkptnr*occmax*sdelta(stype,x)*t1
-    sum1=sum1+t2
-    sum2=sum2+t2*devalsv(ist)
+do it=1,maxit
+  defermi=0.5d0*(de0+de1)
+  dchg=0.d0
+  do ik=1,nkptnr
+    jk=ivkik(ivk(1,ik),ivk(2,ik),ivk(3,ik))
+    do ist=1,nstsv
+      x=(efermi-evalsv(ist,jk))*t1
+      dx=(defermi-devalsv(ist,ik))*t1
+      doccsv(ist,ik)=occmax*sdelta(stype,x)*dx
+      dchg=dchg+wkptnr*doccsv(ist,ik)
+    end do
   end do
+  if (dchg.lt.0.d0) then
+    de0=defermi
+  else
+    de1=defermi
+  end if
+  if ((de1-de0).lt.1.d-12) goto 10
 end do
-if (abs(sum1).gt.1.d-6) then
-  defermi=sum2/sum1
-else
-  defermi=0.d0
-end if
-! determine the occupation number derivatives
-do ik=1,nkptnr
-  jk=ivkik(ivk(1,ik),ivk(2,ik),ivk(3,ik))
-  call getdevalsv(ik,iqph,isph,iaph,ipph,devalsv)
-  do ist=1,nstsv
-    x=(efermi-evalsv(ist,jk))*t1
-    dx=(defermi-devalsv(ist))*t1
-    doccsv(ist,ik)=occmax*sdelta(stype,x)*dx
-  end do
-end do
-deallocate(devalsv)
+write(*,*)
+write(*,'("Warning(doccupy): could not find Fermi energy derivative")')
+10 continue
 return
 end subroutine
 

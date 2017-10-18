@@ -24,8 +24,7 @@ implicit none
 ! arguments
 integer, intent(in) :: n
 real(8), intent(in) :: rho(n)
-real(8), intent(out) :: exc(n)
-real(8), intent(out) :: vxc(n)
+real(8), intent(out) :: exc(n),vxc(n)
 ! local variables
 integer i
 real(8), parameter :: pi=3.1415926535897932385d0

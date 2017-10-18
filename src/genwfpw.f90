@@ -10,43 +10,43 @@ use modpw
 implicit none
 ! arguments
 real(8), intent(in) :: vpl(3)
-integer, intent(in) :: ngp(nspnfv)
-integer, intent(in) :: igpig(ngkmax,nspnfv)
-real(8), intent(in) :: vgpl(3,ngkmax,nspnfv)
-real(8), intent(in) :: vgpc(3,ngkmax,nspnfv)
-real(8), intent(in) :: gpc(ngkmax,nspnfv)
-real(8), intent(in) :: tpgpc(2,ngkmax,nspnfv)
+integer, intent(in) :: ngp(nspnfv),igpig(ngkmax,nspnfv)
+real(8), intent(in) :: vgpl(3,ngkmax,nspnfv),vgpc(3,ngkmax,nspnfv)
+real(8), intent(in) :: gpc(ngkmax,nspnfv),tpgpc(2,ngkmax,nspnfv)
 complex(8), intent(in) :: sfacgp(ngkmax,natmtot,nspnfv)
 integer, intent(in) :: nhp(nspnfv)
-real(8), intent(in) :: vhpc(3,nhkmax,nspnfv)
-real(8), intent(in) :: hpc(nhkmax,nspnfv)
+real(8), intent(in) :: vhpc(3,nhkmax,nspnfv),hpc(nhkmax,nspnfv)
 real(8), intent(in) :: tphpc(2,nhkmax,nspnfv)
 complex(8), intent(in) :: sfachp(nhkmax,natmtot,nspnfv)
 complex(8), intent(out) :: wfpw(nhkmax,nspinor,nstsv)
 ! local variables
 integer ispn0,ispn1,ispn,jspn
-integer ist,is,ia,ias,i
-integer nrc,nrci,iro,irc
-integer lmax,l,m,lm,igp,ihp
+integer ist,is,ia,ias
+integer nrc,nrci,irco,irc
+integer lmax,l,m,lm
+integer npci,i,igp,ihp
 real(8) t0,t1,t2
 complex(8) zsum1,zsum2
 complex(8) z1,z2,z3,z4
 ! automatic arrays
 integer idx(nstsv)
-real(8) fr1(nrcmtmax),fr2(nrcmtmax),gr(nrcmtmax)
-complex(8) ylm(lmmaxvr)
+real(8) fr1(nrcmtmax),fr2(nrcmtmax)
+complex(8) ylm(lmmaxo)
 ! allocatable arrays
 real(8), allocatable :: jl(:,:)
 complex(8), allocatable :: apwalm(:,:,:,:,:)
 complex(8), allocatable :: evecfv(:,:,:),evecsv(:,:)
-complex(8), allocatable :: wfmt(:,:,:,:,:),wfir(:,:,:)
+complex(8), allocatable :: wfmt(:,:,:,:),wfir(:,:,:)
+! external functions
+real(8) fintgt
+external fintgt
 allocate(apwalm(ngkmax,apwordmax,lmmaxapw,natmtot,nspnfv))
 allocate(evecfv(nmatmax,nstfv,nspnfv),evecsv(nstsv,nstsv))
-allocate(wfmt(lmmaxvr,nrcmtmax,natmtot,nspinor,nstsv))
+allocate(wfmt(npcmtmax,natmtot,nspinor,nstsv))
 allocate(wfir(ngkmax,nspinor,nstsv))
 ! get the eigenvectors from file
-call getevecfv(filext,vpl,vgpl,evecfv)
-call getevecsv(filext,vpl,evecsv)
+call getevecfv(filext,0,vpl,vgpl,evecfv)
+call getevecsv(filext,0,vpl,evecsv)
 ! find the matching coefficients
 do ispn=1,nspnfv
   call match(ngp(ispn),gpc(:,ispn),tpgpc(:,:,ispn),sfacgp(:,:,ispn), &
@@ -92,7 +92,7 @@ end do
 !-------------------------!
 !     muffin-tin part     !
 !-------------------------!
-allocate(jl(0:lmaxvr,nrcmtmax))
+allocate(jl(0:lmaxo,nrcmtmax))
 t0=fourpi/sqrt(omega)
 ! remove continuation of interstitial function into muffin-tin
 do jspn=1,nspnfv
@@ -104,16 +104,19 @@ do jspn=1,nspnfv
 ! loop over G+p-vectors
   do igp=1,ngp(jspn)
 ! generate the conjugate spherical harmonics Y_lm*(G+p)
-    call genylm(lmaxvr,tpgpc(:,igp,jspn),ylm)
+    call genylm(lmaxo,tpgpc(:,igp,jspn),ylm)
     ylm(:)=conjg(ylm(:))
-! loop over species
     do is=1,nspecies
       nrc=nrcmt(is)
-      nrci=nrcmtinr(is)
+      nrci=nrcmti(is)
+      irco=nrci+1
+      npci=npcmti(is)
 ! generate spherical Bessel functions
+      lmax=lmaxi
       do irc=1,nrc
         t1=gpc(igp,jspn)*rcmt(irc,is)
-        call sbessel(lmaxvr,t1,jl(:,irc))
+        call sbessel(lmax,t1,jl(:,irc))
+        if (irc.eq.nrci) lmax=lmaxo
       end do
 ! loop over atoms
       do ia=1,natoms(is)
@@ -123,18 +126,29 @@ do jspn=1,nspnfv
           do ispn=ispn0,ispn1
             z2=z1*wfir(igp,ispn,ist)
             lm=0
-            do l=0,lmaxvr
-              if (l.le.lmaxinr) then
-                iro=1
-              else
-                iro=nrci+1
-              end if
+            do l=0,lmaxi
               z3=z2*zil(l)
               do m=-l,l
                 lm=lm+1
                 z4=z3*ylm(lm)
-                wfmt(lm,iro:nrc,ias,ispn,ist)=wfmt(lm,iro:nrc,ias,ispn,ist) &
-                 -z4*jl(l,iro:nrc)
+                i=lm
+                do irc=1,nrci
+                  wfmt(i,ias,ispn,ist)=wfmt(i,ias,ispn,ist)-z4*jl(l,irc)
+                  i=i+lmmaxi
+                end do
+              end do
+            end do
+            lm=0
+            do l=0,lmaxo
+              z3=z2*zil(l)
+              do m=-l,l
+                lm=lm+1
+                z4=z3*ylm(lm)
+                i=npci+lm
+                do irc=irco,nrc
+                  wfmt(i,ias,ispn,ist)=wfmt(i,ias,ispn,ist)-z4*jl(l,irc)
+                  i=i+lmmaxo
+                end do
               end do
             end do
           end do
@@ -153,14 +167,16 @@ do jspn=1,nspnfv
 ! loop over H+p-vectors
   do ihp=1,nhp(jspn)
 ! generate the spherical harmonics Y_lm(H+p)
-    call genylm(lmaxvr,tphpc(:,ihp,jspn),ylm)
+    call genylm(lmaxo,tphpc(:,ihp,jspn),ylm)
     do is=1,nspecies
       nrc=nrcmt(is)
-      nrci=nrcmtinr(is)
+      nrci=nrcmti(is)
 ! generate spherical Bessel functions
+      lmax=lmaxi
       do irc=1,nrc
         t1=hpc(ihp,jspn)*rcmt(irc,is)
-        call sbessel(lmaxvr,t1,jl(:,irc))
+        call sbessel(lmax,t1,jl(:,irc))
+        if (irc.eq.nrci) lmax=lmaxo
       end do
       do ia=1,natoms(is)
         ias=idxas(ia,is)
@@ -169,31 +185,30 @@ do jspn=1,nspnfv
 ! loop over states
         do ist=1,nstsv
           do ispn=ispn0,ispn1
+            lmax=lmaxi
+            i=0
             do irc=1,nrc
-              if (irc.le.nrci) then
-                lmax=lmaxinr
-              else
-                lmax=lmaxvr
-              end if
-              zsum1=jl(0,irc)*wfmt(1,irc,ias,ispn,ist)*ylm(1)
+              i=i+1
+              zsum1=jl(0,irc)*wfmt(i,ias,ispn,ist)*ylm(1)
               lm=1
               do l=1,lmax
                 lm=lm+1
-                zsum2=wfmt(lm,irc,ias,ispn,ist)*ylm(lm)
+                i=i+1
+                zsum2=wfmt(i,ias,ispn,ist)*ylm(lm)
                 do m=1-l,l
                   lm=lm+1
-                  zsum2=zsum2+wfmt(lm,irc,ias,ispn,ist)*ylm(lm)
+                  i=i+1
+                  zsum2=zsum2+wfmt(i,ias,ispn,ist)*ylm(lm)
                 end do
                 zsum1=zsum1+jl(l,irc)*zilc(l)*zsum2
               end do
-              zsum1=zsum1*rcmt(irc,is)**2
+              zsum1=zsum1*r2cmt(irc,is)
               fr1(irc)=dble(zsum1)
               fr2(irc)=aimag(zsum1)
+              if (irc.eq.nrci) lmax=lmaxo
             end do
-            call fderiv(-1,nrc,rcmt(:,is),fr1,gr)
-            t1=gr(nrc)
-            call fderiv(-1,nrc,rcmt(:,is),fr2,gr)
-            t2=gr(nrc)
+            t1=fintgt(-1,nrc,rcmt(:,is),fr1)
+            t2=fintgt(-1,nrc,rcmt(:,is),fr2)
 ! add to the H+p wavefunction
             wfpw(ihp,ispn,ist)=wfpw(ihp,ispn,ist)+z1*cmplx(t1,t2,8)
           end do

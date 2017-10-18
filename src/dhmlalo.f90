@@ -8,10 +8,9 @@ use modmain
 use modphonon
 implicit none
 ! arguments
-integer, intent(in) :: ias
-integer, intent(in) :: ngp,ngpq
-complex(8), intent(in) :: apwalm(ngkmax,apwordmax,lmmaxapw,natmtot)
-complex(8), intent(in) :: apwalmq(ngkmax,apwordmax,lmmaxapw,natmtot)
+integer, intent(in) :: ias,ngp,ngpq
+complex(8), intent(in) :: apwalm(ngkmax,apwordmax,lmmaxapw)
+complex(8), intent(in) :: apwalmq(ngkmax,apwordmax,lmmaxapw)
 complex(8), intent(in) :: dapwalm(ngkmax,apwordmax,lmmaxapw)
 complex(8), intent(in) :: dapwalmq(ngkmax,apwordmax,lmmaxapw)
 integer, intent(in) :: ld
@@ -32,7 +31,7 @@ do ilo=1,nlorb(is)
         lm3=lm3+1
         do io=1,apword(l3,is)
           zsum=0.d0
-          do l2=0,lmaxvr
+          do l2=0,lmaxo
             if (mod(l1+l2+l3,2).eq.0) then
               do m2=-l2,l2
                 lm2=idxlm(l2,m2)
@@ -43,11 +42,11 @@ do ilo=1,nlorb(is)
           if (abs(dble(zsum))+abs(aimag(zsum)).gt.1.d-14) then
             j=ngp+idxlo(lm1,ilo,ias)
             do i=1,ngpq
-              dh(i,j)=dh(i,j)+conjg(zsum*apwalmq(i,io,lm3,ias))
+              dh(i,j)=dh(i,j)+conjg(zsum*apwalmq(i,io,lm3))
             end do
             i=ngpq+idxlo(lm1,ilo,ias)
             do j=1,ngp
-              dh(i,j)=dh(i,j)+zsum*apwalm(j,io,lm3,ias)
+              dh(i,j)=dh(i,j)+zsum*apwalm(j,io,lm3)
             end do
           end if
         end do
@@ -60,7 +59,7 @@ do ilo=1,nlorb(is)
           lm3=lm3+1
           do io=1,apword(l3,is)
             zsum=0.d0
-            do l2=0,lmaxvr
+            do l2=0,lmaxo
               if (mod(l1+l2+l3,2).eq.0) then
                 do m2=-l2,l2
                   lm2=idxlm(l2,m2)

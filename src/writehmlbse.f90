@@ -29,8 +29,8 @@ call genapwfr
 call genlofr
 ! get the eigenvalues and occupancies from file
 do ik=1,nkpt
-  call getevalsv(filext,vkl(:,ik),evalsv(:,ik))
-  call getoccsv(filext,vkl(:,ik),occsv(:,ik))
+  call getevalsv(filext,ik,vkl(:,ik),evalsv(:,ik))
+  call getoccsv(filext,ik,vkl(:,ik),occsv(:,ik))
 end do
 ! check if system is metallic
 t1=minval(abs(0.5d0-occsv(:,:)/occmax))

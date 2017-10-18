@@ -6,32 +6,51 @@
 subroutine energykncr
 use modmain
 implicit none
-integer ist,is,ias,nr
+integer ist,is,ias
+integer nr,nri,ir,i
 ! allocatable local arrays
-real(8), allocatable :: rfmt(:,:)
+real(8), allocatable :: rfmt(:)
 ! external functions
 real(8) rfmtinp
 external rfmtinp
 ! allocate local arrays
-allocate(rfmt(lmmaxvr,nrmtmax))
+allocate(rfmt(npmtmax))
 ! calculate the kinetic energy for core states
 engykncr=0.d0
 do ias=1,natmtot
   is=idxis(ias)
   nr=nrmt(is)
+  nri=nrmti(is)
 ! sum of core eigenvalues
   do ist=1,nstsp(is)
     if (spcore(ist,is)) engykncr=engykncr+occcr(ist,ias)*evalcr(ist,ias)
   end do
 ! core density
-  rfmt(:,:)=0.d0
+  rfmt(1:npmt(is))=0.d0
   if (spincore) then
-    rfmt(1,1:nr)=(rhocr(1:nr,ias,1)+rhocr(1:nr,ias,2))/y00
+! spin-polarised core
+    i=1
+    do ir=1,nri
+      rfmt(i)=(rhocr(ir,ias,1)+rhocr(ir,ias,2))/y00
+      i=i+lmmaxi
+    end do
+    do ir=nri+1,nr
+      rfmt(i)=(rhocr(ir,ias,1)+rhocr(ir,ias,2))/y00
+      i=i+lmmaxo
+    end do
   else
-    rfmt(1,1:nr)=rhocr(1:nr,ias,1)/y00
+! spin-unpolarised core
+    i=1
+    do ir=1,nri
+      rfmt(i)=rhocr(ir,ias,1)/y00
+      i=i+lmmaxi
+    end do
+    do ir=nri+1,nr
+      rfmt(i)=rhocr(ir,ias,1)/y00
+      i=i+lmmaxo
+    end do
   end if
-  engykncr=engykncr-rfmtinp(nr,nrmtinr(is),1,rsp(:,is),r2sp(:,is),rfmt, &
-   vsmt(:,:,ias))
+  engykncr=engykncr-rfmtinp(nr,nri,rsp(:,is),r2sp(:,is),rfmt,vsmt(:,ias))
 end do
 deallocate(rfmt)
 return

@@ -29,8 +29,7 @@ use modmain
 !BOC
 implicit none
 ! arguments
-integer, intent(in) :: ngp
-integer, intent(in) :: igpig(ngkmax)
+integer, intent(in) :: ngp,igpig(ngkmax)
 real(8), intent(in) :: vgpc(3,ngkmax)
 integer, intent(in) :: ld
 complex(8), intent(inout) :: h(*)
@@ -43,12 +42,12 @@ real(8) vj(3),t1
 do j=1,ngp
   k=(j-1)*ld
   jv(:)=ivg(:,igpig(j))
-  vj(:)=vgpc(:,j)
+  vj(:)=0.5d0*vgpc(:,j)
   do i=1,j
     k=k+1
     iv(:)=ivg(:,igpig(i))-jv(:)
     ig=ivgig(iv(1),iv(2),iv(3))
-    t1=0.5d0*(vgpc(1,i)*vj(1)+vgpc(2,i)*vj(2)+vgpc(3,i)*vj(3))
+    t1=vgpc(1,i)*vj(1)+vgpc(2,i)*vj(2)+vgpc(3,i)*vj(3)
     h(k)=h(k)+vsig(ig)+t1*cfunig(ig)
   end do
 end do

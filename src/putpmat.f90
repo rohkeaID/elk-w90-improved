@@ -17,7 +17,7 @@ integer idx(nstsv)
 ! allocatable arrays
 complex(8), allocatable :: evecfv(:,:,:),evecsv(:,:)
 complex(8), allocatable :: apwalm(:,:,:,:,:)
-complex(8), allocatable :: wfmt(:,:,:,:,:),wfir(:,:,:)
+complex(8), allocatable :: wfmt(:,:,:,:),wfir(:,:,:)
 complex(8), allocatable :: pmat(:,:,:),a(:,:)
 ! index to all states
 do ist=1,nstsv
@@ -25,8 +25,8 @@ do ist=1,nstsv
 end do
 allocate(evecfv(nmatmax,nstfv,nspnfv),evecsv(nstsv,nstsv))
 ! get the eigenvectors from file
-call getevecfv(filext,vkl(:,ik),vgkl(:,:,:,ik),evecfv)
-call getevecsv(filext,vkl(:,ik),evecsv)
+call getevecfv(filext,ik,vkl(:,ik),vgkl(:,:,:,ik),evecfv)
+call getevecsv(filext,ik,vkl(:,ik),evecsv)
 ! find the matching coefficients
 allocate(apwalm(ngkmax,apwordmax,lmmaxapw,natmtot,nspnfv))
 do ispn=1,nspnfv
@@ -34,7 +34,7 @@ do ispn=1,nspnfv
    sfacgk(:,:,ispn,ik),apwalm(:,:,:,:,ispn))
 end do
 ! calculate the wavefunctions for all states
-allocate(wfmt(lmmaxvr,nrcmtmax,natmtot,nspinor,nstsv))
+allocate(wfmt(npcmtmax,natmtot,nspinor,nstsv))
 allocate(wfir(ngkmax,nspinor,nstsv))
 call genwfsv(.true.,.true.,nstsv,idx,ngk(:,ik),igkig(:,:,ik),apwalm,evecfv, &
  evecsv,wfmt,ngkmax,wfir)

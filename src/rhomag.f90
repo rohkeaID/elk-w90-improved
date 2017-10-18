@@ -8,17 +8,24 @@ use modmain
 use modmpi
 implicit none
 ! local variables
-integer ik,ispn,idm,n
+integer ik,ispn,idm
+integer is,ias,n
 ! allocatable arrays
 complex(8), allocatable :: apwalm(:,:,:,:,:)
 complex(8), allocatable :: evecfv(:,:,:),evecsv(:,:)
 ! set the charge density and magnetisation to zero
-rhomt(:,:,:)=0.d0
+do ias=1,natmtot
+  is=idxis(ias)
+  rhomt(1:npcmt(is),ias)=0.d0
+end do
 rhoir(:)=0.d0
-if (spinpol) then
-  magmt(:,:,:,:)=0.d0
-  magir(:,:)=0.d0
-end if
+do idm=1,ndmag
+  do ias=1,natmtot
+    is=idxis(ias)
+    magmt(1:npcmt(is),ias,idm)=0.d0
+  end do
+  magir(:,idm)=0.d0
+end do
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP PRIVATE(apwalm,evecfv,evecsv,ispn)
 !$OMP DO
@@ -26,11 +33,10 @@ do ik=1,nkpt
 ! distribute among MPI processes
   if (mod(ik-1,np_mpi).ne.lp_mpi) cycle
   allocate(apwalm(ngkmax,apwordmax,lmmaxapw,natmtot,nspnfv))
-  allocate(evecfv(nmatmax,nstfv,nspnfv))
-  allocate(evecsv(nstsv,nstsv))
+  allocate(evecfv(nmatmax,nstfv,nspnfv),evecsv(nstsv,nstsv))
 ! get the eigenvectors from file
-  call getevecfv(filext,vkl(:,ik),vgkl(:,:,:,ik),evecfv)
-  call getevecsv(filext,vkl(:,ik),evecsv)
+  call getevecfv(filext,ik,vkl(:,ik),vgkl(:,:,:,ik),evecfv)
+  call getevecsv(filext,ik,vkl(:,ik),evecsv)
 ! find the matching coefficients
   do ispn=1,nspnfv
     call match(ngk(ispn,ik),gkc(:,ispn,ik),tpgkc(:,:,ispn,ik), &
@@ -46,22 +52,22 @@ end do
 ! convert muffin-tin density/magnetisation to spherical harmonics
 call rhomagsh
 ! symmetrise the density
-call symrf(lradstp,rhomt,rhoir)
+call symrf(nrcmt,nrcmti,npcmt,npmtmax,rhomt,rhoir)
 ! symmetrise the magnetisation
-if (spinpol) call symrvf(lradstp,magmt,magir)
+if (spinpol) call symrvf(nrcmt,nrcmti,npcmt,npmtmax,magmt,magir)
 ! convert the density from a coarse to a fine radial mesh
 call rfmtctof(rhomt)
 ! convert the magnetisation from a coarse to a fine radial mesh
 !$OMP PARALLEL DEFAULT(SHARED)
 !$OMP DO
 do idm=1,ndmag
-  call rfmtctof(magmt(:,:,:,idm))
+  call rfmtctof(magmt(:,:,idm))
 end do
 !$OMP END DO
 !$OMP END PARALLEL
 ! add densities from each process and redistribute
 if (np_mpi.gt.1) then
-  n=lmmaxvr*nrmtmax*natmtot
+  n=npmtmax*natmtot
   call mpi_allreduce(mpi_in_place,rhomt,n,mpi_double_precision,mpi_sum, &
    mpi_comm_kpt,ierror)
   call mpi_allreduce(mpi_in_place,rhoir,ngtot,mpi_double_precision,mpi_sum, &

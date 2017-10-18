@@ -10,10 +10,13 @@ implicit none
 ! local variables
 integer its,i
 real(8) ed,t1
-! conversion factor of power density to J/cm^2
+! conversion factor of energy density to J/cm^2
 real(8), parameter :: ced=ha_si/(100.d0*br_si)**2
 ! allocatable arrays
 real(8), allocatable :: f(:),g(:),pd(:)
+! external functions
+real(8) fintgt
+external fintgt
 ! allocate local arrays
 allocate(f(ntimes),g(ntimes),pd(ntimes))
 ! compute the power density at each time step
@@ -23,7 +26,7 @@ do i=1,3
   call fderiv(1,ntimes,times,f,g)
   pd(:)=pd(:)+g(:)**2
 end do
-t1=fourpi/solsc
+t1=1.d0/(8.d0*pi*solsc)
 pd(:)=t1*pd(:)
 ! write the power density to file
 open(50,file='AFPDT.OUT',action='WRITE',form='FORMATTED')
@@ -32,8 +35,7 @@ do its=1,ntimes
 end do
 close(50)
 ! integrate power density to find the total energy density
-call fderiv(-1,ntimes,times,pd,g)
-ed=g(ntimes)
+ed=fintgt(-1,ntimes,times,pd)
 open(50,file='AFTED.OUT',action='WRITE',form='FORMATTED')
 write(50,*)
 write(50,'("Total energy density : ",G18.10)') ed

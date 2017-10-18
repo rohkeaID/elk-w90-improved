@@ -3,22 +3,23 @@
 ! This file is distributed under the terms of the GNU General Public License.
 ! See the file COPYING for license details.
 
-subroutine rtozfmt(nr,nri,lrstp1,rfmt,lrstp2,zfmt)
+subroutine rtozfmt(nr,nri,rfmt,zfmt)
 use modmain
 implicit none
 ! arguments
 integer, intent(in) :: nr,nri
-integer, intent(in) :: lrstp1
-real(8), intent(in) :: rfmt(lmmaxvr,lrstp1,nr)
-integer, intent(in) :: lrstp2
-complex(8), intent(out) :: zfmt(lmmaxvr,lrstp2,nr)
+real(8), intent(in) :: rfmt(*)
+complex(8), intent(out) :: zfmt(*)
 ! local variables
-integer ir
+integer ir,i
+i=1
 do ir=1,nri
-  call rtozflm(lmaxinr,rfmt(:,1,ir),zfmt(:,1,ir))
+  call rtozflm(lmaxi,rfmt(i),zfmt(i))
+  i=i+lmmaxi
 end do
 do ir=nri+1,nr
-  call rtozflm(lmaxvr,rfmt(:,1,ir),zfmt(:,1,ir))
+  call rtozflm(lmaxo,rfmt(i),zfmt(i))
+  i=i+lmmaxo
 end do
 return
 end subroutine

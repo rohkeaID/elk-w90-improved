@@ -23,7 +23,7 @@ use modmpi
 implicit none
 ! local variables
 integer is,ia,ja,ias,jas
-integer nnf,i,l
+integer nr,nri,nnf,i,l
 logical fnd
 ! automatic arrays
 logical done(natmmax)
@@ -33,11 +33,14 @@ nnf=0
 do i=1,ndftu
   is=idftu(1,i)
   l=idftu(2,i)
+  nr=nrmt(is)
+  nri=nrmti(is)
   done(:)=.false.
   do ia=1,natoms(is)
     if (done(ia)) cycle
     ias=idxas(ia,is)
-    vr(1:nrmt(is))=vsmt(1,1:nrmt(is),ias)*y00
+    call rfmtlm(1,nr,nri,vsmt(:,ias),vr)
+    vr(1:nr)=vr(1:nr)*y00
 ! find the center of the band starting from -0.5 Ha
     fdue(l,ias)=-0.5d0
     call findband(solsc,l,nrmt(is),rsp(1,is),vr,epsband,demaxbnd,fdue(l,ias), &

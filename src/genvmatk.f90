@@ -7,19 +7,19 @@ subroutine genvmatk(vmt,vir,ngp,igpig,wfmt,ld,wfir,vmat)
 use modmain
 implicit none
 ! arguments
-real(8), intent(in) :: vmt(lmmaxvr,nrcmtmax,natmtot),vir(ngtot)
+real(8), intent(in) :: vmt(npcmtmax,natmtot),vir(ngtot)
 integer, intent(in) :: ngp(nspnfv),igpig(ngkmax,nspnfv)
-complex(8), intent(in) :: wfmt(lmmaxvr,nrcmtmax,natmtot,nspinor,nstsv)
+complex(8), intent(in) :: wfmt(npcmtmax,natmtot,nspinor,nstsv)
 integer, intent(in) :: ld
 complex(8), intent(in) :: wfir(ld,nspinor,nstsv)
 complex(8), intent(out) :: vmat(nstsv,nstsv)
 ! local variables
 integer ist,jst,ispn,jspn
 integer is,ias,nrc,nrci
-integer igp,ifg
+integer npc,igp,ifg
 complex(8) z1
 ! allocatable arrays
-complex(8), allocatable :: wfmt1(:,:),wfir1(:),z(:)
+complex(8), allocatable :: wfmt1(:),wfir1(:),z(:)
 ! external functions
 complex(8) zfcmtinp,zdotc
 external zfcmtinp,zdotc
@@ -30,21 +30,21 @@ vmat(:,:)=0.d0
 !-------------------------!
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP PRIVATE(wfmt1,ias,is,nrc,nrci) &
-!$OMP PRIVATE(ispn,ist,z1)
+!$OMP PRIVATE(npc,ispn,ist,z1)
 !$OMP DO
 do jst=1,nstsv
-  allocate(wfmt1(lmmaxvr,nrcmtmax))
+  allocate(wfmt1(npcmtmax))
   do ias=1,natmtot
     is=idxis(ias)
     nrc=nrcmt(is)
-    nrci=nrcmtinr(is)
+    nrci=nrcmti(is)
+    npc=npcmt(is)
     do ispn=1,nspinor
 ! apply potential to wavefunction
-      call vmtapp(nrc,nrci,vmt(:,:,ias),wfmt(:,:,ias,ispn,jst),wfmt1)
+      wfmt1(1:npc)=vmt(1:npc,ias)*wfmt(1:npc,ias,ispn,jst)
       do ist=1,jst
 ! compute inner product (functions are in spherical coordinates)
-        z1=zfcmtinp(nrc,nrci,rcmt(:,is),r2cmt(:,is),wfmt(:,:,ias,ispn,ist), &
-         wfmt1)
+        z1=zfcmtinp(nrc,nrci,rcmt(:,is),r2cmt(:,is),wfmt(:,ias,ispn,ist),wfmt1)
         vmat(ist,jst)=vmat(ist,jst)+z1
       end do
     end do
@@ -96,23 +96,5 @@ do ist=1,nstsv
   end do
 end do
 return
-
-contains
-
-subroutine vmtapp(nr,nri,vmt,wfmt1,wfmt2)
-implicit none
-! arguments
-integer, intent(in) :: nr,nri
-real(8), intent(in) :: vmt(lmmaxvr,nr)
-complex(8), intent(in) :: wfmt1(lmmaxvr,nr)
-complex(8), intent(out) :: wfmt2(lmmaxvr,nr)
-! local variables
-integer iro
-wfmt2(1:lmmaxinr,1:nri)=vmt(1:lmmaxinr,1:nri)*wfmt1(1:lmmaxinr,1:nri)
-iro=nri+1
-wfmt2(:,iro:nr)=vmt(:,iro:nr)*wfmt1(:,iro:nr)
-return
-end subroutine
-
 end subroutine
 

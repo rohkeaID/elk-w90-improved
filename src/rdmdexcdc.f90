@@ -59,7 +59,7 @@ do ik1=1,nkptnr
 ! start loop over reduced k-points
   do ik2=1,nkpt
 ! get the eigenvectors from file
-    call getevecsv(filext,vkl(:,ik2),evecsv)
+    call getevecsv(filext,ik2,vkl(:,ik2),evecsv)
     do ist4=1,nstsv
       do ist3=1,nstsv
         do ist2=1,nstsv

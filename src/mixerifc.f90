@@ -15,7 +15,7 @@ real(8), intent(inout) :: work(*)
 ! local variables
 select case(mtype)
 case(0)
-! straight mixing
+! linear mixing
   if (nwork.le.0) then
     nwork=n
     return
@@ -28,13 +28,6 @@ case(1)
     return
   end if
   call mixadapt(iscl,beta0,betamax,n,v,work,work(n+1),work(2*n+1),dv)
-case(2)
-! Pulay mixing
-  if (nwork.le.0) then
-    nwork=2*mixsdp*n
-    return
-  end if
-  call mixpulay(iscl,n,mixsdp,v,work,work(n*mixsdp+1),dv)
 case(3)
 ! Broyden mixing
   if (nwork.le.0) then
@@ -62,8 +55,6 @@ case(0)
   mixdescr='Linear mixing'
 case(1)
   mixdescr='Adaptive linear mixing'
-case(2)
-  mixdescr='Pulay mixing, Chem. Phys. Lett. 73, 393 (1980)'
 case(3)
   mixdescr='Broyden mixing, J. Phys. A: Math. Gen. 17, L317 (1984)'
 case default

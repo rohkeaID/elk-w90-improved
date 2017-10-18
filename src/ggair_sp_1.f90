@@ -36,16 +36,10 @@ subroutine ggair_sp_1(rhoup,rhodn,grho,gup,gdn,g2up,g2dn,g3rho,g3up,g3dn)
 use modmain
 implicit none
 ! arguments
-real(8), intent(in) :: rhoup(ngtot)
-real(8), intent(in) :: rhodn(ngtot)
-real(8), intent(out) :: grho(ngtot)
-real(8), intent(out) :: gup(ngtot)
-real(8), intent(out) :: gdn(ngtot)
-real(8), intent(out) :: g2up(ngtot)
-real(8), intent(out) :: g2dn(ngtot)
-real(8), intent(out) :: g3rho(ngtot)
-real(8), intent(out) :: g3up(ngtot)
-real(8), intent(out) :: g3dn(ngtot)
+real(8), intent(in) :: rhoup(ngtot),rhodn(ngtot)
+real(8), intent(out) :: grho(ngtot),gup(ngtot),gdn(ngtot)
+real(8), intent(out) :: g2up(ngtot),g2dn(ngtot)
+real(8), intent(out) :: g3rho(ngtot),g3up(ngtot),g3dn(ngtot)
 ! local variables
 integer ig,ifg,i
 ! allocatable arrays

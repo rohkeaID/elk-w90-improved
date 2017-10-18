@@ -44,16 +44,16 @@ if (n.le.0) then
   write(*,*)
   stop
 end if
+select case(m)
+case(-3)
 ! low accuracy trapezoidal integration
-if (m.eq.-3) then
   g(1)=0.d0
   do i=1,n-1
     g(i+1)=g(i)+0.5d0*(x(i+1)-x(i))*(f(i+1)+f(i))
   end do
   return
-end if
+case(-2)
 ! medium accuracy Simpson integration
-if (m.eq.-2) then
   g(1)=0.d0
   do i=1,n-2
     x0=x(i)
@@ -68,17 +68,15 @@ if (m.eq.-2) then
   g(n)=g(n-1)+(x1-x0)*(f(n-2)*(x1-x0)**2+f(n)*(x1-x2)*(3.d0*x2-x1-2.d0*x0) &
    +f(n-1)*(x0-x2)*(3.d0*x2-2.d0*x1-x0))/(6.d0*(x2-x1)*(x2-x0))
   return
-end if
-if (m.eq.0) then
+case(0)
   g(:)=f(:)
   return
-end if
-if (m.ge.4) then
+case(4:)
   g(:)=0.d0
   return
-end if
+end select
 ! high accuracy integration/differentiation from spline interpolation
-call spline(n,x,1,f,cf)
+call spline(n,x,f,cf)
 select case(m)
 case(:-1)
   g(1)=0.d0

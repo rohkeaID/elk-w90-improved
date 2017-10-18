@@ -6,10 +6,16 @@
 !BOP
 ! !ROUTINE: dos
 ! !INTERFACE:
-subroutine dos
+subroutine dos(fext,tocc,occsvp)
 ! !USES:
 use modmain
 use modtest
+! !INPUT/OUTPUT PARAMETERS:
+!   fext   : filename extension (in,character(*))
+!   tocc   : .true. if just the occupied orbitals should contribute to the DOS
+!            (in,logical)
+!   occsvp : occupation numbers of second-variational orbitals
+!            (in,real(nstsv,nkpt))
 ! !DESCRIPTION:
 !   Produces a total and partial density of states (DOS) for plotting. The total
 !   DOS is written to the file {\tt TDOS.OUT} while the partial DOS is written
@@ -33,6 +39,10 @@ use modtest
 !EOP
 !BOC
 implicit none
+! arguments
+character(*), intent(in) :: fext
+logical, intent(in) :: tocc
+real(8), intent(in) :: occsvp(nstsv,nkpt)
 ! local variables
 logical tsqaz
 integer nsk(3),ik,jk,ist,iw
@@ -51,11 +61,6 @@ complex(8), allocatable :: ulm(:,:,:),a(:,:)
 complex(8), allocatable :: dmat(:,:,:,:,:),sdmat(:,:,:)
 complex(8), allocatable :: apwalm(:,:,:,:,:)
 complex(8), allocatable :: evecfv(:,:,:),evecsv(:,:)
-! always use the second-variational states (avoids confusion for RDMFT)
-tevecsv=.true.
-! initialise universal variables
-call init0
-call init1
 lmmax=(lmaxdos+1)**2
 ld=lmmax*nspinor
 if (dosssum) then
@@ -74,21 +79,6 @@ if (lmirep) then
   allocate(elm(lmmax,natmtot))
   allocate(ulm(lmmax,lmmax,natmtot))
 end if
-! read density and potentials from file
-call readstate
-! read Fermi energy from file
-call readfermi
-! find the new linearisation energies
-call linengy
-! generate the APW radial functions
-call genapwfr
-! generate the local-orbital radial functions
-call genlofr
-! get the eigenvalues and occupancies from file
-do ik=1,nkpt
-  call getevalsv(filext,vkl(:,ik),evalsv(:,ik))
-  if (dosocc) call getoccsv(filext,vkl(:,ik),occsv(:,ik))
-end do
 ! generate unitary matrices which convert the (l,m) basis into the irreducible
 ! representation basis of the symmetry group at each atomic site
 if (lmirep) call genlmirep(lmaxdos,lmmax,elm,ulm)
@@ -147,8 +137,8 @@ do ik=1,nkptnr
      sfacgk(:,:,ispn,ik),apwalm(:,:,:,:,ispn))
   end do
 ! get the eigenvectors from file for non-reduced k-point
-  call getevecfv(filext,vkl(:,ik),vgkl(:,:,:,ik),evecfv)
-  call getevecsv(filext,vkl(:,ik),evecsv)
+  call getevecfv('.OUT',0,vkl(:,ik),vgkl(:,:,:,ik),evecfv)
+  call getevecsv('.OUT',0,vkl(:,ik),evecsv)
   do is=1,nspecies
     do ia=1,natoms(is)
       ias=idxas(ia,is)
@@ -213,7 +203,7 @@ allocate(w(nwplot))
 allocate(e(nstsv,nkptnr,nspinor))
 allocate(dt(nwplot,nsd))
 allocate(dp(nwplot,l0:l1,nsd))
-! generate energy grid
+! generate frequency grid
 dw=(wplot(2)-wplot(1))/dble(nwplot)
 do iw=1,nwplot
   w(iw)=dw*dble(iw-1)+wplot(1)
@@ -236,8 +226,8 @@ do ispn=1,nspinor
       e(ist,ik,ispn)=evalsv(ist,jk)-efermi
 ! use diagonal of spin density matrix for weight
       f(ist,ik)=sc(ispn,ist,ik)
-      if (dosocc) then
-        f(ist,ik)=f(ist,ik)*occsv(ist,jk)
+      if (tocc) then
+        f(ist,ik)=f(ist,ik)*occsvp(ist,jk)
       else
         f(ist,ik)=f(ist,ik)*occmax
       end if
@@ -254,7 +244,7 @@ do ispn=1,nspinor
 end do
 deallocate(f,g)
 ! output to file
-open(50,file='TDOS.OUT',action='WRITE',form='FORMATTED')
+open(50,file='TDOS'//trim(fext),action='WRITE',form='FORMATTED')
 do ispn=1,nsd
   do iw=1,nwplot
     write(50,'(2G18.10)') w(iw),dt(iw,ispn)*sps(ispn)
@@ -280,8 +270,8 @@ do is=1,nspecies
           jk=ivkik(ivk(1,ik),ivk(2,ik),ivk(3,ik))
           do ist=1,nstsv
             f(ist,ik)=bc(lm,ispn,ias,ist,ik)
-            if (dosocc) then
-              f(ist,ik)=f(ist,ik)*occsv(ist,jk)
+            if (tocc) then
+              f(ist,ik)=f(ist,ik)*occsvp(ist,jk)
             else
               f(ist,ik)=f(ist,ik)*occmax
             end if
@@ -316,8 +306,8 @@ do is=1,nspecies
 !$OMP END PARALLEL
     end do
 ! output to file
-    write(fname,'("PDOS_S",I2.2,"_A",I4.4,".OUT")') is,ia
-    open(50,file=trim(fname),action='WRITE',form='FORMATTED')
+    write(fname,'("PDOS_S",I2.2,"_A",I4.4)') is,ia
+    open(50,file=trim(fname)//trim(fext),action='WRITE',form='FORMATTED')
     do ispn=1,nsd
       do l=l0,l1
         do iw=1,nwplot
@@ -333,7 +323,7 @@ end do
 !     irreducible representations file     !
 !------------------------------------------!
 if (lmirep) then
-  open(50,file='ELMIREP.OUT',action='WRITE',form='FORMATTED')
+  open(50,file='ELMIREP'//trim(fext),action='WRITE',form='FORMATTED')
   do is=1,nspecies
     do ia=1,natoms(is)
       ias=idxas(ia,is)
@@ -354,7 +344,7 @@ end if
 !--------------------------!
 !     interstitial DOS     !
 !--------------------------!
-open(50,file='IDOS.OUT',action='WRITE',form='FORMATTED')
+open(50,file='IDOS'//trim(fext),action='WRITE',form='FORMATTED')
 do ispn=1,nsd
   do iw=1,nwplot
     write(50,'(2G18.10)') w(iw),dt(iw,ispn)*sps(ispn)
@@ -362,35 +352,6 @@ do ispn=1,nsd
   write(50,'("     ")')
 end do
 close(50)
-write(*,*)
-write(*,'("Info(dos):")')
-write(*,'(" Total density of states written to TDOS.OUT")')
-write(*,*)
-write(*,'(" Partial density of states written to PDOS_Sss_Aaaaa.OUT")')
-write(*,'(" for all species and atoms")')
-if (dosmsum) then
-  write(*,'(" PDOS summed over m")')
-end if
-if (dosssum) then
-  write(*,'(" PDOS summed over spin")')
-end if
-if (.not.tsqaz) then
-  write(*,*)
-  write(*,'(" Spin-quantisation axis : ",3G18.10)') sqados(:)
-end if
-if (lmirep) then
-  write(*,*)
-  write(*,'(" Eigenvalues of a random matrix in the (l,m) basis symmetrised")')
-  write(*,'(" with the site symmetries written to ELMIREP.OUT for all")')
-  write(*,'(" species and atoms. Degenerate eigenvalues correspond to")')
-  write(*,'(" irreducible representations of each site symmetry group")')
-end if
-write(*,*)
-write(*,'(" Interstitial density of states written to IDOS.OUT")')
-write(*,*)
-write(*,'(" Fermi energy is at zero in plot")')
-write(*,*)
-write(*,'(" DOS units are states/Hartree/unit cell")')
 ! write the total DOS to test file
 call writetest(10,'total DOS',nv=nwplot*nsd,tol=2.d-2,rva=dt)
 deallocate(bc,sc,w,e,dt,dp)

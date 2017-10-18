@@ -63,12 +63,12 @@ use modtest
 !BOC
 implicit none
 ! local variables
-integer ik,ist,idm,jdm,n2,i
-integer is,ia,ias,nrc,nrci
+integer ik,ist,idm,jdm
+integer is,ia,ias,n2,i
 real(8) cb,vn,sum,f
 complex(8) z1
 ! allocatable arrays
-real(8), allocatable :: rfmt(:,:,:)
+real(8), allocatable :: rfmt(:,:)
 complex(8), allocatable :: evecsv(:,:),kmat(:,:),c(:,:)
 ! external functions
 real(8) rfinp
@@ -79,14 +79,13 @@ cb=gfacte/(4.d0*solsc)
 !-----------------------------------------------!
 !     exchange-correlation potential energy     !
 !-----------------------------------------------!
-engyvxc=rfinp(1,rhomt,rhoir,vxcmt,vxcir)
+engyvxc=rfinp(rhomt,rhoir,vxcmt,vxcir)
 !-----------------------------------------------------!
 !     exchange-correlation effective field energy     !
 !-----------------------------------------------------!
 engybxc=0.d0
 do idm=1,ndmag
-  engybxc=engybxc+rfinp(1,magmt(:,:,:,idm),magir(:,idm),bxcmt(:,:,:,idm), &
-   bxcir(:,idm))
+  engybxc=engybxc+rfinp(magmt(:,:,idm),magir(:,idm),bxcmt(:,:,idm),bxcir(:,idm))
 end do
 !------------------------------------------!
 !     external magnetic field energies     !
@@ -104,7 +103,7 @@ end do
 !----------------------------------!
 !     Coulomb potential energy     !
 !----------------------------------!
-engyvcl=rfinp(1,rhomt,rhoir,vclmt,vclir)
+engyvcl=rfinp(rhomt,rhoir,vclmt,vclir)
 !-----------------------!
 !     Madelung term     !
 !-----------------------!
@@ -114,7 +113,7 @@ do is=1,nspecies
   call potnucl(ptnucl,1,rsp(:,is),spzn(is),vn)
   do ia=1,natoms(is)
     ias=idxas(ia,is)
-    engymad=engymad+0.5d0*spzn(is)*(vclmt(1,1,ias)*y00-vn)
+    engymad=engymad+0.5d0*spzn(is)*(vclmt(1,ias)*y00-vn)
   end do
 end do
 !---------------------------------------------!
@@ -139,14 +138,14 @@ if ((xctype(1).lt.0).or.(task.eq.5)) then
 ! mix exact and DFT exchange energies for hybrid functionals
     if (hybrid) then
       engyx=engyx*hybridc
-      engyx=engyx+rfinp(1,rhomt,rhoir,exmt,exir)
+      engyx=engyx+rfinp(rhomt,rhoir,exmt,exir)
     end if
   else
     engyx=0.d0
   end if
 else
 ! exchange energy from the density
-  engyx=rfinp(1,rhomt,rhoir,exmt,exir)
+  engyx=rfinp(rhomt,rhoir,exmt,exir)
 end if
 !----------------------------!
 !     correlation energy     !
@@ -154,14 +153,14 @@ end if
 if (task.eq.5) then
   if (hybrid) then
 ! fraction of DFT correlation energy for hybrid functionals
-    engyc=rfinp(1,rhomt,rhoir,ecmt,ecir)
+    engyc=rfinp(rhomt,rhoir,ecmt,ecir)
   else
 ! zero correlation energy for pure Hartree-Fock
     engyc=0.d0
   end if
 else
 ! correlation energy from the density
-  engyc=rfinp(1,rhomt,rhoir,ecmt,ecir)
+  engyc=rfinp(rhomt,rhoir,ecmt,ecir)
 end if
 !----------------------!
 !     DFT+U energy     !
@@ -204,7 +203,7 @@ if (task.eq.5) then
 ! kinetic energy from valence states
   allocate(evecsv(nstsv,nstsv),kmat(nstsv,nstsv),c(nstsv,nstsv))
   do ik=1,nkpt
-    call getevecsv(filext,vkl(:,ik),evecsv)
+    call getevecsv(filext,ik,vkl(:,ik),evecsv)
     call getkmat(ik,kmat)
     call zgemm('N','N',nstsv,nstsv,nstsv,zone,kmat,nstsv,evecsv,nstsv,zzero,c, &
      nstsv)
@@ -216,17 +215,15 @@ if (task.eq.5) then
   deallocate(evecsv,kmat,c)
 else
 ! Kohn-Sham case
-  allocate(rfmt(lmmaxvr,nrmtmax,natmtot))
+  allocate(rfmt(npmtmax,natmtot))
   sum=0.d0
   do idm=1,ndmag
     do ias=1,natmtot
       is=idxis(ias)
-      nrc=nrcmt(is)
-      nrci=nrcmtinr(is)
-      call rfsht(nrc,nrci,1,bsmt(:,:,ias,idm),lradstp,rfmt(:,:,ias))
+      call rfsht(nrcmt(is),nrcmti(is),bsmt(:,ias,idm),rfmt(:,ias))
     end do
     call rfmtctof(rfmt)
-    sum=sum+rfinp(1,magmt(:,:,:,idm),magir(:,idm),rfmt,bsir(:,idm))
+    sum=sum+rfinp(magmt(:,:,idm),magir(:,idm),rfmt,bsir(:,idm))
   end do
 ! remove fixed tensor moment potential matrix contribution
   if (ftmtype.ne.0) then

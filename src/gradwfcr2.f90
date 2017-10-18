@@ -7,43 +7,41 @@ subroutine gradwfcr2(gwf2mt)
 use modmain
 implicit none
 ! arguments
-real(8), intent(inout) :: gwf2mt(lmmaxvr,nrmtmax,natmtot)
+real(8), intent(inout) :: gwf2mt(npmtmax,natmtot)
 ! local variables
 integer ist,is,ias
-integer nr,nri,ir
-integer l,m,lm,i
+integer nr,nri,iro,ir
+integer np,l,m,lm,i
 ! allocatable arrays
-complex(8), allocatable :: wfmt(:,:),gwfmt(:,:,:),zfmt(:,:)
-allocate(wfmt(lmmaxvr,nrmtmax))
-allocate(gwfmt(lmmaxvr,nrmtmax,3))
-allocate(zfmt(lmmaxvr,nrmtmax))
+complex(8), allocatable :: wfmt(:),gwfmt(:,:),zfmt(:)
+allocate(wfmt(npmtmax),gwfmt(npmtmax,3),zfmt(npmtmax))
 do ias=1,natmtot
   is=idxis(ias)
   nr=nrmt(is)
-  nri=nrmtinr(is)
+  nri=nrmti(is)
+  iro=nri+1
+  np=npmt(is)
   do ist=1,nstsp(is)
     if (spcore(ist,is).and.(ksp(ist,is).eq.lsp(ist,is)+1)) then
       l=lsp(ist,is)
       do m=-l,l
         lm=idxlm(l,m)
-        wfmt(:,1:nr)=0.d0
-        do ir=1,nr
-          wfmt(lm,ir)=rwfcr(ir,1,ist,ias)/rsp(ir,is)
+        wfmt(1:np)=0.d0
+        i=lm
+        do ir=1,nri
+          wfmt(i)=rwfcr(ir,1,ist,ias)/rsp(ir,is)
+          i=i+lmmaxi
         end do
-        call gradzfmt(nr,nri,rsp(:,is),wfmt,nrmtmax,gwfmt)
+        do ir=iro,nr
+          wfmt(i)=rwfcr(ir,1,ist,ias)/rsp(ir,is)
+          i=i+lmmaxo
+        end do
+        call gradzfmt(nr,nri,rsp(:,is),wfmt,npmtmax,gwfmt)
         do i=1,3
-          call zbsht(nr,nri,gwfmt(:,:,i),zfmt)
-! inner part of muffin-tin
-          do ir=1,nri
+          call zbsht(nr,nri,gwfmt(:,i),zfmt)
 ! factor of 2 from spin
-            gwf2mt(1:lmmaxinr,ir,ias)=gwf2mt(1:lmmaxinr,ir,ias) &
-             +2.d0*(dble(zfmt(1:lmmaxinr,ir))**2+aimag(zfmt(1:lmmaxinr,ir))**2)
-          end do
-! outer part of muffin tin
-          do ir=nri+1,nr
-            gwf2mt(:,ir,ias)=gwf2mt(:,ir,ias) &
-             +2.d0*(dble(zfmt(:,ir))**2+aimag(zfmt(:,ir))**2)
-          end do
+          gwf2mt(1:np,ias)=gwf2mt(1:np,ias) &
+           +2.d0*(dble(zfmt(1:np))**2+aimag(zfmt(1:np))**2)
         end do
       end do
     end if

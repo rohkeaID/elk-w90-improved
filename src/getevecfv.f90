@@ -6,10 +6,12 @@
 !BOP
 ! !ROUTINE: getevecfv
 ! !INTERFACE:
-subroutine getevecfv(fext,vpl,vgpl,evecfv)
+subroutine getevecfv(fext,ikp,vpl,vgpl,evecfv)
 ! !USES:
 use modmain
 ! !INPUT/OUTPUT PARAMETERS:
+!   fext   : filename extension (in,character(*))
+!   ikp    : p-point vector index (in,integer)
 !   vpl    : p-point vector in lattice coordinates (in,real(3))
 !   vgpl   : G+p-vectors in lattice coordinates (out,real(3,ngkmax,nspnfv))
 !   evecfv : first-variational eigenvectors (out,complex(nmatmax,nstfv,nspnfv))
@@ -27,6 +29,7 @@ use modmain
 implicit none
 ! arguments
 character(*), intent(in) :: fext
+integer, intent(in) :: ikp
 real(8), intent(in) :: vpl(3),vgpl(3,ngkmax,nspnfv)
 complex(8), intent(out) :: evecfv(nmatmax,nstfv,nspnfv)
 ! local variables
@@ -40,8 +43,12 @@ real(8) si(3,3),t1
 complex(8) z1
 ! allocatable arrays
 complex(8), allocatable :: evecfv_(:,:)
+if (ikp.gt.0) then
+  ik=ikp
+else
 ! find the equivalent k-point number and crystal symmetry element
-call findkpt(vpl,isym,ik)
+  call findkpt(vpl,isym,ik)
+end if
 ! find the record length
 inquire(iolength=recl) vkl_,nmatmax_,nstfv_,nspnfv_,evecfv
 !$OMP CRITICAL
@@ -84,6 +91,7 @@ if (nspnfv.ne.nspnfv_) then
   stop
 end if
 ! if p = k then return
+if (ikp.gt.0) return
 t1=abs(vpl(1)-vkl(1,ik))+abs(vpl(2)-vkl(2,ik))+abs(vpl(3)-vkl(3,ik))
 if (t1.lt.epslat) return
 ! allocate temporary eigenvector array

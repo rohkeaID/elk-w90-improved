@@ -47,7 +47,7 @@ GETSYS ()
     F90="ifort"
     F90_OPTS="-O3 -ip -unroll -no-prec-div -openmp"
     F77=$F90
-    F77_OPTS=$F90_OPTS
+    F77_OPTS="$F90_OPTS -assume protect_parens"
   elif [ "$SYS" = 2 ] ; then
     F90="gfortran"
     F90_OPTS="-O3 -ffast-math -funroll-loops -fopenmp"

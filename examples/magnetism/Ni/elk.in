@@ -8,7 +8,7 @@ tasks
   0
 
 spinpol
-  .true.
+ .true.
 
 bfieldc
   0.0  0.0  0.01

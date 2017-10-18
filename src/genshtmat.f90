@@ -25,86 +25,86 @@ implicit none
 integer itp,info
 real(8) v1(3),v2(3),r
 ! automatic arrays
-integer ipiv(lmmaxvr)
-real(8) tp(2,lmmaxvr),rlm(lmmaxvr),work(lmmaxvr)
-complex(8) ylm(lmmaxvr),zwork(lmmaxvr)
-!---------------------------------!
-!     SHT matrices for lmaxvr     !
-!---------------------------------!
+integer ipiv(lmmaxo)
+real(8) tp(2,lmmaxo),rlm(lmmaxo),work(lmmaxo)
+complex(8) ylm(lmmaxo),zwork(lmmaxo)
+!--------------------------------!
+!     SHT matrices for lmaxo     !
+!--------------------------------!
 ! allocate real SHT matrices
-if (allocated(rbshtvr)) deallocate(rbshtvr)
-allocate(rbshtvr(lmmaxvr,lmmaxvr))
-if (allocated(rfshtvr)) deallocate(rfshtvr)
-allocate(rfshtvr(lmmaxvr,lmmaxvr))
+if (allocated(rbshto)) deallocate(rbshto)
+allocate(rbshto(lmmaxo,lmmaxo))
+if (allocated(rfshto)) deallocate(rfshto)
+allocate(rfshto(lmmaxo,lmmaxo))
 ! allocate complex SHT matrices
-if (allocated(zbshtvr)) deallocate(zbshtvr)
-allocate(zbshtvr(lmmaxvr,lmmaxvr))
-if (allocated(zfshtvr)) deallocate(zfshtvr)
-allocate(zfshtvr(lmmaxvr,lmmaxvr))
+if (allocated(zbshto)) deallocate(zbshto)
+allocate(zbshto(lmmaxo,lmmaxo))
+if (allocated(zfshto)) deallocate(zfshto)
+allocate(zfshto(lmmaxo,lmmaxo))
 ! generate spherical covering set
-call sphcover(lmmaxvr,tp)
+call sphcover(lmmaxo,tp)
 ! rotate the spherical covering set if required
 if (trotsht) then
-  do itp=1,lmmaxvr
+  do itp=1,lmmaxo
     call sctovec(tp(:,itp),v1)
     call r3mv(rotsht,v1,v2)
     call sphcrd(v2,r,tp(:,itp))
   end do
 end if
 ! generate real and complex spherical harmonics and set the backward SHT arrays
-do itp=1,lmmaxvr
-  call genrlm(lmaxvr,tp(:,itp),rlm)
-  rbshtvr(itp,1:lmmaxvr)=rlm(1:lmmaxvr)
-  call genylm(lmaxvr,tp(:,itp),ylm)
-  zbshtvr(itp,1:lmmaxvr)=ylm(1:lmmaxvr)
+do itp=1,lmmaxo
+  call genrlm(lmaxo,tp(:,itp),rlm)
+  rbshto(itp,1:lmmaxo)=rlm(1:lmmaxo)
+  call genylm(lmaxo,tp(:,itp),ylm)
+  zbshto(itp,1:lmmaxo)=ylm(1:lmmaxo)
 end do
 ! find the forward SHT arrays
 ! real
-rfshtvr(:,:)=rbshtvr(:,:)
-call dgetrf(lmmaxvr,lmmaxvr,rfshtvr,lmmaxvr,ipiv,info)
+rfshto(:,:)=rbshto(:,:)
+call dgetrf(lmmaxo,lmmaxo,rfshto,lmmaxo,ipiv,info)
 if (info.ne.0) goto 10
-call dgetri(lmmaxvr,rfshtvr,lmmaxvr,ipiv,work,lmmaxvr,info)
+call dgetri(lmmaxo,rfshto,lmmaxo,ipiv,work,lmmaxo,info)
 if (info.ne.0) goto 10
 ! complex
-zfshtvr(:,:)=zbshtvr(:,:)
-call zgetrf(lmmaxvr,lmmaxvr,zfshtvr,lmmaxvr,ipiv,info)
+zfshto(:,:)=zbshto(:,:)
+call zgetrf(lmmaxo,lmmaxo,zfshto,lmmaxo,ipiv,info)
 if (info.ne.0) goto 10
-call zgetri(lmmaxvr,zfshtvr,lmmaxvr,ipiv,zwork,lmmaxvr,info)
+call zgetri(lmmaxo,zfshto,lmmaxo,ipiv,zwork,lmmaxo,info)
 if (info.ne.0) goto 10
-!----------------------------------!
-!     SHT matrices for lmaxinr     !
-!----------------------------------!
+!--------------------------------!
+!     SHT matrices for lmaxi     !
+!--------------------------------!
 ! allocate real SHT matrices
-if (allocated(rbshtinr)) deallocate(rbshtinr)
-allocate(rbshtinr(lmmaxinr,lmmaxinr))
-if (allocated(rfshtinr)) deallocate(rfshtinr)
-allocate(rfshtinr(lmmaxinr,lmmaxinr))
+if (allocated(rbshti)) deallocate(rbshti)
+allocate(rbshti(lmmaxi,lmmaxi))
+if (allocated(rfshti)) deallocate(rfshti)
+allocate(rfshti(lmmaxi,lmmaxi))
 ! allocate complex SHT matrices
-if (allocated(zbshtinr)) deallocate(zbshtinr)
-allocate(zbshtinr(lmmaxinr,lmmaxinr))
-if (allocated(zfshtinr)) deallocate(zfshtinr)
-allocate(zfshtinr(lmmaxinr,lmmaxinr))
-! generate spherical covering set for lmaxinr
-call sphcover(lmmaxinr,tp)
+if (allocated(zbshti)) deallocate(zbshti)
+allocate(zbshti(lmmaxi,lmmaxi))
+if (allocated(zfshti)) deallocate(zfshti)
+allocate(zfshti(lmmaxi,lmmaxi))
+! generate spherical covering set for lmaxi
+call sphcover(lmmaxi,tp)
 ! generate real and complex spherical harmonics and set the backward SHT arrays
-do itp=1,lmmaxinr
-  call genrlm(lmaxinr,tp(:,itp),rlm)
-  rbshtinr(itp,1:lmmaxinr)=rlm(1:lmmaxinr)
-  call genylm(lmaxinr,tp(:,itp),ylm)
-  zbshtinr(itp,1:lmmaxinr)=ylm(1:lmmaxinr)
+do itp=1,lmmaxi
+  call genrlm(lmaxi,tp(:,itp),rlm)
+  rbshti(itp,1:lmmaxi)=rlm(1:lmmaxi)
+  call genylm(lmaxi,tp(:,itp),ylm)
+  zbshti(itp,1:lmmaxi)=ylm(1:lmmaxi)
 end do
 ! find the forward SHT arrays
 ! real
-rfshtinr(:,:)=rbshtinr(:,:)
-call dgetrf(lmmaxinr,lmmaxinr,rfshtinr,lmmaxinr,ipiv,info)
+rfshti(:,:)=rbshti(:,:)
+call dgetrf(lmmaxi,lmmaxi,rfshti,lmmaxi,ipiv,info)
 if (info.ne.0) goto 10
-call dgetri(lmmaxinr,rfshtinr,lmmaxinr,ipiv,work,lmmaxinr,info)
+call dgetri(lmmaxi,rfshti,lmmaxi,ipiv,work,lmmaxi,info)
 if (info.ne.0) goto 10
 ! complex
-zfshtinr(:,:)=zbshtinr(:,:)
-call zgetrf(lmmaxinr,lmmaxinr,zfshtinr,lmmaxinr,ipiv,info)
+zfshti(:,:)=zbshti(:,:)
+call zgetrf(lmmaxi,lmmaxi,zfshti,lmmaxi,ipiv,info)
 if (info.ne.0) goto 10
-call zgetri(lmmaxinr,zfshtinr,lmmaxinr,ipiv,zwork,lmmaxinr,info)
+call zgetri(lmmaxi,zfshti,lmmaxi,ipiv,zwork,lmmaxi,info)
 if (info.ne.0) goto 10
 return
 10 continue

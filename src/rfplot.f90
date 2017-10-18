@@ -9,7 +9,7 @@ implicit none
 ! arguments
 integer, intent(in) :: np
 real(8), intent(in) :: vpl(3,np)
-real(8), intent(in) :: rfmt(lmmaxvr,nrmtmax,natmtot),rfir(ngtot)
+real(8), intent(in) :: rfmt(npmtmax,natmtot),rfir(ngtot)
 real(8), intent(out) :: fp(np)
 ! local variables
 integer ia,is,ias
@@ -20,11 +20,18 @@ integer i1,i2,i3,i,j
 real(8) rmt2,r,tp(2),sum,ya(4),t1,t2
 real(8) v1(3),v2(3),v3(3),v4(3),v5(3)
 ! automatic arrays
-real(8) rlm(lmmaxvr)
+real(8) rlm(lmmaxo)
 ! allocatable arrays
+real(8), allocatable :: rfmt1(:,:,:)
 complex(8), allocatable :: zfft(:)
-allocate(zfft(ngtot))
+! unpack the muffin-tin function
+allocate(rfmt1(lmmaxo,nrmtmax,natmtot))
+do ias=1,natmtot
+  is=idxis(ias)
+  call rfmtpack(.false.,nrmt(is),nrmti(is),rfmt(:,ias),rfmt1(:,:,ias))
+end do
 ! Fourier transform rfir to G-space
+allocate(zfft(ngtot))
 zfft(:)=rfir(:)
 call zfftifc(3,ngridg,-1,zfft)
 ! begin loop over all points
@@ -36,7 +43,7 @@ do ip=1,np
 ! check if point is in a muffin-tin
   do is=1,nspecies
     nr=nrmt(is)
-    nri=nrmtinr(is)
+    nri=nrmti(is)
     rmt2=rmt(is)**2
     do ia=1,natoms(is)
       ias=idxas(ia,is)
@@ -50,7 +57,7 @@ do ip=1,np
             t1=v5(1)**2+v5(2)**2+v5(3)**2
             if (t1.lt.rmt2) then
               call sphcrd(v5,r,tp)
-              call genrlm(lmaxvr,tp,rlm)
+              call genrlm(lmaxo,tp,rlm)
               do ir=1,nr
                 if (rsp(ir,is).ge.r) then
                   if (ir.le.2) then
@@ -62,9 +69,9 @@ do ip=1,np
                   end if
                   r=max(r,rsp(1,is))
                   if (ir0.le.nri) then
-                    lmax=lmaxinr
+                    lmax=lmaxi
                   else
-                    lmax=lmaxvr
+                    lmax=lmaxo
                   end if
                   sum=0.d0
                   do l=0,lmax
@@ -72,7 +79,7 @@ do ip=1,np
                       lm=idxlm(l,m)
                       do j=1,4
                         i=ir0+j-1
-                        ya(j)=rfmt(lm,i,ias)
+                        ya(j)=rfmt1(lm,i,ias)
                       end do
                       t2=poly4(rsp(ir0,is),ya,r)
                       sum=sum+t2*rlm(lm)
@@ -97,7 +104,7 @@ do ip=1,np
 10 continue
   fp(ip)=sum
 end do
-deallocate(zfft)
+deallocate(rfmt1,zfft)
 return
 
 contains

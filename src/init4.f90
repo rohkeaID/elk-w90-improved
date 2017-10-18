@@ -108,10 +108,10 @@ if ((task.eq.205).or.(task.eq.240)) then
   allocate(vgqc(3,ngtot))
   if (allocated(gqc)) deallocate(gqc)
   allocate(gqc(ngtot))
-  if (allocated(jlgqr)) deallocate(jlgqr)
-  allocate(jlgqr(0:lnpsd,ngvec,nspecies))
+  if (allocated(jlgqrmt)) deallocate(jlgqrmt)
+  allocate(jlgqrmt(0:lnpsd,ngvec,nspecies))
   if (allocated(ylmgq)) deallocate(ylmgq)
-  allocate(ylmgq(lmmaxvr,ngtot))
+  allocate(ylmgq(lmmaxo,ngtot))
   if (allocated(sfacgq)) deallocate(sfacgq)
   allocate(sfacgq(ngvec,natmtot))
   if (allocated(ffacgq)) deallocate(ffacgq)
@@ -127,33 +127,33 @@ end if
 !-----------------------------------------------------------------!
 if (task.eq.205) then
   if (allocated(drhomt)) deallocate(drhomt)
-  allocate(drhomt(lmmaxvr,nrmtmax,natmtot))
+  allocate(drhomt(npmtmax,natmtot))
   if (allocated(drhoir)) deallocate(drhoir)
   allocate(drhoir(ngtot))
   if (allocated(dmagmt)) deallocate(dmagmt)
   if (allocated(dmagir)) deallocate(dmagir)
   if (spinpol) then
-    allocate(dmagmt(lmmaxvr,nrmtmax,natmtot,ndmag))
+    allocate(dmagmt(npmtmax,natmtot,ndmag))
     allocate(dmagir(ngtot,ndmag))
   end if
   if (allocated(dvclmt)) deallocate(dvclmt)
-  allocate(dvclmt(lmmaxvr,nrmtmax,natmtot))
+  allocate(dvclmt(npmtmax,natmtot))
   if (allocated(dvclir)) deallocate(dvclir)
   allocate(dvclir(ngtot))
   if (allocated(zvnmt)) deallocate(zvnmt)
-  allocate(zvnmt(lmmaxvr,nrmtmax))
+  allocate(zvnmt(npmtmax))
   if (allocated(dvsmt)) deallocate(dvsmt)
-  allocate(dvsmt(lmmaxvr,nrmtmax,natmtot))
+  allocate(dvsmt(npmtmax,natmtot))
   if (allocated(dvsir)) deallocate(dvsir)
   allocate(dvsir(ngtot))
   if (allocated(gvsmt)) deallocate(gvsmt)
-  allocate(gvsmt(lmmaxvr,nrmtmax))
+  allocate(gvsmt(npmtmax))
   if (allocated(dvsig)) deallocate(dvsig)
   allocate(dvsig(ngtot))
   if (allocated(dbsmt)) deallocate(dbsmt)
   if (allocated(dbsir)) deallocate(dbsir)
   if (spinpol) then
-    allocate(dbsmt(lmmaxvr,nrcmtmax,natmtot,ndmag))
+    allocate(dbsmt(npcmtmax,natmtot,ndmag))
     allocate(dbsir(ngtot,ndmag))
   end if
   if (allocated(dsocfr)) deallocate(dsocfr)
@@ -161,18 +161,18 @@ if (task.eq.205) then
     allocate(dsocfr(nrcmtmax,natmtot))
   end if
   if (allocated(dhaa)) deallocate(dhaa)
-  allocate(dhaa(lmmaxvr,apwordmax,0:lmaxmat,apwordmax,0:lmaxmat,natmtot))
+  allocate(dhaa(lmmaxo,apwordmax,0:lmaxmat,apwordmax,0:lmaxmat,natmtot))
   if (allocated(dhloa)) deallocate(dhloa)
-  allocate(dhloa(lmmaxvr,apwordmax,0:lmaxmat,nlomax,natmtot))
+  allocate(dhloa(lmmaxo,apwordmax,0:lmaxmat,nlomax,natmtot))
   if (allocated(dhlolo)) deallocate(dhlolo)
-  allocate(dhlolo(lmmaxvr,nlomax,nlomax,natmtot))
+  allocate(dhlolo(lmmaxo,nlomax,nlomax,natmtot))
 ! allocate and generate real Gaunt coefficient array
   if (allocated(gntyyy)) deallocate(gntyyy)
-  allocate(gntyyy(lmmaxmat,lmmaxvr,lmmaxmat))
+  allocate(gntyyy(lmmaxmat,lmmaxo,lmmaxmat))
   do l1=0,lmaxmat
     do m1=-l1,l1
       lm1=idxlm(l1,m1)
-      do l2=0,lmaxvr
+      do l2=0,lmaxo
         do m2=-l2,l2
           lm2=idxlm(l2,m2)
           do l3=0,lmaxmat
@@ -185,6 +185,10 @@ if (task.eq.205) then
       end do
     end do
   end do
+  if (allocated(devalfv)) deallocate(devalfv)
+  allocate(devalfv(nstfv,nspnfv,nkptnr))
+  if (allocated(devalsv)) deallocate(devalsv)
+  allocate(devalsv(nstsv,nkptnr))
   if (allocated(doccsv)) deallocate(doccsv)
   allocate(doccsv(nstsv,nkptnr))
 end if

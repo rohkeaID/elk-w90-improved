@@ -163,22 +163,27 @@ integer lmmaxapw
 integer lmaxmat
 ! (lmaxmat+1)^2
 integer lmmaxmat
-! maximum angular momentum for potentials and densities
-integer lmaxvr
-! (lmaxvr+1)^2
-integer lmmaxvr
-! maximum angular momentum in the inner part of the muffin-int
-integer lmaxinr
-! (lmaxinr+1)^2
-integer lmmaxinr
+! maximum angular momentum on the outer part of the muffin-tin
+integer lmaxo
+! (lmaxo+1)^2
+integer lmmaxo
+! maximum angular momentum on the inner part of the muffin-tin
+integer lmaxi
+! (lmaxi+1)^2
+integer lmmaxi
 ! fraction of muffin-tin radius which constitutes the inner part
 real(8) fracinr
 ! number of fine/coarse radial points on the inner part of the muffin-tin
-integer nrmtinr(maxspecies),nrcmtinr(maxspecies)
+integer nrmti(maxspecies),nrcmti(maxspecies)
 ! index to (l,m) pairs
 integer, allocatable :: idxlm(:,:)
 ! inverse index to (l,m) pairs
 integer, allocatable :: idxil(:),idxim(:)
+! number of fine/coarse points in packed muffin-tins
+integer npmti(maxspecies),npmt(maxspecies)
+integer npcmti(maxspecies),npcmt(maxspecies)
+! maximum number of points over all packed muffin-tins
+integer npmtmax,npcmtmax
 
 !--------------------------------!
 !     spin related variables     !
@@ -195,6 +200,8 @@ integer ndmag
 logical ncmag
 ! if cmagz is .true. then collinear magnetism along the z-axis is enforced
 logical cmagz
+! spcpl is .true. if the up and down spins are coupled
+logical spcpl
 ! fixed spin moment type
 !  0      : none
 !  1 (-1) : total moment (direction)
@@ -319,6 +326,10 @@ integer ngtot
 integer intgv(2,3)
 ! number of G-vectors with G < gmaxvr
 integer ngvec
+! number of G-vectors with G < 2*gkmax
+integer ng2gk
+! number of G-vectors with G < 3*gkmax
+integer ng3gk
 ! G-vector integer coordinates (i1,i2,i3)
 integer, allocatable :: ivg(:,:)
 ! map from (i1,i2,i3) to G-vector index
@@ -330,7 +341,7 @@ real(8), allocatable :: vgc(:,:)
 ! length of G-vectors
 real(8), allocatable :: gc(:)
 ! spherical Bessel functions j_l(|G|R_mt)
-real(8), allocatable :: jlgr(:,:,:)
+real(8), allocatable :: jlgrmt(:,:,:)
 ! spherical harmonics of the G-vectors
 complex(8), allocatable :: ylmg(:,:)
 ! structure factors for the G-vectors
@@ -353,8 +364,9 @@ real(8) radkpt
 integer ngridk(3)
 ! k-point offset
 real(8) vkloff(3)
-! corners of box in lattice coordinates containing the k-points
-real(8) kptboxl(3,4)
+! corners of box in lattice coordinates containing the k-points, the zeroth
+! vector is the origin
+real(8) kptboxl(3,0:3)
 ! type of reduction to perform on k-point set
 !  0 : no reduction
 !  1 : reduce with full crystal symmetry group
@@ -444,17 +456,10 @@ real(8), allocatable :: vqc(:,:)
 real(8), allocatable :: wqpt(:)
 ! weight for each non-reduced q-opint
 real(8) wqptnr
-! index to q = 0 point
+! index of q = 0 point
 integer iq0
 ! weights associated with the integral of 1/q^2
 real(8), allocatable :: wiq2(:)
-
-!-----------------------------!
-!     ultracell variables     !
-!-----------------------------!
-! kappa-point grid sizes
-integer ngridkpa(3)
-!******
 
 !-----------------------------------------------------!
 !     spherical harmonic transform (SHT) matrices     !
@@ -464,26 +469,26 @@ logical trotsht
 data trotsht / .false. /
 ! spherical cover rotation matrix
 real(8) rotsht(3,3)
-! real backward SHT matrix for lmaxvr
-real(8), allocatable :: rbshtvr(:,:)
-! real forward SHT matrix for lmaxvr
-real(8), allocatable :: rfshtvr(:,:)
-! real backward SHT matrix for lmaxinr
-real(8), allocatable :: rbshtinr(:,:)
-! real forward SHT matrix for lmaxinr
-real(8), allocatable :: rfshtinr(:,:)
-! complex backward SHT matrix for lmaxvr
-complex(8), allocatable :: zbshtvr(:,:)
-! complex forward SHT matrix for lmaxvr
-complex(8), allocatable :: zfshtvr(:,:)
-! complex backward SHT matrix for lmaxinr
-complex(8), allocatable :: zbshtinr(:,:)
-! complex forward SHT matrix for lmaxinr
-complex(8), allocatable :: zfshtinr(:,:)
+! real backward SHT matrix for lmaxi
+real(8), allocatable :: rbshti(:,:)
+! real forward SHT matrix for lmaxi
+real(8), allocatable :: rfshti(:,:)
+! real backward SHT matrix for lmaxo
+real(8), allocatable :: rbshto(:,:)
+! real forward SHT matrix for lmaxo
+real(8), allocatable :: rfshto(:,:)
+! complex backward SHT matrix for lmaxi
+complex(8), allocatable :: zbshti(:,:)
+! complex forward SHT matrix for lmaxi
+complex(8), allocatable :: zfshti(:,:)
+! complex backward SHT matrix for lmaxo
+complex(8), allocatable :: zbshto(:,:)
+! complex forward SHT matrix for lmaxo
+complex(8), allocatable :: zfshto(:,:)
 
-!-----------------------------------------!
-!     potential and density variables     !
-!-----------------------------------------!
+!---------------------------------------------------------------!
+!     density, potential and exchange-correlation variables     !
+!---------------------------------------------------------------!
 ! exchange-correlation functional type
 integer xctype(3)
 ! exchange-correlation functional description
@@ -492,47 +497,47 @@ character(512) xcdescr
 integer xcspin
 ! exchange-correlation functional density gradient requirement
 integer xcgrad
-! setting ncgga to .true. improves convergence of non-collinear GGA calculations
-logical ncgga
+! small constant used to stabilise non-collinear GGA
+real(8) dncgga
 ! Tran-Blaha '09 constant c [Phys. Rev. Lett. 102, 226401 (2009)]
 real(8) c_tb09
 ! tc_tb09 is .true. if the Tran-Blaha constant has been read in
 logical tc_tb09
 ! muffin-tin charge density
-real(8), allocatable :: rhomt(:,:,:)
+real(8), allocatable :: rhomt(:,:)
 ! interstitial real-space charge density
 real(8), allocatable :: rhoir(:)
 ! trhonorm is .true. if the density is to be normalised after every iteration
 logical trhonorm
 ! muffin-tin magnetisation vector field
-real(8), allocatable :: magmt(:,:,:,:)
+real(8), allocatable :: magmt(:,:,:)
 ! interstitial magnetisation vector field
 real(8), allocatable :: magir(:,:)
 ! amount of smoothing to be applied to the density; this is the number of
 ! 3-point running averages performed on the radial functions in the muffin-tins
 integer msmooth
 ! muffin-tin Coulomb potential
-real(8), allocatable :: vclmt(:,:,:)
+real(8), allocatable :: vclmt(:,:)
 ! interstitial real-space Coulomb potential
 real(8), allocatable :: vclir(:)
 ! Poisson solver pseudocharge density constant
 integer npsd
-! lmaxvr+npsd+1
+! lmaxo+npsd+1
 integer lnpsd
 ! muffin-tin exchange energy density
-real(8), allocatable :: exmt(:,:,:)
+real(8), allocatable :: exmt(:,:)
 ! interstitial real-space exchange energy density
 real(8), allocatable :: exir(:)
 ! muffin-tin correlation energy density
-real(8), allocatable :: ecmt(:,:,:)
+real(8), allocatable :: ecmt(:,:)
 ! interstitial real-space correlation energy density
 real(8), allocatable :: ecir(:)
 ! muffin-tin exchange-correlation potential
-real(8), allocatable :: vxcmt(:,:,:)
+real(8), allocatable :: vxcmt(:,:)
 ! interstitial real-space exchange-correlation potential
 real(8), allocatable :: vxcir(:)
 ! muffin-tin Kohn-Sham effective potential
-real(8), allocatable :: vsmt(:,:,:)
+real(8), allocatable :: vsmt(:,:)
 ! interstitial Kohn-Sham effective potential
 real(8), allocatable :: vsir(:)
 ! G-space interstitial Kohn-Sham effective potential
@@ -540,23 +545,25 @@ complex(8), allocatable :: vsig(:)
 ! trimvg is .true. if vsig should be trimmed for |G| > gmaxvr/2
 logical trimvg
 ! muffin-tin exchange-correlation magnetic field
-real(8), allocatable :: bxcmt(:,:,:,:)
+real(8), allocatable :: bxcmt(:,:,:)
 ! interstitial exchange-correlation magnetic field
 real(8), allocatable :: bxcir(:,:)
 ! muffin-tin Kohn-Sham effective magnetic field in spherical coordinates
-real(8), allocatable :: bsmt(:,:,:,:)
+real(8), allocatable :: bsmt(:,:,:)
 ! interstitial Kohn-Sham effective magnetic field
 real(8), allocatable :: bsir(:,:)
 ! spin-orbit coupling radial function
 real(8), allocatable :: socfr(:,:)
 ! nosource is .true. if the field is to be made source-free
 logical nosource
-! muffin-tin paramagnetic current
-real(8), allocatable :: jcmt(:,:,:,:)
-! interstitial paramagnetic current
-real(8), allocatable :: jcir(:,:)
+! tssxc is .true. if scaled spin exchange-correlation (SSXC) is to be used
+logical tssxc
+! SSXC scaling factor
+real(8) ssxc
 ! if trdstate is .true. the density and potential can be read from STATE.OUT
 logical trdstate
+! temperature in degrees kelvin
+real(8) tempk
 
 !--------------------------!
 !     mixing variables     !
@@ -568,8 +575,6 @@ character(256) mixdescr
 ! adaptive mixing parameter
 real(8) beta0
 real(8) betamax
-! subspace dimension for Pulay mixing
-integer mixsdp
 ! subspace dimension for Broyden mixing
 integer mixsdb
 ! Broyden mixing parameters alpha and w0
@@ -722,6 +727,8 @@ integer minitefv,maxitefv
 real(8) befvit
 ! iterative solver convergence tolerance
 real(8) epsefvit
+! type of eigenvalue solver to be used
+integer evtype
 
 !--------------------------------------------!
 !     eigenvalue and occupancy variables     !
@@ -832,8 +839,6 @@ real(8) engytot
 !------------------------------------!
 ! tforce is .true. if force should be calculated
 logical tforce
-! tfibs is .true. if the IBS contribution to the force is to be calculated
-logical tfibs
 ! Hellmann-Feynman force on each atom
 real(8), allocatable :: forcehf(:,:)
 ! incomplete basis set (IBS) force on each atom
@@ -844,6 +849,10 @@ real(8), allocatable :: forcetot(:,:)
 real(8), allocatable :: forcetotp(:,:)
 ! maximum force magnitude over all atoms
 real(8) forcemax
+! atomic position optimisation type
+!  0 : no optimisation
+!  1 : unconstrained optimisation
+integer atpopt
 ! maximum number of atomic position optimisation steps
 integer maxatpstp
 ! default step size parameter for atomic position optimisation
@@ -852,6 +861,9 @@ real(8) tau0atp
 real(8), allocatable :: tauatp(:)
 ! number of strain tensors
 integer nstrain
+! current strain tensor
+integer istrain
+data istrain / 0 /
 ! strain tensors
 real(8) strain(3,3,9)
 ! infinitesimal displacement parameter multiplied by the strain tensor for
@@ -946,11 +958,11 @@ real(8), allocatable :: vplp1d(:,:)
 ! distance to points in 1D plot
 real(8), allocatable :: dpp1d(:)
 ! corner vectors of 2D plot in lattice coordinates
-real(8) vclp2d(3,3)
+real(8) vclp2d(3,0:2)
 ! grid sizes of 2D plot
 integer np2d(2)
 ! corner vectors of 3D plot in lattice coordinates
-real(8) vclp3d(3,4)
+real(8) vclp3d(3,0:3)
 ! grid sizes of 3D plot
 integer np3d(3)
 
@@ -966,8 +978,8 @@ real(8) tauoep(3)
 ! magnitude of the OEP residual
 real(8) resoep
 ! exchange potential and magnetic field
-real(8), allocatable :: vxmt(:,:,:),vxir(:)
-real(8), allocatable :: bxmt(:,:,:,:),bxir(:,:)
+real(8), allocatable :: vxmt(:,:),vxir(:)
+real(8), allocatable :: bxmt(:,:,:),bxir(:,:)
 ! hybrid is .true. if a hybrid functional is to be used
 logical hybrid
 ! hybrid functional mixing coefficient
@@ -986,6 +998,9 @@ integer ngrf
 integer nwrf
 ! complex response function frequencies
 complex(8), allocatable :: wrf(:)
+! maximum number of spherical Bessel functions on the coarse radial mesh over
+! all species
+integer njcmax
 
 !-------------------------------------------------!
 !     Bethe-Salpeter equation (BSE) variables     !
@@ -1102,7 +1117,7 @@ real(8), parameter :: amu=amu_si/em_si
 !---------------------------------!
 ! code version
 integer version(3)
-data version / 3,1,12 /
+data version / 4,3,6 /
 ! maximum number of tasks
 integer, parameter :: maxtasks=40
 ! number of tasks

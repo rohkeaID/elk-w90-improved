@@ -32,8 +32,7 @@ implicit none
 ! arguments
 integer, intent(in) :: p
 real(8), intent(in) :: ang(3)
-integer, intent(in) :: lmax
-integer, intent(in) :: ld
+integer, intent(in) :: lmax,ld
 complex(8), intent(out) :: d(ld,*)
 ! local variables
 integer lmmax,l,m1,m2,lm1,lm2
@@ -50,7 +49,15 @@ lmmax=(lmax+1)**2
 allocate(dy(lmmax,lmmax))
 ! generate the rotation matrix about the y-axis
 call ylmroty(ang(2),lmax,lmmax,dy)
-! rotation by alpha and gamma, as well as inversion if required
+! apply inversion if required
+if (p.eq.-1) then
+  do l=1,lmax,2
+    lm1=l**2+1
+    lm2=lm1+2*l
+    dy(lm1:lm2,lm1:lm2)=-dy(lm1:lm2,lm1:lm2)
+  end do
+end if
+! rotation by alpha and gamma
 lm1=0
 do l=0,lmax
   do m1=-l,l
@@ -60,7 +67,6 @@ do l=0,lmax
       lm2=lm2+1
       t1=-dble(m1)*ang(1)-dble(m2)*ang(3)
       d(lm1,lm2)=dy(lm1,lm2)*cmplx(cos(t1),sin(t1),8)
-      if ((p.eq.-1).and.(mod(l,2).ne.0)) d(lm1,lm2)=-d(lm1,lm2)
     end do
   end do
 end do

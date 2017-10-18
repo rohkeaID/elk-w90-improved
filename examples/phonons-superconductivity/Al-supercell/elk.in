@@ -1,0 +1,82 @@
+
+! Phonon spectrum and solving the Eliashberg equations to find the temperature-
+! dependent superconducting gap. This example uses finite displacements and a
+! supercell to determine the phonon modes.
+
+! You can submit the same phonon job (task=200) on as many machines as you like,
+! but they must be be able to see the same directory. Each machine will compute
+! a row of a particular dynamical matrix. The code assembles all the pieces to
+! construct the dynamical and electron-phonon coupling matrices throughout the
+! Brillouin zone.
+
+! Example by Antonio Sanna.
+
+tasks
+  200
+
+! phonon q-point grid
+ngridq
+  4  4  4
+
+! add extra local-orbitals for accurate electron-phonon coupling
+nxlo
+  1
+
+swidth
+  0.005
+
+stype
+  1
+
+! uncomment the following lines for electron-phonon and Eliashberg calculations
+!tasks
+!  0       : ground-state run
+!  210     : phonon DOS
+!  220     : phonon dispersion
+!  240     : electron-phonon matrix elements
+!  245     : phonon line-widths
+!  250     : Eliashberg function, alpha^2F
+!  260     : solving the Eliashberg equations
+
+! number of temperature steps for Eliashberg calculation
+ntemp
+  80
+
+! k-point grid density is determined by the radius radkpt
+! (only used for the phonon calculation)
+radkpt
+  40.0
+
+! fine k-point mesh required for the electron-phonon coupling (must be
+! commensurate with q-point mesh)
+ngridk
+  24  24  24
+
+! use Broyden mixing
+mixtype
+  3
+
+avec
+  1.0  1.0  0.0
+  1.0  0.0  1.0
+  0.0  1.0  1.0
+
+! we use the LDA equilibrium lattice constant
+scale
+  3.7653
+
+sppath
+  '../../../species/'
+
+atoms
+  1                                   : nspecies
+  'Al.in'                             : spfname
+  1                                   : natoms; atposl below
+  0.0  0.0  0.0
+
+plot1d
+  4 200                               : nvp1d, npp1d
+  0.0   0.0   0.0                     : vlvp1d
+  0.5   0.5   0.0
+  1.0   0.0   0.0
+  0.5   0.0   0.0

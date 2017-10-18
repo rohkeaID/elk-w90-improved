@@ -6,13 +6,16 @@
 !BOP
 ! !ROUTINE: symrf
 ! !INTERFACE:
-subroutine symrf(lrstp,rfmt,rfir)
+subroutine symrf(nr,nri,np,ld,rfmt,rfir)
 ! !USES:
 use modmain
 ! !INPUT/OUTPUT PARAMETERS:
-!   lrstp : radial step length (in,integer)
-!   rfmt  : real muffin-tin function (inout,real(lmmaxvr,nrmtmax,natmtot))
-!   rfir  : real intersitial function (inout,real(ngtot))
+!   nr   : number of radial points for each species (in,integer(nspecies))
+!   nri  : number of radial points on the inner part (in,integer(nspecies))
+!   np   : total number of points in each muffin-tin (in,integer(nspecies))
+!   ld   : leading dimension (in,integer)
+!   rfmt : real muffin-tin function (inout,real(ld,natmtot))
+!   rfir : real intersitial function (inout,real(ngtot))
 ! !DESCRIPTION:
 !   Symmetrises a real scalar function defined over the entire unit cell using
 !   the full set of crystal symmetries. In the muffin-tin of a particular atom
@@ -28,37 +31,34 @@ use modmain
 !BOC
 implicit none
 ! arguments
-integer, intent(in) :: lrstp
-real(8), intent(inout) :: rfmt(lmmaxvr,nrmtmax,natmtot),rfir(ngtot)
+integer, intent(in) :: nr(nspecies),nri(nspecies),np(nspecies)
+integer, intent(in) :: ld
+real(8), intent(inout) :: rfmt(ld,natmtot),rfir(ngtot)
 ! local variables
 integer is,ia,ja,ias,jas
-integer nr,nri
-integer isym,lspl,ilspl
-real(8) t1
+integer isym,lspl
+real(8) t0
 ! automatic arrays
 logical done(natmmax)
 ! allocatable arrays
-real(8), allocatable :: rfmt1(:,:,:),rfmt2(:,:)
+real(8), allocatable :: rfmt1(:,:),rfmt2(:)
 !-------------------------!
 !     muffin-tin part     !
 !-------------------------!
-allocate(rfmt1(lmmaxvr,nrmtmax,natmmax))
-allocate(rfmt2(lmmaxvr,nrmtmax))
-t1=1.d0/dble(nsymcrys)
+allocate(rfmt1(ld,natmmax),rfmt2(ld))
+t0=1.d0/dble(nsymcrys)
 do is=1,nspecies
-  nr=nrmt(is)
-  nri=nrmtinr(is)
 ! make a copy of the input function
   do ia=1,natoms(is)
     ias=idxas(ia,is)
-    call rfmtcopy(nr,nri,lrstp,rfmt(:,:,ias),rfmt1(:,:,ia))
+    rfmt1(1:np(is),ia)=rfmt(1:np(is),ias)
   end do
   done(:)=.false.
 ! loop over atoms
   do ia=1,natoms(is)
     if (done(ia)) cycle
     ias=idxas(ia,is)
-    call rfmtzero(nr,nri,lrstp,rfmt(:,:,ias))
+    rfmt(1:np(is),ias)=0.d0
 ! loop over crystal symmetries
     do isym=1,nsymcrys
 ! index to spatial rotation lattice symmetry
@@ -66,24 +66,22 @@ do is=1,nspecies
 ! equivalent atom index (symmetry rotates atom ja into atom ia)
       ja=ieqatom(ia,is,isym)
 ! apply the rotation to the muffin-tin function
-      call rotrfmt(symlatc(:,:,lspl),nr,nri,lrstp,rfmt1(:,:,ja),rfmt2)
+      call rotrfmt(symlatc(:,:,lspl),nr(is),nri(is),rfmt1(:,ja),rfmt2)
 ! accumulate in original function array
-      call rfmtadd(nr,nri,lrstp,rfmt2,rfmt(:,:,ias))
+      rfmt(1:np(is),ias)=rfmt(1:np(is),ias)+rfmt2(1:np(is))
     end do
 ! normalise
-    call rfmtscal(nr,nri,lrstp,t1,rfmt(:,:,ias))
+    rfmt(1:np(is),ias)=t0*rfmt(1:np(is),ias)
     done(ia)=.true.
 ! rotate into equivalent atoms
     do isym=1,nsymcrys
       ja=ieqatom(ia,is,isym)
       if (.not.done(ja)) then
         jas=idxas(ja,is)
-        lspl=lsplsymc(isym)
 ! inverse symmetry (which rotates atom ia into atom ja)
-        ilspl=isymlat(lspl)
+        lspl=isymlat(lsplsymc(isym))
 ! rotate symmetrised function into equivalent muffin-tin
-        call rotrfmt(symlatc(:,:,ilspl),nr,nri,lrstp,rfmt(:,:,ias), &
-         rfmt(:,:,jas))
+        call rotrfmt(symlatc(:,:,lspl),nr(is),nri(is),rfmt(:,ias),rfmt(:,jas))
         done(ja)=.true.
       end if
     end do

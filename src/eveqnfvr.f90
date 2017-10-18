@@ -231,10 +231,8 @@ do m1=1,nlotot
   end do
 end do
 ! solve the generalised eigenvalue problem for real symmetric matrices
-allocate(iwork(5*nmatp))
-allocate(ifail(nmatp))
-allocate(w(nmatp))
-allocate(rv(nmatp,nstfv))
+allocate(iwork(5*nmatp),ifail(nmatp))
+allocate(w(nmatp),rv(nmatp,nstfv))
 lwork=8*nmatp
 allocate(work(lwork))
 call dsygvx(1,'V','I','U',nmatp,rh,nmatp,ro,nmatp,vl,vu,1,nstfv,evaltol,m,w, &

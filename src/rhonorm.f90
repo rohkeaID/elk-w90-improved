@@ -23,7 +23,8 @@ use modmain
 !BOC
 implicit none
 ! local variables
-integer is,ia,ias,ir
+integer is,ia,ias
+integer nr,nri,ir,i
 real(8) t1,t2
 if (.not.trhonorm) return
 ! check error in total charge
@@ -41,8 +42,16 @@ t1=(chgtot-chgcalc)/omega
 t2=t1/y00
 do ias=1,natmtot
   is=idxis(ias)
-  do ir=1,nrmt(is)
-    rhomt(1,ir,ias)=rhomt(1,ir,ias)+t2
+  nr=nrmt(is)
+  nri=nrmti(is)
+  i=1
+  do ir=1,nri
+    rhomt(i,ias)=rhomt(i,ias)+t2
+    i=i+lmmaxi
+  end do
+  do ir=nri+1,nr
+    rhomt(i,ias)=rhomt(i,ias)+t2
+    i=i+lmmaxo
   end do
 end do
 rhoir(:)=rhoir(:)+t1
@@ -56,7 +65,6 @@ do is=1,nspecies
   end do
 end do
 chgir=chgtot-chgmttot
-chgcalc=chgtot
 return
 end subroutine
 !EOC

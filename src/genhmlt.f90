@@ -10,7 +10,7 @@ use modmpi
 implicit none
 ! arguments
 integer, intent(in) :: ik
-real(8), intent(in) :: vmt(lmmaxvr,nrcmtmax,natmtot),vir(ngtot)
+real(8), intent(in) :: vmt(npcmtmax,natmtot),vir(ngtot)
 complex(8), intent(out) :: h(nstsv,nstsv)
 ! local variables
 integer ist,i
@@ -19,14 +19,14 @@ real(8) ca,t1
 integer idx(nstsv)
 ! allocatable arrays
 complex(8), allocatable :: apwalm(:,:,:,:),evecfv(:,:),evecsv(:,:)
-complex(8), allocatable :: wfmt(:,:,:,:,:),wfir(:,:,:)
+complex(8), allocatable :: wfmt(:,:,:,:),wfir(:,:,:)
 complex(8), allocatable :: kmat(:,:),pmat(:,:,:)
 ! coupling constant of the external A-field (1/c)
 ca=1.d0/solsc
 allocate(evecfv(nmatmax,nstfv),evecsv(nstsv,nstsv))
 ! get the ground-state eigenvectors from file for input k-point
-call getevecfv('.OUT',vkl(:,ik),vgkl(:,:,:,ik),evecfv)
-call getevecsv('.OUT',vkl(:,ik),evecsv)
+call getevecfv('.OUT',ik,vkl(:,ik),vgkl(:,:,:,ik),evecfv)
+call getevecsv('.OUT',ik,vkl(:,ik),evecsv)
 ! find the matching coefficients
 allocate(apwalm(ngkmax,apwordmax,lmmaxapw,natmtot))
 call match(ngk(1,ik),gkc(:,1,ik),tpgkc(:,:,1,ik),sfacgk(:,:,1,ik),apwalm)
@@ -35,7 +35,7 @@ do ist=1,nstsv
   idx(ist)=ist
 end do
 ! calculate the wavefunctions for all states of the input k-point
-allocate(wfmt(lmmaxvr,nrcmtmax,natmtot,nspinor,nstsv))
+allocate(wfmt(npcmtmax,natmtot,nspinor,nstsv))
 allocate(wfir(ngkmax,nspinor,nstsv))
 call genwfsv(.false.,.true.,nstsv,idx,ngk(:,ik),igkig(:,:,ik),apwalm,evecfv, &
  evecsv,wfmt,ngkmax,wfir)

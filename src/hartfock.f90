@@ -12,17 +12,17 @@ logical exist
 integer ik,lp
 real(8) etp,de
 ! allocatable arrays
-real(8), allocatable :: vmt(:,:,:),vir(:)
-real(8), allocatable :: bmt(:,:,:,:),bir(:,:)
+real(8), allocatable :: vmt(:,:),vir(:)
+real(8), allocatable :: bmt(:,:,:),bir(:,:)
 complex(8), allocatable :: evecsv(:,:)
 ! initialise universal variables
 call init0
 call init1
 call init2
 ! allocate local arrays
-allocate(vmt(lmmaxvr,nrcmtmax,natmtot),vir(ngtot))
+allocate(vmt(npcmtmax,natmtot),vir(ngtot))
 if (hybrid.and.spinpol) then
-  allocate(bmt(lmmaxvr,nrcmtmax,natmtot,ndmag),bir(ngtot,ndmag))
+  allocate(bmt(npcmtmax,natmtot,ndmag),bir(ngtot,ndmag))
 end if
 ! only the MPI master process should write files
 if (mp_mpi) then
@@ -94,7 +94,7 @@ do iscl=1,maxscl
     tlast=.true.
   end if
 ! compute the Hartree-Fock local potentials
-  call hflocal(vmt,vir,bmt,bir)
+  call hflocal(hybrid,vmt,vir,bmt,bir)
 ! synchronise MPI processes
   call mpi_barrier(mpi_comm_kpt,ierror)
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(evecsv)
@@ -103,7 +103,7 @@ do iscl=1,maxscl
 ! distribute among MPI processes
     if (mod(ik-1,np_mpi).ne.lp_mpi) cycle
     allocate(evecsv(nstsv,nstsv))
-    call getevecsv(filext,vkl(:,ik),evecsv)
+    call getevecsv(filext,ik,vkl(:,ik),evecsv)
 ! solve the Hartree-Fock eigenvalue equation
     call eveqnhf(ik,vmt,vir,bmt,bir,evecsv)
 ! write the eigenvalues/vectors to file

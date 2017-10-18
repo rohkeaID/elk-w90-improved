@@ -8,20 +8,20 @@ use modmain
 implicit none
 ! arguments
 integer, intent(in) :: ik
-real(8), intent(inout) :: taumt(lmmaxvr,nrmtmax,natmtot,nspinor)
+real(8), intent(inout) :: taumt(npmtmax,natmtot,nspinor)
 real(8), intent(inout) :: tauir(ngtot,nspinor)
 ! local variables
 integer ispn,jspn,nst,ist,jst
-integer is,ias,nr,nri,nrc,nrci
-integer ir,irc,igk,ifg,i
+integer is,ias,nrc,nrci,ir
+integer npc,igk,ifg,i
 real(8) t0
 ! automatic arrays
 integer idx(nstsv)
 ! allocatable arrays
 complex(8), allocatable :: apwalm(:,:,:,:,:)
 complex(8), allocatable :: evecfv(:,:),evecsv(:,:)
-complex(8), allocatable :: wfmt(:,:,:,:,:),wfir(:,:,:)
-complex(8), allocatable :: gzfmt(:,:,:),zfmt(:,:),zfft(:)
+complex(8), allocatable :: wfmt(:,:,:,:),wfir(:,:,:)
+complex(8), allocatable :: gzfmt(:,:),zfmt(:),zfft(:)
 allocate(apwalm(ngkmax,apwordmax,lmmaxapw,natmtot,nspnfv))
 allocate(evecfv(nmatmax,nstfv),evecsv(nstsv,nstsv))
 ! find the matching coefficients
@@ -30,8 +30,8 @@ do ispn=1,nspnfv
    sfacgk(:,:,ispn,ik),apwalm(:,:,:,:,ispn))
 end do
 ! get the eigenvectors from file
-call getevecfv(filext,vkl(:,ik),vgkl(:,:,:,ik),evecfv)
-call getevecsv(filext,vkl(:,ik),evecsv)
+call getevecfv(filext,ik,vkl(:,ik),vgkl(:,:,:,ik),evecfv)
+call getevecsv(filext,ik,vkl(:,ik),evecsv)
 ! count and index the occupied states
 nst=0
 do ist=1,nstsv
@@ -41,45 +41,32 @@ do ist=1,nstsv
   end if
 end do
 ! calculate the second-variational wavefunctions for all states
-allocate(wfmt(lmmaxvr,nrcmtmax,natmtot,nspinor,nst))
-allocate(wfir(ngkmax,nspinor,nst))
+allocate(wfmt(npcmtmax,natmtot,nspinor,nst),wfir(ngkmax,nspinor,nst))
 call genwfsv(.true.,.true.,nst,idx,ngk(:,ik),igkig(:,:,ik),apwalm,evecfv, &
  evecsv,wfmt,ngkmax,wfir)
 deallocate(apwalm,evecfv,evecsv)
 !-------------------------!
 !     muffin-tin part     !
 !-------------------------!
-allocate(gzfmt(lmmaxvr,nrcmtmax,3),zfmt(lmmaxvr,nrcmtmax))
+allocate(gzfmt(npcmtmax,3),zfmt(npcmtmax))
 do ist=1,nst
   jst=idx(ist)
   t0=0.5d0*wkpt(ik)*occsv(jst,ik)
   do ispn=1,nspinor
     do ias=1,natmtot
       is=idxis(ias)
-      nr=nrmt(is)
-      nri=nrmtinr(is)
       nrc=nrcmt(is)
-      nrci=nrcmtinr(is)
+      nrci=nrcmti(is)
+      npc=npcmt(is)
 ! compute the gradient of the wavefunction
-      call gradzfmt(nrc,nrci,rcmt(:,is),wfmt(:,:,ias,ispn,ist),nrcmtmax,gzfmt)
+      call gradzfmt(nrc,nrci,rcmt(:,is),wfmt(:,ias,ispn,ist),npcmtmax,gzfmt)
       do i=1,3
 ! convert gradient to spherical coordinates
-        call zbsht(nrc,nrci,gzfmt(:,:,i),zfmt)
-! add to total taumt
+        call zbsht(nrc,nrci,gzfmt(:,i),zfmt)
+! add to total in muffin-tin
 !$OMP CRITICAL
-        irc=0
-! inner part of muffin-tin
-        do ir=1,nri,lradstp
-          irc=irc+1
-          taumt(1:lmmaxinr,ir,ias,ispn)=taumt(1:lmmaxinr,ir,ias,ispn) &
-           +t0*(dble(zfmt(1:lmmaxinr,irc))**2+aimag(zfmt(1:lmmaxinr,irc))**2)
-        end do
-! outer part of muffin-tin
-        do ir=nri+lradstp,nr,lradstp
-          irc=irc+1
-          taumt(:,ir,ias,ispn)=taumt(:,ir,ias,ispn) &
-           +t0*(dble(zfmt(:,irc))**2+aimag(zfmt(:,irc))**2)
-        end do
+        taumt(1:npc,ias,ispn)=taumt(1:npc,ias,ispn) &
+           +t0*(dble(zfmt(1:npc))**2+aimag(zfmt(1:npc))**2)
 !$OMP END CRITICAL
       end do
     end do

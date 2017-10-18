@@ -6,21 +6,20 @@
 !BOP
 ! !ROUTINE: rfinp
 ! !INTERFACE:
-real(8) function rfinp(lrstp,rfmt1,rfir1,rfmt2,rfir2)
+real(8) function rfinp(rfmt1,rfir1,rfmt2,rfir2)
 ! !USES:
 use modmain
 ! !INPUT/OUTPUT PARAMETERS:
-!   lrstp : radial step length (in,integer)
 !   rfmt1 : first function in real spherical harmonics for all muffin-tins
-!           (in,real(lmmaxvr,nrmtmax,natmtot))
+!           (in,real(npmtmax,natmtot))
 !   rfir1 : first real interstitial function in real-space (in,real(ngtot))
 !   rfmt2 : second function in real spherical harmonics for all muffin-tins
-!           (in,real(lmmaxvr,nrmtmax,natmtot))
+!           (in,real(npmtmax,natmtot))
 !   rfir2 : second real interstitial function in real-space (in,real(ngtot))
 ! !DESCRIPTION:
-!   Calculates the inner product of two real functions over the entire unit cell.
-!   The input muffin-tin functions should have angular momentum cut-off
-!   {\tt lmaxvr}. In the interstitial region, the integrand is multiplied with
+!   Calculates the inner product of two real functions over the entire unit
+!   cell. The input muffin-tin functions should have angular momentum cut-off
+!   {\tt lmaxo}. In the interstitial region, the integrand is multiplied with
 !   the characteristic function, $\tilde{\Theta}({\bf r})$, to remove the
 !   contribution from the muffin-tin. See routines {\tt rfmtinp} and
 !   {\tt gencfun}.
@@ -31,9 +30,8 @@ use modmain
 !BOC
 implicit none
 ! arguments
-integer, intent(in) :: lrstp
-real(8), intent(in) :: rfmt1(lmmaxvr,nrmtmax,natmtot),rfir1(ngtot)
-real(8), intent(in) :: rfmt2(lmmaxvr,nrmtmax,natmtot),rfir2(ngtot)
+real(8), intent(in) :: rfmt1(npmtmax,natmtot),rfir1(ngtot)
+real(8), intent(in) :: rfmt2(npmtmax,natmtot),rfir2(ngtot)
 ! local variables
 integer is,ias,ir
 real(8) sum
@@ -51,8 +49,8 @@ sum=sum*omega/dble(ngtot)
 !$OMP DO
 do ias=1,natmtot
   is=idxis(ias)
-  sum=sum+rfmtinp(nrmt(is),nrmtinr(is),lrstp,rsp(:,is),r2sp(:,is), &
-   rfmt1(:,:,ias),rfmt2(:,:,ias))
+  sum=sum+rfmtinp(nrmt(is),nrmti(is),rsp(:,is),r2sp(:,is),rfmt1(:,ias), &
+   rfmt2(:,ias))
 end do
 !$OMP END DO
 !$OMP END PARALLEL

@@ -7,8 +7,8 @@ subroutine gendsocfr
 use modmain
 use modphonon
 implicit none
-integer is,ias
-integer nr,ir,irc
+integer is,ias,i
+integer nr,nri,ir,irc
 real(8) cso
 complex(8) z1
 ! allocatable arrays
@@ -22,8 +22,18 @@ allocate(dvr1(nrmtmax),dvr2(nrmtmax))
 do ias=1,natmtot
   is=idxis(ias)
   nr=nrmt(is)
-  vr1(1:nr)=dble(dvsmt(1,1:nr,ias))*y00
-  vr2(1:nr)=aimag(dvsmt(1,1:nr,ias))*y00
+  nri=nrmti(is)
+  i=1
+  do ir=1,nri
+    vr1(ir)=dble(dvsmt(i,ias))*y00
+    vr2(ir)=aimag(dvsmt(i,ias))*y00
+    i=i+lmmaxi
+  end do
+  do ir=nri+1,nr
+    vr1(ir)=dble(dvsmt(i,ias))*y00
+    vr2(ir)=aimag(dvsmt(i,ias))*y00
+    i=i+lmmaxo
+  end do
   call fderiv(1,nr,rsp(:,is),vr1,dvr1)
   call fderiv(1,nr,rsp(:,is),vr2,dvr2)
   irc=0

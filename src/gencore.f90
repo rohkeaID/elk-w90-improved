@@ -29,18 +29,20 @@ use modmain
 !BOC
 implicit none
 ! local variables
+integer ist,ispn,idm
 integer is,ia,ja,ias,jas
-integer ispn,ist,nr,nrs,ir
+integer nr,nri,nrs,ir
 real(8) t1
 ! automatic arrays
 logical done(natmmax)
 real(8) vr(nrspmax),eval(nstspmax)
 ! allocatable arrays
-real(8), allocatable :: br(:)
-if (spincore) allocate(br(nrmtmax))
+real(8), allocatable :: br(:),fr(:,:)
+if (spincore) allocate(br(nrmtmax),fr(nrmtmax,ndmag))
 ! loop over species and atoms
 do is=1,nspecies
   nr=nrmt(is)
+  nri=nrmti(is)
   nrs=nrsp(is)
   done(:)=.false.
   do ia=1,natoms(is)
@@ -48,22 +50,24 @@ do is=1,nspecies
     ias=idxas(ia,is)
 ! Kohn-Sham magnetic field for spin-polarised core
     if (spincore) then
+      do idm=1,ndmag
+        call rfmtlm(1,nr,nri,bxcmt(:,ias,idm),fr(:,idm))
+      end do
       if (ncmag) then
         do ir=1,nr
-          br(ir)=sqrt(bxcmt(1,ir,ias,1)**2 &
-                     +bxcmt(1,ir,ias,2)**2 &
-                     +bxcmt(1,ir,ias,3)**2)*y00
+          br(ir)=sqrt(fr(ir,1)**2+fr(ir,2)**2+fr(ir,3)**2)*y00
         end do
       else
         do ir=1,nr
-          br(ir)=abs(bxcmt(1,ir,ias,1))*y00
+          br(ir)=abs(fr(ir,1))*y00
         end do
       end if
     end if
 ! loop over spin channels
     do ispn=1,nspncr
 ! use the spherical part of the crystal Kohn-Sham potential
-      vr(1:nr)=vsmt(1,1:nr,ias)*y00
+      call rfmtlm(1,nr,nri,vsmt(:,ias),vr)
+      vr(1:nr)=vr(1:nr)*y00
 ! spin-up and -down potentials for polarised core
       if (spincore) then
         if (ispn.eq.1) then
@@ -133,7 +137,7 @@ do is=1,nspecies
 ! end loop over species and atoms
   end do
 end do
-if (spincore) deallocate(br)
+if (spincore) deallocate(br,fr)
 return
 end subroutine
 !EOC

@@ -18,15 +18,16 @@ integer, intent(in) :: ld
 complex(8), intent(out) :: dmat(ld,nspinor,ld,nspinor,nstsv)
 ! local variables
 integer ist,ispn,jspn,is,ia
-integer nrc,nrci,nro,iro,irc
-integer l,m1,m2,lm1,lm2,i,j
+integer nrc,nrci,nrco,irco,irc
+integer l,m1,m2,lm1,lm2
+integer npc,npci,i1,i2,i,j
 real(8) a,b,t1
 complex(8) zq(2),z1
 ! automatic arrays
 logical done(nstfv,nspnfv)
 real(8) fr1(nrcmtmax),fr2(nrcmtmax)
 ! allocatable arrays
-complex(8), allocatable :: wfmt1(:,:,:,:),wfmt2(:,:,:)
+complex(8), allocatable :: wfmt1(:,:,:),wfmt2(:,:)
 ! external functions
 real(8) fintgt
 external fintgt
@@ -36,20 +37,23 @@ if (lmin.lt.0) then
   write(*,*)
   stop
 end if
-if (lmax.gt.lmaxvr) then
+if (lmax.gt.lmaxo) then
   write(*,*)
-  write(*,'("Error(gendmat): lmax > lmaxvr : ",2I8)') lmax,lmaxvr
+  write(*,'("Error(gendmat): lmax > lmaxo : ",2I8)') lmax,lmaxo
   write(*,*)
   stop
 end if
 ! allocate local arrays
-allocate(wfmt1(lmmaxvr,nrcmtmax,nstfv,nspnfv))
-allocate(wfmt2(lmmaxvr,nrcmtmax,nspinor))
+allocate(wfmt1(npcmtmax,nstfv,nspnfv),wfmt2(npcmtmax,nspinor))
 ! species and atom numbers
 is=idxis(ias)
 ia=idxia(ias)
 nrc=nrcmt(is)
-nrci=nrcmtinr(is)
+nrci=nrcmti(is)
+nrco=nrc-nrci
+irco=nrci+1
+npc=npcmt(is)
+npci=npcmti(is)
 ! de-phasing factor for spin-spirals
 if (spinsprl.and.ssdph) then
   t1=-0.5d0*dot_product(vqcss(:),atposc(:,ia,is))
@@ -63,7 +67,7 @@ done(:,:)=.false.
 do j=1,nstsv
   if (tevecsv) then
 ! generate spinor wavefunction from second-variational eigenvectors
-    wfmt2(:,:,:)=0.d0
+    wfmt2(1:npc,:)=0.d0
     i=0
     do ispn=1,nspinor
       jspn=jspnfv(ispn)
@@ -74,11 +78,11 @@ do j=1,nstsv
         if (abs(dble(z1))+abs(aimag(z1)).gt.epsocc) then
           if (.not.done(ist,jspn)) then
             call wavefmt(lradstp,ias,ngp(jspn),apwalm(:,:,:,:,jspn), &
-             evecfv(:,ist,jspn),wfmt1(:,:,ist,jspn))
+             evecfv(:,ist,jspn),wfmt1(:,ist,jspn))
             done(ist,jspn)=.true.
           end if
 ! add to spinor wavefunction
-          call zfmtadd(nrc,nrci,z1,wfmt1(:,:,ist,jspn),wfmt2(:,:,ispn))
+          wfmt2(1:npc,ispn)=wfmt2(1:npc,ispn)+z1*wfmt1(1:npc,ist,jspn)
         end if
       end do
     end do
@@ -90,25 +94,35 @@ do j=1,nstsv
     do jspn=1,nspinor
       if (tspndg.and.(ispn.ne.jspn)) cycle
       do l=lmin,lmax
-        if (l.le.lmaxinr) then
-          nro=nrc
-          iro=1
-        else
-          nro=nrc-nrci
-          iro=nrci+1
-        end if
         do m1=-l,l
           lm1=idxlm(l,m1)
           do m2=-l,l
             lm2=idxlm(l,m2)
             if (tlmdg.and.(lm1.ne.lm2)) cycle
-            do irc=iro,nrc
-              z1=wfmt2(lm1,irc,ispn)*conjg(wfmt2(lm2,irc,jspn))*r2cmt(irc,is)
-              fr1(irc)=dble(z1)
-              fr2(irc)=aimag(z1)
-            end do
-            a=fintgt(-2,nro,rcmt(iro,is),fr1(iro))
-            b=fintgt(-2,nro,rcmt(iro,is),fr2(iro))
+            if (l.le.lmaxi) then
+              i1=lm1; i2=lm2
+              do irc=1,nrci
+                z1=wfmt2(i1,ispn)*conjg(wfmt2(i2,jspn))*r2cmt(irc,is)
+                fr1(irc)=dble(z1); fr2(irc)=aimag(z1)
+                i1=i1+lmmaxi; i2=i2+lmmaxi
+              end do
+              do irc=irco,nrc
+                z1=wfmt2(i1,ispn)*conjg(wfmt2(i2,jspn))*r2cmt(irc,is)
+                fr1(irc)=dble(z1); fr2(irc)=aimag(z1)
+                i1=i1+lmmaxo; i2=i2+lmmaxo
+              end do
+              a=fintgt(-2,nrc,rcmt(1,is),fr1)
+              b=fintgt(-2,nrc,rcmt(1,is),fr2)
+            else
+              i1=npci+lm1; i2=npci+lm2
+              do irc=irco,nrc
+                z1=wfmt2(i1,ispn)*conjg(wfmt2(i2,jspn))*r2cmt(irc,is)
+                fr1(irc)=dble(z1); fr2(irc)=aimag(z1)
+                i1=i1+lmmaxo; i2=i2+lmmaxo
+              end do
+              a=fintgt(-2,nrco,rcmt(irco,is),fr1(irco))
+              b=fintgt(-2,nrco,rcmt(irco,is),fr2(irco))
+            end if
             dmat(lm1,ispn,lm2,jspn,j)=cmplx(a,b,8)
           end do
         end do

@@ -14,12 +14,8 @@ tasks
 scissor
   0.21
 
-lmaxvr
+lmaxo
   5
-
-! automatically determine the smallest possible G-vector grid
-gmaxvr
-  0.0
 
 ! number of BSE valence states
 nvbse

@@ -30,8 +30,7 @@ use modmain
 !BOC
 implicit none
 ! arguments
-integer, intent(in) :: nmatp,ngp
-integer, intent(in) :: igpig(ngkmax)
+integer, intent(in) :: nmatp,ngp,igpig(ngkmax)
 real(8), intent(in) :: vpc(3),vgpc(3,ngkmax)
 complex(8), intent(in) :: apwalm(ngkmax,apwordmax,lmmaxapw,natmtot)
 real(8), intent(out) :: evalfv(nstfv)
@@ -46,15 +45,15 @@ complex(8), allocatable :: h(:,:),o(:,:)
 !-----------------------------------------------!
 call timesec(ts0)
 allocate(h(nmatp,nmatp),o(nmatp,nmatp))
-!$OMP PARALLEL SECTIONS DEFAULT(SHARED) PRIVATE(ias,i)
+!$OMP PARALLEL SECTIONS DEFAULT(SHARED) PRIVATE(i,ias)
 !$OMP SECTION
 ! Hamiltonian
 do i=1,nmatp
   h(1:i,i)=0.d0
 end do
 do ias=1,natmtot
-  call hmlaa(ias,ngp,apwalm,nmatp,h)
-  call hmlalo(ias,ngp,apwalm,nmatp,h)
+  call hmlaa(ias,ngp,apwalm(:,:,:,ias),nmatp,h)
+  call hmlalo(ias,ngp,apwalm(:,:,:,ias),nmatp,h)
   call hmllolo(ias,ngp,nmatp,h)
 end do
 call hmlistl(ngp,igpig,vgpc,nmatp,h)
@@ -64,8 +63,8 @@ do i=1,nmatp
   o(1:i,i)=0.d0
 end do
 do ias=1,natmtot
-  call olpaa(ias,ngp,apwalm,nmatp,o)
-  call olpalo(ias,ngp,apwalm,nmatp,o)
+  call olpaa(ias,ngp,apwalm(:,:,:,ias),nmatp,o)
+  call olpalo(ias,ngp,apwalm(:,:,:,ias),nmatp,o)
   call olplolo(ias,ngp,nmatp,o)
 end do
 call olpistl(ngp,igpig,nmatp,o)

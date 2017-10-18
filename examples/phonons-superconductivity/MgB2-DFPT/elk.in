@@ -1,0 +1,69 @@
+
+! This example generates a phonon dispersion for the superconductor MgB2 using
+! density functional perturbation theory (DFPT). The superconducting critical
+! temperature is also computed using McMillan's formula and by solving the
+! Eliashberg equations.
+
+tasks
+  0       : ground state run
+  205     : compute the dynamical matrices
+
+! number of phonon q-points
+ngridq
+  4  4  4
+
+! the k-point grid has to be commensurate with the q-point grid
+ngridk
+  8  8  8
+
+! larger smearing width required for stable phonon dispersion
+swidth
+  0.005
+
+stype
+  1
+
+! increase the number of muffin-tin points (for accurate gradients)
+nrmtscf
+  2
+
+! after all the dynamical matrix DYN---.OUT files have been calculated then
+! uncomment the following lines and run again
+
+!ngridk
+!  24 24 24
+
+!tasks
+!  1       : ground state with larger k-point set
+!  210     : phonon DOS
+!  220     : plot the phonon dispersion
+!  240     : electron-phonon matrix elements
+!  245     : phonon line-widths
+!  250     : Eliashberg function, alpha^2F
+
+plot1d
+  5  1000
+  0.0  0.0  0.0
+  0.5  0.0  0.0
+  0.5  0.0  0.5
+  0.0  0.0  0.0
+  0.0  0.0  0.5
+
+avec
+   5.83170   0.000000000   0.0000
+  -2.91585   5.050400347   0.0000
+   0.00000   0.000000000   6.6594
+
+sppath
+ '../../../species/'
+
+atoms
+   2                                    : nspecies
+'Mg.in'                                 : spfname
+   1                                    : natoms; atposl below
+    0.00000000    0.00000000    0.00000000
+'B.in'
+   2
+    0.33333333    0.66666667    0.50000000
+    0.66666667    0.33333333    0.50000000
+

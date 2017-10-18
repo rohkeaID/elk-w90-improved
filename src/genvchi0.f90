@@ -3,20 +3,20 @@
 ! This file is distributed under the terms of the GNU General Public License.
 ! See the file COPYING for license details.
 
-subroutine genvchi0(ikp,icmp,scsr,vqpl,igq0,gqc,ylmgq,sfacgq,vchi0)
+subroutine genvchi0(ik,icmp,scsr,vqpl,igq0,gqc,jlgqr,ylmgq,sfacgq,vchi0)
 use modmain
 implicit none
 ! local variables
-integer, intent(in) :: ikp,icmp
+integer, intent(in) :: ik,icmp
 real(8), intent(in) :: scsr
 real(8), intent(in) :: vqpl(3)
 integer, intent(in) :: igq0
-real(8), intent(in) :: gqc(ngrf)
-complex(8), intent(in) :: ylmgq(lmmaxvr,ngrf)
+real(8), intent(in) :: gqc(ngrf),jlgqr(njcmax,nspecies,ngrf)
+complex(8), intent(in) :: ylmgq(lmmaxo,ngrf)
 complex(8), intent(in) :: sfacgq(ngrf,natmtot)
 complex(8), intent(inout) :: vchi0(nwrf,ngrf,ngrf)
 ! local variables
-integer isym,jkp,jkpq,iw
+integer isym,jk,jkq,iw
 integer nst,nstq,ist,jst
 integer kst,lst,ig,jg
 real(8) vkql(3),eij,t1,t2
@@ -25,40 +25,38 @@ complex(8) z1,z2
 integer idx(nstsv),idxq(nstsv)
 ! allocatable arrays
 complex(8), allocatable :: pmat(:,:,:)
-complex(8), allocatable :: wfmt(:,:,:,:,:),wfir(:,:,:)
-complex(8), allocatable :: wfmtq(:,:,:,:,:),wfirq(:,:,:)
-complex(8), allocatable :: zrhomt(:,:,:),zrhoir(:)
+complex(8), allocatable :: wfmt(:,:,:,:),wfir(:,:,:)
+complex(8), allocatable :: wfmtq(:,:,:,:),wfirq(:,:,:)
+complex(8), allocatable :: zrhomt(:,:),zrhoir(:)
 complex(8), allocatable :: zrhoig(:),zw(:)
 ! k+q-vector in lattice coordinates
-vkql(:)=vkl(:,ikp)+vqpl(:)
+vkql(:)=vkl(:,ik)+vqpl(:)
 ! equivalent reduced k-points for k and k+q
-call findkpt(vkl(:,ikp),isym,jkp)
-call findkpt(vkql,isym,jkpq)
+call findkpt(vkl(:,ik),isym,jk)
+call findkpt(vkql,isym,jkq)
 ! count and index states at k and k+q in energy window
 nst=0
 do ist=1,nstsv
-  if (abs(evalsv(ist,jkp)-efermi).lt.emaxrf) then
+  if (abs(evalsv(ist,jk)-efermi).lt.emaxrf) then
     nst=nst+1
     idx(nst)=ist
   end if
 end do
 nstq=0
 do jst=1,nstsv
-  if (abs(evalsv(jst,jkpq)-efermi).lt.emaxrf) then
+  if (abs(evalsv(jst,jkq)-efermi).lt.emaxrf) then
     nstq=nstq+1
     idxq(nstq)=jst
   end if
 end do
 ! generate the wavefunctions for all states at k and k+q in energy window
-allocate(wfmt(lmmaxvr,nrcmtmax,natmtot,nspinor,nst))
-allocate(wfir(ngtot,nspinor,nst))
-call genwfsvp(.false.,.false.,nst,idx,vkl(:,ikp),wfmt,ngtot,wfir)
-allocate(wfmtq(lmmaxvr,nrcmtmax,natmtot,nspinor,nstq))
-allocate(wfirq(ngtot,nspinor,nstq))
+allocate(wfmt(npcmtmax,natmtot,nspinor,nst),wfir(ngtot,nspinor,nst))
+call genwfsvp(.false.,.false.,nst,idx,vkl(:,ik),wfmt,ngtot,wfir)
+allocate(wfmtq(npcmtmax,natmtot,nspinor,nstq),wfirq(ngtot,nspinor,nstq))
 call genwfsvp(.false.,.false.,nstq,idxq,vkql,wfmtq,ngtot,wfirq)
 ! read the momentum matrix elements from file
 allocate(pmat(nstsv,nstsv,3))
-call getpmat(.false.,vkl(:,ikp),pmat)
+call getpmat(.false.,vkl(:,ik),pmat)
 ! divide by unit cell volume
 t1=1.d0/omega
 pmat(:,:,:)=t1*pmat(:,:,:)
@@ -68,14 +66,14 @@ pmat(:,:,:)=t1*pmat(:,:,:)
 !$OMP PRIVATE(iw,ig,jg,z1,z2)
 !$OMP DO
 do ist=1,nst
-  allocate(zrhomt(lmmaxvr,nrcmtmax,natmtot),zrhoir(ngtot))
+  allocate(zrhomt(npcmtmax,natmtot),zrhoir(ngtot))
   allocate(zrhoig(ngrf),zw(nwrf))
   kst=idx(ist)
   do jst=1,nstq
     lst=idxq(jst)
-    t1=wkptnr*omega*(occsv(kst,jkp)-occsv(lst,jkpq))
+    t1=wkptnr*omega*(occsv(kst,jk)-occsv(lst,jkq))
     if (abs(t1).lt.1.d-8) cycle
-    eij=evalsv(kst,jkp)-evalsv(lst,jkpq)
+    eij=evalsv(kst,jk)-evalsv(lst,jkq)
 ! scissor operator
     if (abs(scsr).gt.1.d-8) then
       t2=eij
@@ -93,9 +91,9 @@ do ist=1,nst
       zw(iw)=t1/(eij+wrf(iw))
     end do
 ! compute the complex density in G+q-space
-    call genzrho(.true.,.true.,wfmt(:,:,:,:,ist),wfir(:,:,ist), &
-     wfmtq(:,:,:,:,jst),wfirq(:,:,jst),zrhomt,zrhoir)
-    call zftzf(ngrf,gqc,ylmgq,ngrf,sfacgq,zrhomt,zrhoir,zrhoig)
+    call genzrho(.true.,.true.,wfmt(:,:,:,ist),wfir(:,:,ist),wfmtq(:,:,:,jst), &
+     wfirq(:,:,jst),zrhomt,zrhoir)
+    call zftzf(ngrf,jlgqr,ylmgq,ngrf,sfacgq,zrhomt,zrhoir,zrhoig)
 !$OMP CRITICAL
 !------------------------!
 !     body of matrix     !

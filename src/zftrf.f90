@@ -13,7 +13,7 @@ use modmain
 !   npv  : number of P-vectors (in,integer)
 !   ivp  : integer coordinates of the P-vectors (in,integer(3,npv))
 !   vpc  : P-vectors in Cartesian coordinates (in,real(3,npv))
-!   rfmt : real muffin-tin function (in,real(lmmaxvr,nrmtmax,natmtot))
+!   rfmt : real muffin-tin function (in,real(npmtmax,natmtot))
 !   rfir : real interstitial function (in,real(ngtot))
 !   zfp  : Fourier expansion coefficients of the real-space function
 !          (out,complex(npv))
@@ -38,24 +38,26 @@ implicit none
 ! arguments
 integer, intent(in) :: npv,ivp(3,npv)
 real(8), intent(in) :: vpc(3,npv)
-real(8), intent(in) :: rfmt(lmmaxvr,nrmtmax,natmtot),rfir(ngtot)
+real(8), intent(in) :: rfmt(npmtmax,natmtot),rfir(ngtot)
 complex(8), intent(out) :: zfp(npv)
 ! local variables
 integer is,ia,ias
-integer nrc,nrci,iro,irc
-integer lmax,l,m,lm
+integer nrc,nrci,irco,irc
+integer lmax,l,m,lm,npci,i
 integer ip,ig,ifg
-real(8) p,tp(2),t0,t1,t2
+real(8) p,tp(2),t0,t1,t2,t3
 complex(8) zsum1,zsum2
 complex(8) z1,z2,z3
 ! automatic arrays
-real(8) jl(0:lmaxvr,nrcmtmax)
-real(8) fr1(nrcmtmax),fr2(nrcmtmax),gr(nrcmtmax)
-complex(8) ylm(lmmaxvr)
+real(8) jl(0:lmaxo,nrcmtmax)
+real(8) fr1(nrcmtmax),fr2(nrcmtmax),rfmt1(npcmtmax)
+complex(8) ylm(lmmaxo)
 ! allocatable arrays
-complex(8), allocatable :: zfft(:),zfmt(:,:,:)
-allocate(zfft(ngtot))
-allocate(zfmt(lmmaxvr,nrcmtmax,natmtot))
+complex(8), allocatable :: zfft(:),zfmt(:,:)
+! external functions
+real(8) fintgt
+external fintgt
+allocate(zfft(ngtot),zfmt(npcmtmax,natmtot))
 ! zero the coefficients
 zfp(:)=0.d0
 !---------------------------!
@@ -76,10 +78,12 @@ end do
 !-------------------------!
 !     muffin-tin part     !
 !-------------------------!
-! convert function from real to complex spherical harmonic expansion
+! convert function from real to complex spherical harmonic expansion on coarse
+! radial mesh
 do ias=1,natmtot
   is=idxis(ias)
-  call rtozfmt(nrcmt(is),nrcmtinr(is),lradstp,rfmt(:,:,ias),1,zfmt(:,:,ias))
+  call rfmtftoc(nrmt(is),nrmti(is),rfmt(:,ias),rfmt1)
+  call rtozfmt(nrcmt(is),nrcmti(is),rfmt1,zfmt(:,ias))
 end do
 ! remove continuation of interstitial function into muffin-tin
 do ig=1,ngtot
@@ -87,15 +91,19 @@ do ig=1,ngtot
 ! spherical coordinates of G
   call sphcrd(vgc(:,ig),t1,tp)
 ! conjugate spherical harmonics Y_lm*(G)
-  call genylm(lmaxvr,tp,ylm)
+  call genylm(lmaxo,tp,ylm)
   ylm(:)=conjg(ylm(:))
   do is=1,nspecies
     nrc=nrcmt(is)
-    nrci=nrcmtinr(is)
+    nrci=nrcmti(is)
+    irco=nrci+1
+    npci=npcmti(is)
 ! generate spherical Bessel functions
+    lmax=lmaxi
     do irc=1,nrc
       t1=gc(ig)*rcmt(irc,is)
-      call sbessel(lmaxvr,t1,jl(:,irc))
+      call sbessel(lmax,t1,jl(:,irc))
+      if (irc.eq.nrci) lmax=lmaxo
     end do
     do ia=1,natoms(is)
       ias=idxas(ia,is)
@@ -103,18 +111,28 @@ do ig=1,ngtot
       t1=dot_product(vgc(:,ig),atposc(:,ia,is))
       z1=fourpi*zfft(ifg)*cmplx(cos(t1),sin(t1),8)
       lm=0
-      do l=0,lmaxvr
-        if (l.le.lmaxinr) then
-          iro=1
-        else
-          iro=nrci+1
-        end if
+      do l=0,lmaxi
         z2=z1*zil(l)
         do m=-l,l
           lm=lm+1
           z3=z2*ylm(lm)
-          do irc=iro,nrc
-            zfmt(lm,irc,ias)=zfmt(lm,irc,ias)-z3*jl(l,irc)
+          i=lm
+          do irc=1,nrci
+            zfmt(i,ias)=zfmt(i,ias)-z3*jl(l,irc)
+            i=i+lmmaxi
+          end do
+        end do
+      end do
+      lm=0
+      do l=0,lmaxo
+        z2=z1*zil(l)
+        do m=-l,l
+          lm=lm+1
+          z3=z2*ylm(lm)
+          i=npci+lm
+          do irc=irco,nrc
+            zfmt(i,ias)=zfmt(i,ias)-z3*jl(l,irc)
+            i=i+lmmaxo
           end do
         end do
       end do
@@ -127,45 +145,46 @@ do ip=1,npv
 ! spherical coordinates of P
   call sphcrd(vpc(:,ip),p,tp)
 ! spherical harmonics Y_lm(P)
-  call genylm(lmaxvr,tp,ylm)
+  call genylm(lmaxo,tp,ylm)
   do is=1,nspecies
     nrc=nrcmt(is)
-    nrci=nrcmtinr(is)
+    nrci=nrcmti(is)
 ! generate spherical Bessel functions
+    lmax=lmaxi
     do irc=1,nrc
       t1=p*rcmt(irc,is)
-      call sbessel(lmaxvr,t1,jl(:,irc))
+      call sbessel(lmax,t1,jl(:,irc))
+      if (irc.eq.nrci) lmax=lmaxo
     end do
     do ia=1,natoms(is)
       ias=idxas(ia,is)
-! conjugate structure factor
-      t1=-dot_product(vpc(:,ip),atposc(:,ia,is))
-      z1=t0*cmplx(cos(t1),sin(t1),8)
+      lmax=lmaxi
+      i=0
       do irc=1,nrc
-        if (irc.le.nrci) then
-          lmax=lmaxinr
-        else
-          lmax=lmaxvr
-        end if
-        zsum1=jl(0,irc)*zfmt(1,irc,ias)*ylm(1)
+        i=i+1
+        zsum1=jl(0,irc)*zfmt(i,ias)*ylm(1)
         lm=1
         do l=1,lmax
           lm=lm+1
-          zsum2=zfmt(lm,irc,ias)*ylm(lm)
+          i=i+1
+          zsum2=zfmt(i,ias)*ylm(lm)
           do m=1-l,l
             lm=lm+1
-            zsum2=zsum2+zfmt(lm,irc,ias)*ylm(lm)
+            i=i+1
+            zsum2=zsum2+zfmt(i,ias)*ylm(lm)
           end do
           zsum1=zsum1+jl(l,irc)*zilc(l)*zsum2
         end do
         zsum1=zsum1*r2cmt(irc,is)
         fr1(irc)=dble(zsum1)
         fr2(irc)=aimag(zsum1)
+        if (irc.eq.nrci) lmax=lmaxo
       end do
-      call fderiv(-1,nrc,rcmt(:,is),fr1,gr)
-      t1=gr(nrc)
-      call fderiv(-1,nrc,rcmt(:,is),fr2,gr)
-      t2=gr(nrc)
+      t1=fintgt(-1,nrc,rcmt(:,is),fr1)
+      t2=fintgt(-1,nrc,rcmt(:,is),fr2)
+! conjugate structure factor
+      t3=-dot_product(vpc(:,ip),atposc(:,ia,is))
+      z1=t0*cmplx(cos(t3),sin(t3),8)
       zfp(ip)=zfp(ip)+z1*cmplx(t1,t2,8)
     end do
   end do

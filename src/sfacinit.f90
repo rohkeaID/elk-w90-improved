@@ -48,8 +48,8 @@ call genapwfr
 call genlofr
 do ik=1,nkpt
 ! get the eigenvalues and occupancies from file
-  call getevalsv(filext,vkl(:,ik),evalsv(:,ik))
-  call getoccsv(filext,vkl(:,ik),occsv(:,ik))
+  call getevalsv(filext,ik,vkl(:,ik),evalsv(:,ik))
+  call getoccsv(filext,ik,vkl(:,ik),occsv(:,ik))
 ! zero occupancies for eigenvalues not in energy window
   do ist=1,nstsv
     if ((evalsv(ist,ik).lt.wsfac(1)).or.(evalsv(ist,ik).gt.wsfac(2))) then

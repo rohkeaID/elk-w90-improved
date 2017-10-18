@@ -21,7 +21,7 @@ call init1
 call readfermi
 ! get the eigenvalues from file
 do ik=1,nkpt
-  call getevalsv(filext,vkl(:,ik),evalsv(:,ik))
+  call getevalsv(filext,ik,vkl(:,ik),evalsv(:,ik))
 end do
 ! generate the BSE state index arrays
 call genidxbse
@@ -71,18 +71,7 @@ if (bsefull) then
   deallocate(vl,vr,rwork,work)
 else
 ! Hermitian block only
-  allocate(rwork(3*nmbse))
-  lwork=2*nmbse
-  allocate(work(lwork))
-  call zheev('V','U',nmbse,hmlbse,nmbse,evalbse,work,lwork,rwork,info)
-  if (info.ne.0) then
-    write(*,*)
-    write(*,'("Error(writeevbse): diagonalisation failed")')
-    write(*,'(" ZHEEV returned INFO = ",I8)') info
-    write(*,*)
-    stop
-  end if
-  deallocate(rwork,work)
+  call eveqnz(nmbse,nmbse,hmlbse,evalbse)
 end if
 ! write the BSE eigenvectors and eigenvalues to file
 open(50,file='EVBSE.OUT',action='WRITE',form='UNFORMATTED')

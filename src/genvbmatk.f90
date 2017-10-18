@@ -7,10 +7,10 @@ subroutine genvbmatk(vmt,vir,bmt,bir,ngp,igpig,wfmt,ld,wfir,vbmat)
 use modmain
 implicit none
 ! arguments
-real(8), intent(in) :: vmt(lmmaxvr,nrcmtmax,natmtot),vir(ngtot)
-real(8), intent(in) :: bmt(lmmaxvr,nrcmtmax,natmtot,ndmag),bir(ngtot,ndmag)
+real(8), intent(in) :: vmt(npcmtmax,natmtot),vir(ngtot)
+real(8), intent(in) :: bmt(npcmtmax,natmtot,ndmag),bir(ngtot,ndmag)
 integer, intent(in) :: ngp(nspnfv),igpig(ngkmax,nspnfv)
-complex(8), intent(in) :: wfmt(lmmaxvr,nrcmtmax,natmtot,nspinor,nstsv)
+complex(8), intent(in) :: wfmt(npcmtmax,natmtot,nspinor,nstsv)
 integer, intent(in) :: ld
 complex(8), intent(in) :: wfir(ld,nspinor,nstsv)
 complex(8), intent(out) :: vbmat(nstsv,nstsv)
@@ -21,7 +21,7 @@ integer igp,ifg
 real(8) t0,t1
 complex(8) z1,z2,z3
 ! allocatable arrays
-complex(8), allocatable :: wfmt1(:,:,:),wfir1(:,:),z(:)
+complex(8), allocatable :: wfmt1(:,:),wfir1(:,:),z(:)
 ! external functions
 complex(8) zfcmtinp,zdotc
 external zfcmtinp,zdotc
@@ -35,27 +35,26 @@ vbmat(:,:)=0.d0
 !$OMP PRIVATE(ist,ispn,z1)
 !$OMP DO
 do jst=1,nstsv
-  allocate(wfmt1(lmmaxvr,nrcmtmax,nspinor))
+  allocate(wfmt1(npcmtmax,nspinor))
   do ias=1,natmtot
     is=idxis(ias)
     nrc=nrcmt(is)
-    nrci=nrcmtinr(is)
+    nrci=nrcmti(is)
 ! apply local potential and magnetic field to spinor wavefunction
     if (ncmag) then
 ! non-collinear case
-      call vbmt1(nrc,nrci,vmt(:,:,ias),bmt(:,:,ias,1),bmt(:,:,ias,2), &
-       bmt(:,:,ias,3),wfmt(:,:,ias,1,jst),wfmt(:,:,ias,2,jst),wfmt1(:,:,1), &
-       wfmt1(:,:,2))
+      call vbmt1(npcmt(is),vmt(:,ias),bmt(:,ias,1),bmt(:,ias,2),bmt(:,ias,3), &
+       wfmt(:,ias,1,jst),wfmt(:,ias,2,jst),wfmt1(:,1),wfmt1(:,2))
     else
 ! collinear case
-      call vbmt2(nrc,nrci,vmt(:,:,ias),bmt(:,:,ias,1),wfmt(:,:,ias,1,jst), &
-       wfmt(:,:,ias,2,jst),wfmt1(:,:,1),wfmt1(:,:,2))
+      call vbmt2(npcmt(is),vmt(:,ias),bmt(:,ias,1),wfmt(:,ias,1,jst), &
+       wfmt(:,ias,2,jst),wfmt1(:,1),wfmt1(:,2))
     end if
     do ist=1,jst
-! compute inner product
       do ispn=1,nspinor
-        z1=zfcmtinp(nrc,nrci,rcmt(:,is),r2cmt(:,is),wfmt(:,:,ias,ispn,ist), &
-         wfmt1(:,:,ispn))
+! compute inner product (functions are in spherical coordinates)
+        z1=zfcmtinp(nrc,nrci,rcmt(:,is),r2cmt(:,is),wfmt(:,ias,ispn,ist), &
+         wfmt1(:,ispn))
         vbmat(ist,jst)=vbmat(ist,jst)+z1
       end do
     end do
@@ -131,68 +130,44 @@ return
 
 contains
 
-subroutine vbmt1(nr,nri,vmt,bmt1,bmt2,bmt3,wfmt11,wfmt12,wfmt21,wfmt22)
+subroutine vbmt1(n,v,b1,b2,b3,wf11,wf12,wf21,wf22)
 implicit none
 ! arguments
-integer, intent(in) :: nr,nri
-real(8), intent(in) :: vmt(lmmaxvr,nr)
-real(8), intent(in) :: bmt1(lmmaxvr,nr),bmt2(lmmaxvr,nr),bmt3(lmmaxvr,nr)
-complex(8), intent(in) :: wfmt11(lmmaxvr,nr),wfmt12(lmmaxvr,nr)
-complex(8), intent(out) :: wfmt21(lmmaxvr,nr),wfmt22(lmmaxvr,nr)
+integer, intent(in) :: n
+real(8), intent(in) :: v(n),b1(n),b2(n),b3(n)
+complex(8), intent(in) :: wf11(n),wf12(n)
+complex(8), intent(out) :: wf21(n),wf22(n)
 ! local variables
-integer ir,itp
+integer i
 real(8) t0,t1
 complex(8) z1,z2,z3
-do ir=1,nri
-  do itp=1,lmmaxinr
-    t0=vmt(itp,ir)
-    z3=cmplx(bmt1(itp,ir),bmt2(itp,ir),8)
-    t1=bmt3(itp,ir)
-    z1=wfmt11(itp,ir)
-    z2=wfmt12(itp,ir)
-    wfmt21(itp,ir)=(t0+t1)*z1+conjg(z3)*z2
-    wfmt22(itp,ir)=(t0-t1)*z2+z3*z1
-  end do
-end do
-do ir=nri+1,nr
-  do itp=1,lmmaxvr
-    t0=vmt(itp,ir)
-    z3=cmplx(bmt1(itp,ir),bmt2(itp,ir),8)
-    t1=bmt3(itp,ir)
-    z1=wfmt11(itp,ir)
-    z2=wfmt12(itp,ir)
-    wfmt21(itp,ir)=(t0+t1)*z1+conjg(z3)*z2
-    wfmt22(itp,ir)=(t0-t1)*z2+z3*z1
-  end do
+do i=1,n
+  t0=v(i)
+  z3=cmplx(b1(i),b2(i),8)
+  t1=b3(i)
+  z1=wf11(i)
+  z2=wf12(i)
+  wf21(i)=(t0+t1)*z1+conjg(z3)*z2
+  wf22(i)=(t0-t1)*z2+z3*z1
 end do
 return
 end subroutine
 
-subroutine vbmt2(nr,nri,vmt,bmt,wfmt11,wfmt12,wfmt21,wfmt22)
+subroutine vbmt2(n,v,b,wf11,wf12,wf21,wf22)
 implicit none
 ! arguments
-integer, intent(in) :: nr,nri
-real(8), intent(in) :: vmt(lmmaxvr,nr),bmt(lmmaxvr,nr)
-complex(8), intent(in) :: wfmt11(lmmaxvr,nr),wfmt12(lmmaxvr,nr)
-complex(8), intent(out) :: wfmt21(lmmaxvr,nr),wfmt22(lmmaxvr,nr)
+integer, intent(in) :: n
+real(8), intent(in) :: v(n),b(n)
+complex(8), intent(in) :: wf11(n),wf12(n)
+complex(8), intent(out) :: wf21(n),wf22(n)
 ! local variables
-integer ir,itp
+integer i
 real(8) t0,t1
-do ir=1,nri
-  do itp=1,lmmaxinr
-    t0=vmt(itp,ir)
-    t1=bmt(itp,ir)
-    wfmt21(itp,ir)=(t0+t1)*wfmt11(itp,ir)
-    wfmt22(itp,ir)=(t0-t1)*wfmt12(itp,ir)
-  end do
-end do
-do ir=nri+1,nr
-  do itp=1,lmmaxvr
-    t0=vmt(itp,ir)
-    t1=bmt(itp,ir)
-    wfmt21(itp,ir)=(t0+t1)*wfmt11(itp,ir)
-    wfmt22(itp,ir)=(t0-t1)*wfmt12(itp,ir)
-  end do
+do i=1,n
+  t0=v(i)
+  t1=b(i)
+  wf21(i)=(t0+t1)*wf11(i)
+  wf22(i)=(t0-t1)*wf12(i)
 end do
 return
 end subroutine

@@ -35,7 +35,7 @@ call genapwfr
 call genlofr
 ! get the occupancies from file
 do ik=1,nkpt
-  call getoccsv(filext,vkl(:,ik),occsv(:,ik))
+  call getoccsv(filext,ik,vkl(:,ik),occsv(:,ik))
 end do
 ! read in the electron momentum density
 allocate(emds(nhkmax,nkpt))

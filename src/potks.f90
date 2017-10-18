@@ -20,7 +20,7 @@ use modmain
 !BOC
 implicit none
 ! local variables
-integer is,ias,ir
+integer is,ias,np
 real(8) ts0,ts1
 call timesec(ts0)
 ! compute the Coulomb potential
@@ -28,26 +28,12 @@ call potcoul
 ! compute the exchange-correlation potential and fields
 call potxc
 ! effective potential from sum of Coulomb and exchange-correlation potentials
-!$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(is,ir)
-!$OMP DO
 do ias=1,natmtot
   is=idxis(ias)
-! inner part of muffin-tin: l <= lmaxinr
-  do ir=1,nrmtinr(is)
-    vsmt(1:lmmaxinr,ir,ias)=vclmt(1:lmmaxinr,ir,ias)+vxcmt(1:lmmaxinr,ir,ias)
-    vsmt(lmmaxinr+1:lmmaxvr,ir,ias)=0.d0
-  end do
-! outer part of muffin-tin: l <= lmaxvr
-  do ir=nrmtinr(is)+1,nrmt(is)
-    vsmt(:,ir,ias)=vclmt(:,ir,ias)+vxcmt(:,ir,ias)
-  end do
+  np=npmt(is)
+  vsmt(1:np,ias)=vclmt(1:np,ias)+vxcmt(1:np,ias)
 end do
-!$OMP END DO
-!$OMP END PARALLEL
-!$OMP PARALLEL WORKSHARE
 vsir(:)=vclir(:)+vxcir(:)
-!$OMP END PARALLEL WORKSHARE
 ! generate the Kohn-Sham effective magnetic fields
 call bfieldks
 call timesec(ts1)

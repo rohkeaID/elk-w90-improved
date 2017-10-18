@@ -13,9 +13,9 @@ use modmain
 !   nr    : number of radial mesh points (in,integer)
 !   nri   : number of points on inner part of muffin-tin (in,integer)
 !   r     : radial mesh (in,real(nr))
-!   rfmt  : real muffin-tin function (in,real(lmmaxvr,nr))
+!   rfmt  : real muffin-tin function (in,real(lmmaxo,nr))
 !   ld    : leading dimension (in,integer)
-!   grfmt : gradient of rfmt (out,real(lmmaxvr,ld,3))
+!   grfmt : gradient of rfmt (out,real(lmmaxo,ld,3))
 ! !DESCRIPTION:
 !   Calculates the gradient of a real muffin-tin function. In other words, given
 !   the real spherical harmonic expansion coefficients, $f_{lm}(r)$, of a
@@ -33,21 +33,21 @@ implicit none
 ! arguments
 integer, intent(in) :: nr,nri
 real(8), intent(in) :: r(nr)
-real(8), intent(in) :: rfmt(lmmaxvr,nr)
+real(8), intent(in) :: rfmt(*)
 integer, intent(in) :: ld
-real(8), intent(out) :: grfmt(lmmaxvr,ld,3)
+real(8), intent(out) :: grfmt(ld,3)
 ! local variables
 integer i
 ! allocatable arrays
-complex(8), allocatable :: zfmt(:,:),gzfmt(:,:,:)
-allocate(zfmt(lmmaxvr,nr),gzfmt(lmmaxvr,nr,3))
+complex(8), allocatable :: zfmt(:),gzfmt(:,:)
+allocate(zfmt(ld),gzfmt(ld,3))
 ! convert real to complex spherical harmonic expansion
-call rtozfmt(nr,nri,1,rfmt,1,zfmt)
+call rtozfmt(nr,nri,rfmt,zfmt)
 ! compute the gradient
-call gradzfmt(nr,nri,r,zfmt,nr,gzfmt)
+call gradzfmt(nr,nri,r,zfmt,ld,gzfmt)
 ! convert complex to real spherical harmonic expansion
 do i=1,3
-  call ztorfmt(nr,nri,1,gzfmt(:,:,i),1,grfmt(:,:,i))
+  call ztorfmt(nr,nri,gzfmt(:,i),grfmt(:,i))
 end do
 deallocate(zfmt,gzfmt)
 return

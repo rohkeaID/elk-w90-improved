@@ -39,7 +39,7 @@ call genapwfr
 call genlofr
 ! get the occupancies from file
 do ik=1,nkpt
-  call getoccsv(filext,vkl(:,ik),occsv(:,ik))
+  call getoccsv(filext,ik,vkl(:,ik),occsv(:,ik))
 end do
 ! delete existing EMD.OUT
 if (mp_mpi) then

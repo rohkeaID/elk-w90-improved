@@ -26,7 +26,7 @@ integer wann_projlines           ! Number of lines in projection block
 integer wann_inputlines          ! Number of lines in wann_input block
 character(256) wann_projstr(256) ! the projection block to write to .WIN
 character(256) wann_input(256)   ! arbitrary input for wannier90 .WIN
-character(256) wann_seedname     ! default: ELK 
+character(256) wann_seedname     ! default: ELK
 character(4) wann_proj_units                    ! Ang/Bohr units (cart coords)
 real(8), allocatable :: wann_proj_site(:,:)     ! coordinates of sites
 logical, allocatable :: wann_proj_haswt(:,:)    ! if proj has weight in this MT
@@ -43,4 +43,3 @@ real(8), allocatable :: wann_projulr(:,:,:,:)   ! the radial part on coarse mesh
 complex(8), allocatable :: wann_projclm(:,:,:)  ! the coefficients in Ylm basis
 
 end module
-

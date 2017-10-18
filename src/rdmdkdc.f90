@@ -27,7 +27,7 @@ integer ik
 !$OMP DO
 do ik=1,nkpt
   allocate(evecsv(nstsv,nstsv),kmat(nstsv,nstsv))
-  call getevecsv(filext,vkl(:,ik),evecsv)
+  call getevecsv(filext,ik,vkl(:,ik),evecsv)
   call getkmat(ik,kmat)
   call zgemm('N','N',nstsv,nstsv,nstsv,zone,kmat,nstsv,evecsv,nstsv,zzero, &
    dkdc(:,:,ik),nstsv)

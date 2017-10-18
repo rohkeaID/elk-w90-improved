@@ -19,8 +19,8 @@ call init2
 call readfermi
 ! get the eigenvalues and occupancies from file
 do ik=1,nkpt
-  call getevalsv(filext,vkl(:,ik),evalsv(:,ik))
-  call getoccsv(filext,vkl(:,ik),occsv(:,ik))
+  call getevalsv(filext,ik,vkl(:,ik),evalsv(:,ik))
+  call getoccsv(filext,ik,vkl(:,ik),occsv(:,ik))
 end do
 ! generate the index to the BdG states
 call genidxbdg

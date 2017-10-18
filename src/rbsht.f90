@@ -3,28 +3,24 @@
 ! This file is distributed under the terms of the GNU General Public License.
 ! See the file COPYING for license details.
 
-subroutine rbsht(nr,nri,lrstp1,rfmt1,lrstp2,rfmt2)
+subroutine rbsht(nr,nri,rfmt1,rfmt2)
 use modmain
 implicit none
 ! arguments
 integer, intent(in) :: nr,nri
-integer, intent(in) :: lrstp1
-real(8), intent(in) :: rfmt1(lmmaxvr,lrstp1,nr)
-integer, intent(in) :: lrstp2
-real(8), intent(out) :: rfmt2(lmmaxvr,lrstp2,nr)
+real(8), intent(in) :: rfmt1(*)
+real(8), intent(out) :: rfmt2(*)
 ! local variables
-integer ld1,ld2,nro,iro
-ld1=lmmaxvr*lrstp1
-ld2=lmmaxvr*lrstp2
+integer nro,i
 ! transform the inner part of the muffin-tin
-call dgemm('N','N',lmmaxinr,nri,lmmaxinr,1.d0,rbshtinr,lmmaxinr,rfmt1,ld1, &
- 0.d0,rfmt2,ld2)
+call dgemm('N','N',lmmaxi,nri,lmmaxi,1.d0,rbshti,lmmaxi,rfmt1,lmmaxi,0.d0, &
+ rfmt2,lmmaxi)
 ! transform the outer part of the muffin-tin
 nro=nr-nri
 if (nro.eq.0) return
-iro=nri+1
-call dgemm('N','N',lmmaxvr,nro,lmmaxvr,1.d0,rbshtvr,lmmaxvr,rfmt1(:,1,iro), &
- ld1,0.d0,rfmt2(:,1,iro),ld2)
+i=lmmaxi*nri+1
+call dgemm('N','N',lmmaxo,nro,lmmaxo,1.d0,rbshto,lmmaxo,rfmt1(i),lmmaxo,0.d0, &
+ rfmt2(i),lmmaxo)
 return
 end subroutine
 

@@ -21,7 +21,8 @@ use moddftu
 implicit none
 ! local variables
 integer is,ia,ias
-integer nr,ir,nn,i,l
+integer nr,nri,ir
+integer nn,i,l
 real(8) t1
 ! automatic arrays
 real(8) vr(nrmtmax),fr(nrmtmax)
@@ -33,9 +34,11 @@ do i=1,ndftu
   is=idftu(1,i)
   l=idftu(2,i)
   nr=nrmt(is)
+  nri=nrmti(is)
   do ia=1,natoms(is)
     ias=idxas(ia,is)
-    vr(1:nr)=vsmt(1,1:nr,ias)*y00
+    call rfmtlm(1,nr,nri,vsmt(:,ias),vr)
+    vr(1:nr)=vr(1:nr)*y00
 ! integrate the radial Schrodinger equation
     call rschrodint(solsc,l,fdue(l,ias),nr,rsp(:,is),vr,nn,p0,p1,q0,q1)
 ! normalise radial functions

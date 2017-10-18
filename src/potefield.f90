@@ -8,7 +8,8 @@ use modmain
 implicit none
 ! local variables
 integer is,ia,ias
-integer i1,i2,i3,ir
+integer nr,nri,ir
+integer i,i1,i2,i3
 real(8) e,tp(2),r,t1
 real(8) v0,e00,elm(-1:1)
 real(8) v1(3),v2(3)
@@ -24,17 +25,25 @@ elm(0)=-t1*cos(tp(1))
 elm(1)=t1*sin(tp(1))*cos(tp(2))
 ! muffin-tin potential
 do is=1,nspecies
+  nr=nrmt(is)
+  nri=nrmti(is)
   do ia=1,natoms(is)
     ias=idxas(ia,is)
 ! coefficient for R_00
     e00=-dot_product(efieldc(:),atposc(:,ia,is))+v0
     e00=e00/y00
-    do ir=1,nrmt(is)
+    i=1
+    do ir=1,nr
       r=rsp(ir,is)
-      vclmt(1,ir,ias)=vclmt(1,ir,ias)+e00
-      vclmt(2,ir,ias)=vclmt(2,ir,ias)+elm(-1)*r
-      vclmt(3,ir,ias)=vclmt(3,ir,ias)+elm(0)*r
-      vclmt(4,ir,ias)=vclmt(4,ir,ias)+elm(1)*r
+      vclmt(i,ias)=vclmt(i,ias)+e00
+      vclmt(i+1,ias)=vclmt(i+1,ias)+elm(-1)*r
+      vclmt(i+2,ias)=vclmt(i+2,ias)+elm(0)*r
+      vclmt(i+3,ias)=vclmt(i+3,ias)+elm(1)*r
+      if (ir.le.nri) then
+        i=i+lmmaxi
+      else
+        i=i+lmmaxo
+      end if
     end do
   end do
 end do

@@ -6,9 +6,12 @@
 !BOP
 ! !ROUTINE: reciplat
 ! !INTERFACE:
-subroutine reciplat
-! !USES:
-use modmain
+subroutine reciplat(avec,bvec,omega,omegabz)
+! !INPUT/OUTPUT PARAMETERS:
+!   avec    : lattice vectors (in,real(3,3))
+!   bvec    : reciprocal lattice vectors (out,real(3,3))
+!   omega   : unit cell volume (out,real)
+!   omegabz : Brillouin zone volume (out,real)
 ! !DESCRIPTION:
 !   Generates the reciprocal lattice vectors from the real-space lattice vectors
 !   \begin{align*}
@@ -25,7 +28,12 @@ use modmain
 !EOP
 !BOC
 implicit none
+! arguments
+real(8), intent(in) :: avec(3,3)
+real(8), intent(out) :: bvec(3,3)
+real(8), intent(out) :: omega,omegabz
 ! local variables
+real(8), parameter :: twopi=6.2831853071795864769d0
 real(8) t1
 call r3cross(avec(:,2),avec(:,3),bvec(:,1))
 call r3cross(avec(:,3),avec(:,1),bvec(:,2))

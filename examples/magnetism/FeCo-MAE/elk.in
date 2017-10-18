@@ -19,11 +19,11 @@ tasks
 lmaxapw
   14
 
-lmaxvr
+lmaxo
   14
 
 ! make the density and potential spherical near the nucleus
-lmaxinr
+lmaxi
   0
 
 ! number of magnetisation direction points; the estimate of the MAE improves

@@ -14,13 +14,13 @@ use modmain
 !            (in,logical)
 !   tspc   : .true. if the density should be contracted over spin (in,logical)
 !   wfmt1  : muffin-tin part of wavefunction 1 in spherical coordinates
-!            (in,complex(lmmaxvr,nrcmtmax,natmtot,nspinor))
+!            (in,complex(npcmtmax,natmtot,nspinor))
 !   wfir1  : interstitial wavefunction 1 (in,complex(ngtot))
 !   wfmt2  : muffin-tin part of wavefunction 2 in spherical coordinates
-!            (in,complex(lmmaxvr,nrcmtmax,natmtot,nspinor))
+!            (in,complex(npcmtmax,natmtot,nspinor))
 !   wfir2  : interstitial wavefunction 2 (in,complex(ngtot))
 !   zrhomt : muffin-tin charge density in spherical harmonics/coordinates
-!            (out,complex(lmmaxvr,nrcmtmax,natmtot))
+!            (out,complex(npcmtmax,natmtot))
 !   zrhoir : interstitial charge density (out,complex(ngtot))
 ! !DESCRIPTION:
 !   Calculates the complex overlap charge density from two input wavefunctions:
@@ -37,36 +37,34 @@ use modmain
 implicit none
 ! arguments
 logical, intent(in) :: tsh,tspc
-complex(8), intent(in) ::  wfmt1(lmmaxvr,nrcmtmax,natmtot,*),wfir1(ngtot,*)
-complex(8), intent(in) ::  wfmt2(lmmaxvr,nrcmtmax,natmtot,*),wfir2(ngtot,*)
-complex(8), intent(out) :: zrhomt(lmmaxvr,nrcmtmax,natmtot),zrhoir(ngtot)
+complex(8), intent(in) ::  wfmt1(npcmtmax,natmtot,*),wfir1(ngtot,*)
+complex(8), intent(in) ::  wfmt2(npcmtmax,natmtot,*),wfir2(ngtot,*)
+complex(8), intent(out) :: zrhomt(npcmtmax,natmtot),zrhoir(ngtot)
 ! local variables
-integer is,ias,nrc,nrci
+integer is,ias
 ! allocatable arrays
-complex(8), allocatable :: zfmt(:,:)
-if (tsh) allocate(zfmt(lmmaxvr,nrcmtmax))
+complex(8), allocatable :: zfmt(:)
+if (tsh) allocate(zfmt(npcmtmax))
 ! muffin-tin part
 do ias=1,natmtot
   is=idxis(ias)
-  nrc=nrcmt(is)
-  nrci=nrcmtinr(is)
   if (tsh) then
     if (tspc.and.spinpol) then
 ! contract over spin
-      call genzrmt2(nrc,nrci,wfmt1(:,:,ias,1),wfmt1(:,:,ias,2), &
-       wfmt2(:,:,ias,1),wfmt2(:,:,ias,2),zfmt)
+      call zrho2(npcmt(is),wfmt1(:,ias,1),wfmt1(:,ias,2),wfmt2(:,ias,1), &
+       wfmt2(:,ias,2),zfmt)
     else
 ! no spin contraction
-      call genzrmt1(nrc,nrci,wfmt1(:,:,ias,1),wfmt2(:,:,ias,1),zfmt)
+      call zrho1(npcmt(is),wfmt1(:,ias,1),wfmt2(:,ias,1),zfmt)
     end if
 ! convert to spherical harmonics
-    call zfsht(nrc,nrci,zfmt,zrhomt(:,:,ias))
+    call zfsht(nrcmt(is),nrcmti(is),zfmt,zrhomt(:,ias))
   else
     if (tspc.and.spinpol) then
-      call genzrmt2(nrc,nrci,wfmt1(:,:,ias,1),wfmt1(:,:,ias,2), &
-       wfmt2(:,:,ias,1),wfmt2(:,:,ias,2),zrhomt(:,:,ias))
+      call zrho2(npcmt(is),wfmt1(:,ias,1),wfmt1(:,ias,2),wfmt2(:,ias,1), &
+       wfmt2(:,ias,2),zrhomt(:,ias))
     else
-      call genzrmt1(nrc,nrci,wfmt1(:,:,ias,1),wfmt2(:,:,ias,1),zrhomt(:,:,ias))
+      call zrho1(npcmt(is),wfmt1(:,ias,1),wfmt2(:,ias,1),zrhomt(:,ias))
     end if
   end if
 end do

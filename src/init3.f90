@@ -5,6 +5,7 @@
 
 subroutine init3
 use modmain
+use modgw
 use modvars
 implicit none
 ! local variables
@@ -16,7 +17,7 @@ real(8) w1,w2,t1,t2
 !-------------------------------------------------------------!
 ! G-vectors for response functions
 ngrf=1
-do ig=ngvec,1,-1
+do ig=ng2gk,1,-1
   if (gc(ig).lt.gmaxrf) then
     ngrf=ig
     exit
@@ -35,6 +36,9 @@ if ((task.eq.188).or.(task.eq.320).or.(task.eq.330).or.(task.eq.331)) then
     t2=w1+t1*dble(iw-1)
     wrf(iw)=cmplx(t2,swidth,8)
   end do
+else if (task.eq.600) then
+! GW Matsubara frequencies
+  call genwgw
 else
   nwrf=1
   allocate(wrf(nwrf))

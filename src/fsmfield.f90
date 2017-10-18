@@ -25,7 +25,7 @@ use modmain
 !BOC
 implicit none
 ! local variables
-integer idm,is,ia,ias,ir,irc
+integer idm,is,ia,ias,ir
 real(8) v1(3),v2(3),t1
 if ((.not.spinpol).or.(fsmtype.eq.0)) return
 ! determine the global effective field
@@ -55,9 +55,7 @@ if ((abs(fsmtype).eq.1).or.(abs(fsmtype).eq.3)) then
     t1=bfsmc(idm)
     do ias=1,natmtot
       is=idxis(ias)
-      do irc=1,nrcmt(is)
-        bsmt(:,irc,ias,idm)=bsmt(:,irc,ias,idm)+t1
-      end do
+      bsmt(1:npcmt(is),ias,idm)=bsmt(1:npcmt(is),ias,idm)+t1
     end do
     do ir=1,ngtot
       bsir(ir,idm)=bsir(ir,idm)+t1*cfunir(ir)
@@ -96,9 +94,7 @@ if ((abs(fsmtype).eq.2).or.(abs(fsmtype).eq.3)) then
       end if
       do idm=1,ndmag
         t1=bfsmcmt(idm,ias)
-        do irc=1,nrcmt(is)
-          bsmt(:,irc,ias,idm)=bsmt(:,irc,ias,idm)+t1
-        end do
+        bsmt(1:npcmt(is),ias,idm)=bsmt(1:npcmt(is),ias,idm)+t1
       end do
     end do
   end do

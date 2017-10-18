@@ -1,0 +1,62 @@
+
+! GW approximation applied to copper. Note that this calculation uses more
+! k-points than q-points.
+
+
+tasks
+  0
+  600
+
+! switch on spin-coupling
+spinorb
+ .true.
+
+! temperature of the electronic system (determines Matsubara frequency spacing)
+tempk
+  1500.0
+
+nempty
+  8
+
+! Matsubara frequency cut-off
+wmaxgw
+  6.0
+
+! G-vector cut-off for response functions
+gmaxrf
+  3.0
+
+! diagonal approximation self-energy
+gwdiag
+  1
+
+wplot
+  1000 100  0  : nwplot, ngrkf, nswplot
+ -0.5 0.5     : wplot
+
+avec
+  0.5  0.5  0.0
+  0.5  0.0  0.5
+  0.0  0.5  0.5
+
+scale
+  6.83117
+
+ngridk
+  12 12 12
+
+! q-point grid smaller but commensurate with the k-point grid
+ngridq
+  4 4 4
+
+sppath
+  '../../../species/'
+
+atoms
+  1                                   : nspecies
+  'Cu.in'                             : spfname
+  1                                   : natoms
+  0.0  0.0  0.0    0.0  0.0  0.0      : atposl, bfcmt
+
+ngridk
+  8  8  8

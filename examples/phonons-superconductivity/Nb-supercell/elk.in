@@ -1,0 +1,115 @@
+
+! Example of how to determine the electron-phonon coupling parameters and
+! superconducting transition temperature T_c.
+
+! Note that these calculations are very time-consuming and require many
+! computers sharing a common directory to run efficiently. It is also important
+! to make sure the results are converged with respect to the various input
+! parameters and err on the side of caution. Electron-phonon coupling is still
+! an experimental feature at this stage.
+
+! Follow the steps below for niobium on a 4x4x4 q-point grid. This is a time-
+! consuming example, so the main results are included in this directory.
+
+avec
+  1.0  1.0 -1.0
+  1.0 -1.0  1.0
+ -1.0  1.0  1.0
+
+! LDA equilibrium lattice parameter
+scale
+  3.071
+
+sppath
+  '../../../species/'
+
+atoms
+  1                                   : nspecies
+  'Nb.in'                             : spfname
+  1                                   : natoms; atposl below
+  0.0  0.0  0.0
+
+! use efficient Broyden mixing
+mixtype
+  3
+
+! larger smearing width required
+swidth
+  0.005
+
+stype
+  1
+
+!--------------------------------------------------------------------------!
+!     Step 1: Compute the dynamical matrices and potential derivatives     !
+!--------------------------------------------------------------------------!
+
+! This step should be run on as many computers as possible which share the same
+! directory on a networked file system - just keep submitting jobs to the queue
+! from the same directory. As usual, each job can be individually parallel
+! using OpenMP.
+
+! The code works by determining which DYN_Qqqqq_qqqq_qqqq_Sss_Aaa_Pp.OUT files
+! need to be calculated. These files contain a single row of a dynamical matrix.
+! If a calculation fails to complete, just delete that particular DYN file and
+! re-run the code. All the DYN files must be calculated before proceeding to the
+! next step.
+
+tasks
+  200
+
+! the q-point grid
+ngridq
+  4  4  4
+
+! add extra local-orbitals for accurate electron-phonon coupling
+nxlo
+  1
+
+! larger cut-off required
+rgkmax
+  8.0
+
+! this is an important parameter which fixes the k-point density irrespective
+! of the size of the phonon supercell
+radkpt
+  40.0
+
+!-----------------------------------------------------------------------!
+!     Step 2: Phonon dispersion curves and electron-phonon coupling     !
+!-----------------------------------------------------------------------!
+
+! This should be run on one computer. You can plot the dispersion curves in the
+! file PHDISP.OUT along with lines corresponding to high symmetry points stored
+! in PHDLINES.OUT. The phonon linewidths along the same directions are in the
+! file PHLWIDTH.OUT (PHLWLINES.OUT). The electron-phonon coupling parameter,
+! lambda, and the estimated T_c is stored in MCMILLAN.OUT. You can also plot the
+! Eliashberg function in ALPHA2F.OUT. Compare with the results of Bauer et al.
+! in PRB 57, 11276 (1998).
+
+! Uncomment the tasks below and run.
+
+!tasks
+!  0       ! ground-state run
+!  220     ! plot the phonon dispersion
+!  240     ! generate the q-dependent phonon linewidths and coupling constants
+!  245     ! plot the phonon linewidths
+!  250     ! Eliashberg function, coupling constant, and superconducting T_c
+
+! fine k-point grid required for accurate electron-phonon coupling; it should
+! also be commensurate with the q-point grid
+ngridk
+  32  32  32
+
+! vertex location lines for the dispersion curves and phonon linewidths
+plot1d
+  9 400
+  0.5   0.5   0.5
+  0.25  0.25  0.25
+  0.0   0.0   0.0
+ -0.5   0.5   0.5
+ -0.5   0.5   0.0
+ -0.75  0.25  0.25
+ -0.5   0.5   0.0
+  0.0   0.0   0.0
+  0.5   0.5   0.0

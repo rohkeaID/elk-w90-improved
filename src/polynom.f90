@@ -26,8 +26,7 @@ real(8) function polynom(m,np,xa,ya,c,x)
 !BOC
 implicit none
 ! argmuments
-integer, intent(in) :: m
-integer, intent(in) :: np
+integer, intent(in) :: m,np
 real(8), intent(in) :: xa(np),ya(np)
 real(8), intent(out) :: c(np)
 real(8), intent(in) :: x
@@ -97,16 +96,19 @@ case(4)
   y1=ya(2)-y0
   y2=ya(3)-y0
   y3=ya(4)-y0
-  t0=1.d0/(x1*x2*x3*(x1-x2)*(x1-x3)*(x2-x3))
   t1=x1*x2*y3
   t2=x2*x3*y1
   t3=x3*x1*y2
+  t0=1.d0/(x1*x2*x3*(x1-x2)*(x1-x3)*(x2-x3))
   c3=t1*(x1-x2)+t2*(x2-x3)+t3*(x3-x1)
   t6=x3**2
   t5=x2**2
   t4=x1**2
-  c2=t1*(t5-t4)+t2*(t6-t5)+t3*(t4-t6)
-  c1=t1*(x2*t4-x1*t5)+t2*(x3*t5-x2*t6)+t3*(x1*t6-x3*t4)
+  y1=t3*t6-t1*t5
+  y2=t1*t4-t2*t6
+  y3=t2*t5-t3*t4
+  c2=-(y1+y2+y3)
+  c1=x1*y1+x2*y2+x3*y3
   t1=x-x0
   select case(m)
   case(:-1)

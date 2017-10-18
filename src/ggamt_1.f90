@@ -19,34 +19,32 @@ use modmain
 implicit none
 ! arguments
 integer, intent(in) :: ias
-real(8), intent(out) :: grho(lmmaxvr,nrmtmax)
-real(8), intent(out) :: g2rho(lmmaxvr,nrmtmax)
-real(8), intent(out) :: g3rho(lmmaxvr,nrmtmax)
+real(8), intent(out) :: grho(npmtmax),g2rho(npmtmax),g3rho(npmtmax)
 ! local variables
-integer is,nr,nri,i
+integer is,nr,nri,np,i
 ! allocatable arrays
-real(8), allocatable :: grfmt(:,:,:),gvrho(:,:,:),rfmt(:,:)
-allocate(grfmt(lmmaxvr,nrmtmax,3),gvrho(lmmaxvr,nrmtmax,3))
-allocate(rfmt(lmmaxvr,nrmtmax))
+real(8), allocatable :: grfmt(:,:),gvrho(:,:),rfmt(:)
+allocate(grfmt(npmtmax,3),gvrho(npmtmax,3),rfmt(npmtmax))
 is=idxis(ias)
 nr=nrmt(is)
-nri=nrmtinr(is)
+nri=nrmti(is)
+np=npmt(is)
 ! |grad rho|
-call gradrfmt(nr,nri,rsp(:,is),rhomt(:,:,ias),nrmtmax,grfmt)
+call gradrfmt(nr,nri,rsp(:,is),rhomt(:,ias),npmtmax,grfmt)
 do i=1,3
-  call rbsht(nr,nri,1,grfmt(:,:,i),1,gvrho(:,:,i))
+  call rbsht(nr,nri,grfmt(:,i),gvrho(:,i))
 end do
-grho(:,1:nr)=sqrt(gvrho(:,1:nr,1)**2+gvrho(:,1:nr,2)**2+gvrho(:,1:nr,3)**2)
+grho(1:np)=sqrt(gvrho(1:np,1)**2+gvrho(1:np,2)**2+gvrho(1:np,3)**2)
 ! grad^2 rho in spherical coordinates
-call grad2rfmt(nr,nri,rsp(:,is),rhomt(:,:,ias),rfmt)
-call rbsht(nr,nri,1,rfmt,1,g2rho)
+call grad2rfmt(nr,nri,rsp(:,is),rhomt(:,ias),rfmt)
+call rbsht(nr,nri,rfmt,g2rho)
 ! (grad rho).(grad |grad rho|)
-call rfsht(nr,nri,1,grho,1,rfmt)
-call gradrfmt(nr,nri,rsp(:,is),rfmt,nrmtmax,grfmt)
-g3rho(:,1:nr)=0.d0
+call rfsht(nr,nri,grho,rfmt)
+call gradrfmt(nr,nri,rsp(:,is),rfmt,npmtmax,grfmt)
+g3rho(1:np)=0.d0
 do i=1,3
-  call rbsht(nr,nri,1,grfmt(:,:,i),1,rfmt)
-  g3rho(:,1:nr)=g3rho(:,1:nr)+gvrho(:,1:nr,i)*rfmt(:,1:nr)
+  call rbsht(nr,nri,grfmt(:,i),rfmt)
+  g3rho(1:np)=g3rho(1:np)+gvrho(1:np,i)*rfmt(1:np)
 end do
 deallocate(grfmt,gvrho,rfmt)
 return

@@ -20,7 +20,7 @@ tasks
 ! this should be small (but not so small that it affects the results!) for a
 ! fast calculation because the wavefunctions used in the construction of the BSE
 ! matrix elements are expanded to this angular momentum cut-off
-lmaxvr
+lmaxo
   4
 
 ! number of valence states to use in BSE Hamiltonian

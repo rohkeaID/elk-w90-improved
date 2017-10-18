@@ -7,9 +7,8 @@ subroutine olpalo(ias,ngp,apwalm,ld,o)
 use modmain
 implicit none
 ! arguments
-integer, intent(in) :: ias
-integer, intent(in) :: ngp
-complex(8), intent(in) :: apwalm(ngkmax,apwordmax,lmmaxapw,natmtot)
+integer, intent(in) :: ias,ngp
+complex(8), intent(in) :: apwalm(ngkmax,apwordmax,lmmaxapw)
 integer, intent(in) :: ld
 complex(8), intent(inout) :: o(*)
 ! local variables
@@ -25,7 +24,7 @@ do ilo=1,nlorb(is)
     do i=1,ngp
       k=k+1
       do io=1,apword(l,is)
-        o(k)=o(k)+conjg(apwalm(i,io,lm,ias))*oalo(io,ilo,ias)
+        o(k)=o(k)+conjg(apwalm(i,io,lm))*oalo(io,ilo,ias)
       end do
     end do
   end do

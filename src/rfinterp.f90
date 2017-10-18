@@ -6,16 +6,14 @@
 !BOP
 ! !ROUTINE: rfinterp
 ! !INTERFACE:
-subroutine rfinterp(ni,xi,ldi,fi,no,xo,ldo,fo)
+subroutine rfinterp(ni,xi,fi,no,xo,fo)
 ! !INPUT/OUTPUT PARAMETERS:
 !   ni  : number of input points (in,integer)
 !   xi  : input abscissa array (in,real(ni))
-!   ldi : leading dimension (in,integer)
-!   fi  : input data array (in,real(ldi,ni)
+!   fi  : input data array (in,real(ni)
 !   no  : number of output points (in,integer)
 !   xo  : output abscissa array (in,real(ni))
-!   ldo : leading dimension (in,integer)
-!   fo  : output interpolated function (out,real(ldo,no))
+!   fo  : output interpolated function (out,real(no))
 ! !DESCRIPTION:
 !   Given a function defined on a set of input points, this routine uses a
 !   clamped cubic spline to interpolate the function on a different set of
@@ -23,17 +21,15 @@ subroutine rfinterp(ni,xi,ldi,fi,no,xo,ldo,fo)
 !
 ! !REVISION HISTORY:
 !   Created January 2005 (JKD)
+!   Arguments changed, April 2016 (JKD)
 !EOP
 !BOC
 implicit none
 integer, intent(in) :: ni
-real(8), intent(in) :: xi(ni)
-integer, intent(in) :: ldi
-real(8), intent(in) :: fi(ldi,ni)
+real(8), intent(in) :: xi(ni),fi(ni)
 integer, intent(in) :: no
 real(8), intent(in) :: xo(no)
-integer, intent(in) :: ldo
-real(8), intent(out) :: fo(ldo,no)
+real(8), intent(out) :: fo(no)
 ! local variables
 integer i,j,k,l
 real(8) x,dx
@@ -52,10 +48,11 @@ if (no.le.0) then
   stop
 end if
 if (ni.eq.1) then
-  fo(1,:)=fi(1,1)
+  fo(:)=fi(1)
   return
 end if
-call spline(ni,xi,ldi,fi,cf)
+! compute the spline coefficients
+call spline(ni,xi,fi,cf)
 ! evaluate spline at output points
 i=1
 do l=1,no
@@ -77,7 +74,7 @@ do l=1,no
   if (j.gt.i+1) goto 20
 30 continue
   dx=x-xi(i)
-  fo(1,l)=fi(1,i)+dx*(cf(1,i)+dx*(cf(2,i)+dx*cf(3,i)))
+  fo(l)=fi(i)+dx*(cf(1,i)+dx*(cf(2,i)+dx*cf(3,i)))
 end do
 return
 end subroutine

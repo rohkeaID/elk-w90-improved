@@ -9,6 +9,8 @@
 subroutine forcek(ik)
 ! !USES:
 use modmain
+! !INPUT/OUTPUT PARAMETERS:
+!   ik : reduced k-point number (in,integer)
 ! !DESCRIPTION:
 !   Computes the {\bf k}-dependent contribution to the incomplete basis set
 !   (IBS) force. See the calling routine {\tt force} for a full description.
@@ -32,10 +34,8 @@ integer, allocatable :: ijg(:)
 real(8), allocatable :: dp(:),evalfv(:,:)
 complex(8), allocatable :: apwalm(:,:,:,:)
 complex(8), allocatable :: evecfv(:,:,:),evecsv(:,:)
-complex(8), allocatable :: h(:),o(:)
-complex(8), allocatable :: dlh(:),dlo(:)
-complex(8), allocatable :: vh(:),vo(:)
-complex(8), allocatable :: ffv(:,:),y(:)
+complex(8), allocatable :: h(:),o(:),dlh(:),dlo(:)
+complex(8), allocatable :: vh(:),vo(:),ffv(:,:),y(:)
 ! external functions
 complex(8) zdotc
 external zdotc
@@ -45,14 +45,16 @@ allocate(ijg(nm2),dp(nm2))
 allocate(evalfv(nstfv,nspnfv))
 allocate(apwalm(ngkmax,apwordmax,lmmaxapw,natmtot))
 allocate(evecfv(nmatmax,nstfv,nspnfv))
-allocate(evecsv(nstsv,nstsv))
 allocate(h(nm2),o(nm2),dlh(nm2),dlo(nm2))
 allocate(vh(nmatmax),vo(nmatmax))
 allocate(ffv(nstfv,nstfv),y(nstfv))
 ! get the eigenvalues/vectors from file
-call getevalfv(filext,vkl(:,ik),evalfv)
-call getevecfv(filext,vkl(:,ik),vgkl(:,:,:,ik),evecfv)
-call getevecsv(filext,vkl(:,ik),evecsv)
+call getevalfv(filext,ik,vkl(:,ik),evalfv)
+call getevecfv(filext,ik,vkl(:,ik),vgkl(:,:,:,ik),evecfv)
+if (tevecsv) then
+  allocate(evecsv(nstsv,nstsv))
+  call getevecsv(filext,ik,vkl(:,ik),evecsv)
+end if
 ! loop over first-variational spin components
 do jspn=1,nspnfv
   if (spinsprl) then
@@ -79,11 +81,11 @@ do jspn=1,nspnfv
     is=idxis(ias)
 ! Hamiltonian and overlap matrices
     h(:)=0.d0
-    call hmlaa(ias,n,apwalm,nm,h)
-    call hmlalo(ias,n,apwalm,nm,h)
+    call hmlaa(ias,n,apwalm(:,:,:,ias),nm,h)
+    call hmlalo(ias,n,apwalm(:,:,:,ias),nm,h)
     o(:)=0.d0
-    call olpaa(ias,n,apwalm,nm,o)
-    call olpalo(ias,n,apwalm,nm,o)
+    call olpaa(ias,n,apwalm(:,:,:,ias),nm,o)
+    call olpalo(ias,n,apwalm(:,:,:,ias),nm,o)
 ! loop over Cartesian directions
     do l=1,3
 ! APW-APW contribution
@@ -156,7 +158,8 @@ do jspn=1,nspnfv
   end do
 ! end loop over first-variational spins
 end do
-deallocate(ijg,dp,evalfv,apwalm,evecfv,evecsv)
+deallocate(ijg,dp,evalfv,apwalm,evecfv)
+if (tevecsv) deallocate(evecsv)
 deallocate(h,o,dlh,dlo,vh,vo,ffv,y)
 return
 end subroutine

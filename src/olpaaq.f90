@@ -9,8 +9,8 @@ implicit none
 ! arguments
 integer, intent(in) :: ias
 integer, intent(in) :: ngp,ngpq
-complex(8), intent(in) :: apwalm(ngkmax,apwordmax,lmmaxapw,natmtot)
-complex(8), intent(in) :: apwalmq(ngkmax,apwordmax,lmmaxapw,natmtot)
+complex(8), intent(in) :: apwalm(ngkmax,apwordmax,lmmaxapw)
+complex(8), intent(in) :: apwalmq(ngkmax,apwordmax,lmmaxapw)
 integer, intent(in) :: ld
 complex(8), intent(inout) :: oq(*)
 ! local variables
@@ -23,8 +23,8 @@ do l=0,lmaxmat
   do m=-l,l
     lm=lm+1
     do io=1,apword(l,is)
-      x(1:ngpq)=conjg(apwalmq(1:ngpq,io,lm,ias))
-      call zgerci(ngpq,ngp,zone,x,apwalm(:,io,lm,ias),ld,oq)
+      x(1:ngpq)=conjg(apwalmq(1:ngpq,io,lm))
+      call zgerci(ngpq,ngp,zone,x,apwalm(:,io,lm),ld,oq)
     end do
   end do
 end do

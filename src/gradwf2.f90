@@ -9,28 +9,27 @@ implicit none
 ! arguments
 integer, intent(in) :: ik
 complex(8), intent(in) :: evecfv(nmatmax,nstfv,nspnfv),evecsv(nstsv,nstsv)
-real(8), intent(inout) :: gwf2mt(lmmaxvr,nrmtmax,natmtot),gwf2ir(ngtot)
+real(8), intent(inout) :: gwf2mt(npmtmax,natmtot),gwf2ir(ngtot)
 ! local variables
 integer ist,ispn,jspn
 integer is,ia,ias
-integer nr,nri,ir
+integer nr,nri,ir,np
 integer igk,ifg,i,j
-real(8) t0,t1
+real(8) wo,t1
 complex(8) zq(2),z1
 ! automatic arrays
 logical done(nstfv,nspnfv)
 ! allocatable arrays
 complex(8), allocatable :: apwalm(:,:,:,:,:)
-complex(8), allocatable :: wfmt1(:,:,:,:),wfmt2(:,:,:)
-complex(8), allocatable :: gwfmt(:,:,:),zfmt(:,:)
+complex(8), allocatable :: wfmt1(:,:,:),wfmt2(:,:)
+complex(8), allocatable :: gwfmt(:,:),zfmt(:)
 complex(8), allocatable :: zfft1(:,:),zfft2(:)
 !-------------------------!
 !     muffin-tin part     !
 !-------------------------!
 allocate(apwalm(ngkmax,apwordmax,lmmaxapw,natmtot,nspnfv))
-allocate(wfmt1(lmmaxvr,nrmtmax,nstfv,nspnfv))
-allocate(wfmt2(lmmaxvr,nrmtmax,nspinor))
-allocate(gwfmt(lmmaxvr,nrmtmax,3),zfmt(lmmaxvr,nrmtmax))
+allocate(wfmt1(npmtmax,nstfv,nspnfv),wfmt2(npmtmax,nspinor))
+allocate(gwfmt(npmtmax,3),zfmt(npmtmax))
 ! find the matching coefficients
 do ispn=1,nspnfv
   call match(ngk(ispn,ik),gkc(:,ispn,ik),tpgkc(:,:,ispn,ik), &
@@ -38,7 +37,8 @@ do ispn=1,nspnfv
 end do
 do is=1,nspecies
   nr=nrmt(is)
-  nri=nrmtinr(is)
+  nri=nrmti(is)
+  np=npmt(is)
   do ia=1,natoms(is)
     ias=idxas(ia,is)
 ! de-phasing factor for spin-spirals
@@ -50,10 +50,10 @@ do is=1,nspecies
     done(:,:)=.false.
     do j=1,nstsv
       if (abs(occsv(j,ik)).lt.epsocc) cycle
-      t0=wkpt(ik)*occsv(j,ik)
+      wo=wkpt(ik)*occsv(j,ik)
       if (tevecsv) then
 ! generate spinor wavefunction from second-variational eigenvectors
-        wfmt2(:,:,:)=0.d0
+        wfmt2(1:np,:)=0.d0
         i=0
         do ispn=1,nspinor
           jspn=jspnfv(ispn)
@@ -64,11 +64,11 @@ do is=1,nspecies
             if (abs(dble(z1))+abs(aimag(z1)).gt.epsocc) then
               if (.not.done(ist,jspn)) then
                 call wavefmt(1,ias,ngk(jspn,ik),apwalm(:,:,:,:,jspn), &
-                 evecfv(:,ist,jspn),wfmt1(:,:,ist,jspn))
+                 evecfv(:,ist,jspn),wfmt1(:,ist,jspn))
                 done(ist,jspn)=.true.
               end if
 ! add to spinor wavefunction
-              call zfmtadd(nr,nri,z1,wfmt1(:,:,ist,jspn),wfmt2(:,:,ispn))
+              wfmt2(1:np,ispn)=wfmt2(1:np,ispn)+z1*wfmt1(1:np,ist,jspn)
             end if
           end do
         end do
@@ -78,18 +78,13 @@ do is=1,nspecies
       end if
 ! compute the gradient of the wavefunction
       do ispn=1,nspinor
-        call gradzfmt(nr,nri,rsp(:,is),wfmt2(:,:,ispn),nrmtmax,gwfmt)
-! convert gradient from spherical harmonics to spherical coordinates
+        call gradzfmt(nr,nri,rsp(:,is),wfmt2(:,ispn),npmtmax,gwfmt)
         do i=1,3
-          call zbsht(nr,nri,gwfmt(:,:,i),zfmt)
-          do ir=1,nri
-            gwf2mt(1:lmmaxinr,ir,ias)=gwf2mt(1:lmmaxinr,ir,ias) &
-             +t0*(dble(zfmt(1:lmmaxinr,ir))**2+aimag(zfmt(1:lmmaxinr,ir))**2)
-          end do
-          do ir=nri+1,nr
-            gwf2mt(:,ir,ias)=gwf2mt(:,ir,ias) &
-             +t0*(dble(zfmt(:,ir))**2+aimag(zfmt(:,ir))**2)
-          end do
+! convert gradient from spherical harmonics to spherical coordinates
+          call zbsht(nr,nri,gwfmt(:,i),zfmt)
+! add to total
+          gwf2mt(1:np,ias)=gwf2mt(1:np,ias) &
+           +wo*(dble(zfmt(1:np))**2+aimag(zfmt(1:np))**2)
         end do
       end do
     end do
@@ -102,7 +97,7 @@ deallocate(apwalm,wfmt1,wfmt2,gwfmt,zfmt)
 allocate(zfft1(ngtot,nspinor),zfft2(ngtot))
 do j=1,nstsv
   if (abs(occsv(j,ik)).lt.epsocc) cycle
-  t0=wkpt(ik)*occsv(j,ik)/omega
+  wo=wkpt(ik)*occsv(j,ik)/omega
   zfft1(:,:)=0.d0
   if (tevecsv) then
 ! generate spinor wavefunction from second-variational eigenvectors
@@ -139,7 +134,7 @@ do j=1,nstsv
 ! Fourier transform gradient to real-space
       call zfftifc(3,ngridg,1,zfft2)
       do ir=1,ngtot
-        gwf2ir(ir)=gwf2ir(ir)+t0*(dble(zfft2(ir))**2+aimag(zfft2(ir))**2)
+        gwf2ir(ir)=gwf2ir(ir)+wo*(dble(zfft2(ir))**2+aimag(zfft2(ir))**2)
       end do
     end do
   end do

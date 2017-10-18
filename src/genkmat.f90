@@ -29,14 +29,19 @@ logical, intent(in) :: tfv,tvclcr
 ! local variables
 integer ik,is,ias
 ! allocatable arrays
-real(8), allocatable :: vmt(:,:,:),vir(:)
-allocate(vmt(lmmaxvr,nrcmtmax,natmtot),vir(ngtot))
-! convert muffin-tin Kohn-Sham potential to spherical coordinates
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(is)
+real(8), allocatable :: vmt(:,:),vir(:),rfmt(:)
+allocate(vmt(npcmtmax,natmtot),vir(ngtot))
+! convert muffin-tin Kohn-Sham potential to spherical coordinates on a coarse
+! radial mesh
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(rfmt,is)
 !$OMP DO
 do ias=1,natmtot
+  allocate(rfmt(npcmtmax))
   is=idxis(ias)
-  call rbsht(nrcmt(is),nrcmtinr(is),lradstp,vsmt(:,:,ias),1,vmt(:,:,ias))
+  call rfmtftoc(nrmt(is),nrmti(is),vsmt(:,ias),rfmt)
+  call rbsht(nrcmt(is),nrcmti(is),rfmt,vmt(:,ias))
+  deallocate(rfmt)
 end do
 !$OMP END DO
 !$OMP END PARALLEL

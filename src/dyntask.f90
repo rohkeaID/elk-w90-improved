@@ -49,9 +49,9 @@ else
 end if
 ! set the q=0 flag
 if (iqph.eq.iq0) then
-  tphiq0=.true.
+  tphq0=.true.
 else
-  tphiq0=.false.
+  tphq0=.false.
 end if
 return
 end subroutine

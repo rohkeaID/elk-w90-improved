@@ -32,9 +32,9 @@ real(8), intent(inout) :: v(*)
 integer idm,ias,lm1,lm2
 integer ispn,jspn
 n=0
-call rfpack(tpack,n,nrmt,nrmtinr,nrmtmax,vsmt,vsir,v)
+call rfpack(tpack,n,npmt,npmtmax,vsmt,vsir,v)
 do idm=1,ndmag
-  call rfpack(tpack,n,nrcmt,nrcmtinr,nrcmtmax,bsmt(:,:,:,idm),bsir(:,idm),v)
+  call rfpack(tpack,n,npcmt,npcmtmax,bsmt(:,:,idm),bsir(:,idm),v)
 end do
 ! pack the DFT+U potential if required
 if (tvmatmt) then

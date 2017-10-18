@@ -46,6 +46,9 @@ integer ntswrite
 ! written every ntswrite time steps
 logical tdrho1d,tdrho2d,tdrho3d
 logical tdmag2d,tdmag3d
+logical tddos
+! magnitude of complex numbers added to initial eigenvectors
+real(8) rndevt0
 
 end module
 

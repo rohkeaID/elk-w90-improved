@@ -119,14 +119,14 @@ else
     ngridk(:)=int(t1*sqrt(bvec(1,:)**2+bvec(2,:)**2+bvec(3,:)**2))+1
   end if
 ! set up the default k-point box
-  kptboxl(:,1)=vkloff(:)/dble(ngridk(:))
-  if (task.eq.102) kptboxl(:,1)=0.d0
-  kptboxl(:,2)=kptboxl(:,1)
-  kptboxl(:,3)=kptboxl(:,1)
-  kptboxl(:,4)=kptboxl(:,1)
-  kptboxl(1,2)=kptboxl(1,2)+1.d0
-  kptboxl(2,3)=kptboxl(2,3)+1.d0
-  kptboxl(3,4)=kptboxl(3,4)+1.d0
+  kptboxl(:,0)=vkloff(:)/dble(ngridk(:))
+  if (task.eq.102) kptboxl(:,0)=0.d0
+  kptboxl(:,1)=kptboxl(:,0)
+  kptboxl(:,2)=kptboxl(:,0)
+  kptboxl(:,3)=kptboxl(:,0)
+  kptboxl(1,1)=kptboxl(1,1)+1.d0
+  kptboxl(2,2)=kptboxl(2,2)+1.d0
+  kptboxl(3,3)=kptboxl(3,3)+1.d0
 ! k-point set and box for Fermi surface plots
   if ((task.eq.100).or.(task.eq.101).or.(task.eq.102)) then
     ngridk(:)=np3d(:)
@@ -160,6 +160,8 @@ else
   call writevars('vkl',nv=3*nkptnr,rva=vkl)
   call writevars('wkpt',nv=nkpt,rva=wkpt)
 end if
+! generate the kappa, k+kappa and Q-points if required
+call genkpakq
 ! write the k-points to test file
 call writetest(910,'k-points (Cartesian)',nv=3*nkpt,tol=1.d-8,rva=vkc)
 
@@ -167,7 +169,7 @@ call writetest(910,'k-points (Cartesian)',nv=3*nkpt,tol=1.d-8,rva=vkc)
 !     G+k-vectors     !
 !---------------------!
 if ((xctype(1).lt.0).or.(task.eq.5).or.(task.eq.10).or.(task.eq.205).or. &
- (task.eq.300)) then
+ (task.eq.300).or.(task.eq.600)) then
   nppt=nkptnr
 else
   nppt=nkpt
@@ -324,18 +326,18 @@ allocate(oalo(apwordmax,nlomax,natmtot))
 if (allocated(ololo)) deallocate(ololo)
 allocate(ololo(nlomax,nlomax,natmtot))
 if (allocated(haa)) deallocate(haa)
-allocate(haa(lmmaxvr,apwordmax,0:lmaxmat,apwordmax,0:lmaxmat,natmtot))
+allocate(haa(lmmaxo,apwordmax,0:lmaxmat,apwordmax,0:lmaxmat,natmtot))
 if (allocated(hloa)) deallocate(hloa)
-allocate(hloa(lmmaxvr,apwordmax,0:lmaxmat,nlomax,natmtot))
+allocate(hloa(lmmaxo,apwordmax,0:lmaxmat,nlomax,natmtot))
 if (allocated(hlolo)) deallocate(hlolo)
-allocate(hlolo(lmmaxvr,nlomax,nlomax,natmtot))
+allocate(hlolo(lmmaxo,nlomax,nlomax,natmtot))
 ! allocate and generate complex Gaunt coefficient array
 if (allocated(gntyry)) deallocate(gntyry)
-allocate(gntyry(lmmaxmat,lmmaxvr,lmmaxmat))
+allocate(gntyry(lmmaxmat,lmmaxo,lmmaxmat))
 do l1=0,lmaxmat
   do m1=-l1,l1
     lm1=idxlm(l1,m1)
-    do l2=0,lmaxvr
+    do l2=0,lmaxo
       do m2=-l2,l2
         lm2=idxlm(l2,m2)
         do l3=0,lmaxmat

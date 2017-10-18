@@ -9,7 +9,7 @@ use modmain
 use modmpi
 implicit none
 ! arguments
-real(8), intent(in) :: vmt(lmmaxvr,nrmtmax,natmtot),vir(ngtot)
+real(8), intent(in) :: vmt(npmtmax,natmtot),vir(ngtot)
 complex(8), intent(out) :: vmat(nstsv,nstsv,nkpt)
 ! local variables
 integer ik,ist,ispn
@@ -17,18 +17,22 @@ integer is,ias,n,lp
 ! automatic arrays
 integer idx(nstsv)
 ! allocatable arrays
-real(8), allocatable :: vmt1(:,:,:),vir1(:)
+real(8), allocatable :: vmt1(:,:),vir1(:),rfmt(:)
 complex(8), allocatable :: apwalm(:,:,:,:,:)
 complex(8), allocatable :: evecfv(:,:),evecsv(:,:)
-complex(8), allocatable :: wfmt(:,:,:,:,:),wfir(:,:,:)
+complex(8), allocatable :: wfmt(:,:,:,:),wfir(:,:,:)
 ! allocate local arrays
-allocate(vmt1(lmmaxvr,nrcmtmax,natmtot),vir1(ngtot))
+allocate(vmt1(npcmtmax,natmtot),vir1(ngtot))
 ! convert muffin-tin potential to spherical coordinates
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(is)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(rfmt,is)
 !$OMP DO
 do ias=1,natmtot
+  allocate(rfmt(npcmtmax))
   is=idxis(ias)
-  call rbsht(nrcmt(is),nrcmtinr(is),lradstp,vmt(:,:,ias),1,vmt1(:,:,ias))
+  call rfmtftoc(nrmt(is),nrmti(is),vmt(:,ias),rfmt)
+  call rbsht(nrcmt(is),nrcmti(is),rfmt,vmt1(:,ias))
+  deallocate(rfmt)
 end do
 !$OMP END DO
 !$OMP END PARALLEL
@@ -48,7 +52,7 @@ do ik=1,nkpt
   if (mod(ik-1,np_mpi).ne.lp_mpi) cycle
   allocate(apwalm(ngkmax,apwordmax,lmmaxapw,natmtot,nspnfv))
   allocate(evecfv(nmatmax,nstfv),evecsv(nstsv,nstsv))
-  allocate(wfmt(lmmaxvr,nrcmtmax,natmtot,nspinor,nstsv))
+  allocate(wfmt(npcmtmax,natmtot,nspinor,nstsv))
   allocate(wfir(ngkmax,nspinor,nstsv))
 ! find the matching coefficients
   do ispn=1,nspnfv
@@ -56,8 +60,8 @@ do ik=1,nkpt
      sfacgk(:,:,ispn,ik),apwalm(:,:,:,:,ispn))
   end do
 ! get the eigenvectors from file
-  call getevecfv(filext,vkl(:,ik),vgkl(:,:,:,ik),evecfv)
-  call getevecsv(filext,vkl(:,ik),evecsv)
+  call getevecfv(filext,ik,vkl(:,ik),vgkl(:,:,:,ik),evecfv)
+  call getevecsv(filext,ik,vkl(:,ik),evecsv)
 ! calculate the wavefunctions for all states of the input k-point
   call genwfsv(.false.,.true.,nstsv,idx,ngk(:,ik),igkig(:,:,ik),apwalm, &
    evecfv,evecsv,wfmt,ngkmax,wfir)

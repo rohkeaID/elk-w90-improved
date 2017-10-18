@@ -43,25 +43,14 @@ subroutine xc_pbe(n,kappa,mu,beta,rhoup,rhodn,grho,gup,gdn,g2up,g2dn,g3rho, &
 implicit none
 ! arguments
 integer, intent(in) :: n
-real(8), intent(in) :: kappa
-real(8), intent(in) :: mu
-real(8), intent(in) :: beta
-real(8), intent(in) :: rhoup(n)
-real(8), intent(in) :: rhodn(n)
-real(8), intent(in) :: grho(n)
-real(8), intent(in) :: gup(n)
-real(8), intent(in) :: gdn(n)
-real(8), intent(in) :: g2up(n)
-real(8), intent(in) :: g2dn(n)
-real(8), intent(in) :: g3rho(n)
-real(8), intent(in) :: g3up(n)
-real(8), intent(in) :: g3dn(n)
-real(8), intent(out) :: ex(n)
-real(8), intent(out) :: ec(n)
-real(8), intent(out) :: vxup(n)
-real(8), intent(out) :: vxdn(n)
-real(8), intent(out) :: vcup(n)
-real(8), intent(out) :: vcdn(n)
+real(8), intent(in) :: kappa,mu,beta
+real(8), intent(in) :: rhoup(n),rhodn(n)
+real(8), intent(in) :: grho(n),gup(n),gdn(n)
+real(8), intent(in) :: g2up(n),g2dn(n)
+real(8), intent(in) :: g3rho(n),g3up(n),g3dn(n)
+real(8), intent(out) :: ex(n),ec(n)
+real(8), intent(out) :: vxup(n),vxdn(n)
+real(8), intent(out) :: vcup(n),vcdn(n)
 ! local variables
 integer i
 real(8), parameter :: thrd=1.d0/3.d0

@@ -8,7 +8,7 @@ use modmain
 implicit none
 ! local variables
 integer is,ias
-integer nr,ir,irc
+integer nr,nri,ir,irc
 real(8) cso,rm
 ! allocatable arrays
 real(8), allocatable :: vr(:),dvr(:)
@@ -19,8 +19,10 @@ allocate(vr(nrmtmax),dvr(nrmtmax))
 do ias=1,natmtot
   is=idxis(ias)
   nr=nrmt(is)
+  nri=nrmti(is)
 ! radial derivative of the spherical part of the Kohn-Sham potential
-  vr(1:nr)=vsmt(1,1:nr,ias)*y00
+  call rfmtlm(1,nr,nri,vsmt(:,ias),vr)
+  vr(1:nr)=vr(1:nr)*y00
   call fderiv(1,nr,rsp(:,is),vr,dvr)
   irc=0
   do ir=1,nr,lradstp

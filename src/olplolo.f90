@@ -7,9 +7,7 @@ subroutine olplolo(ias,ngp,ld,o)
 use modmain
 implicit none
 ! arguments
-integer, intent(in) :: ias
-integer, intent(in) :: ngp
-integer, intent(in) :: ld
+integer, intent(in) :: ias,ngp,ld
 complex(8), intent(inout) :: o(ld,*)
 ! local variables
 integer is,ilo,jlo

@@ -24,9 +24,16 @@ latvopt
 mixtype
   3
 
-! larger cut-off required for lattice optimisation
-rgkmax
-  8.0
+! switch on high-quality parameters for accurate stress tensors
+highq
+ .true.
+
+! switch off automatic determination of the k-point grid
+autokpt
+ .false.
+
+ngridk
+  4 4 4
 
 ! PBE exchange-correlation functional
 xctype
@@ -50,5 +57,3 @@ atoms
   0.0   0.0   0.0
   0.25  0.25  0.25
 
-ngridk
-  4  4  4

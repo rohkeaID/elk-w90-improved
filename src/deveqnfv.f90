@@ -4,7 +4,7 @@
 ! See the file COPYING for license details.
 
 subroutine deveqnfv(n,nq,igpig,igpqig,vgpc,vgpqc,evalfv,apwalm, &
- apwalmq,dapwalm,dapwalmq,evecfv,devalfv,devecfv)
+ apwalmq,dapwalm,dapwalmq,evecfv,devalfvp,devecfv)
 use modmain
 use modphonon
 implicit none
@@ -18,7 +18,7 @@ complex(8), intent(in) :: apwalmq(ngkmax,apwordmax,lmmaxapw,natmtot)
 complex(8), intent(in) :: dapwalm(ngkmax,apwordmax,lmmaxapw)
 complex(8), intent(in) :: dapwalmq(ngkmax,apwordmax,lmmaxapw)
 complex(8), intent(in) :: evecfv(nmatmax,nstfv)
-complex(8), intent(out) :: devalfv(nstfv)
+real(8), intent(out) :: devalfvp(nstfv)
 complex(8), intent(out) :: devecfv(nmatmax,nstfv)
 ! local variables
 integer nm,nmq,ias,ist,i
@@ -42,8 +42,8 @@ allocate(h(nmq,nmq),o(nmq,nmq))
 ! Hamiltonian
 h(:,:)=0.d0
 do ias=1,natmtot
-  call hmlaa(ias,nq,apwalmq,nmq,h)
-  call hmlalo(ias,nq,apwalmq,nmq,h)
+  call hmlaa(ias,nq,apwalmq(:,:,:,ias),nmq,h)
+  call hmlalo(ias,nq,apwalmq(:,:,:,ias),nmq,h)
   call hmllolo(ias,nq,nmq,h)
 end do
 call hmlistl(nq,igpqig,vgpqc,nmq,h)
@@ -51,13 +51,13 @@ call hmlistl(nq,igpqig,vgpqc,nmq,h)
 ! overlap
 o(:,:)=0.d0
 do ias=1,natmtot
-  call olpaa(ias,nq,apwalmq,nmq,o)
-  call olpalo(ias,nq,apwalmq,nmq,o)
+  call olpaa(ias,nq,apwalmq(:,:,:,ias),nmq,o)
+  call olpalo(ias,nq,apwalmq(:,:,:,ias),nmq,o)
   call olplolo(ias,nq,nmq,o)
 end do
 call olpistl(nq,igpqig,nmq,o)
 !$OMP END PARALLEL SECTIONS
-! solve the generalised eigenvalue problem (H - e_i)|v_i> = 0
+! solve the generalised eigenvalue problem (H - e_i O)|v_i> = 0
 ! (note: these are also the eigenvalues/vectors of O^(-1)H )
 lwork=2*nmq
 allocate(w(nmq),rwork(3*nmq),work(lwork))
@@ -76,15 +76,18 @@ allocate(dh(nmq,nm),od(nmq,nm))
 !$OMP SECTION
 dh(:,:)=0.d0
 do ias=1,natmtot
-  call dhmlaa(ias,n,nq,apwalm,apwalmq,dapwalm,dapwalmq,nmq,dh)
-  call dhmlalo(ias,n,nq,apwalm,apwalmq,dapwalm,dapwalmq,nmq,dh)
+  call dhmlaa(ias,n,nq,apwalm(:,:,:,ias),apwalmq(:,:,:,ias),dapwalm,dapwalmq, &
+   nmq,dh)
+  call dhmlalo(ias,n,nq,apwalm(:,:,:,ias),apwalmq(:,:,:,ias),dapwalm,dapwalmq, &
+   nmq,dh)
   call dhmllolo(ias,n,nq,nmq,dh)
 end do
 call dhmlistl(n,nq,igpig,igpqig,vgpc,vgpqc,nmq,dh)
 !$OMP SECTION
 od(:,:)=0.d0
 do ias=1,natmtot
-  call dolpaa(ias,n,nq,apwalm,apwalmq,dapwalm,dapwalmq,nmq,od)
+  call dolpaa(ias,n,nq,apwalm(:,:,:,ias),apwalmq(:,:,:,ias),dapwalm,dapwalmq, &
+   nmq,od)
   call dolpalo(ias,n,nq,dapwalm,dapwalmq,nmq,od)
 end do
 call dolpistl(n,nq,igpig,igpqig,nmq,od)
@@ -97,15 +100,16 @@ do ist=1,nstfv
   call zgemv('N',nmq,nm,z1,od,nmq,evecfv(:,ist),1,zzero,x,1)
   call zgemv('N',nmq,nm,zone,dh,nmq,evecfv(:,ist),1,zone,x,1)
 ! compute the first-order change in eigenvalue
-  if (iqph.eq.iq0) then
-    devalfv(ist)=zdotc(nmq,evecfv(:,ist),1,x,1)
+  if (tphq0) then
+    z1=zdotc(nmq,evecfv(:,ist),1,x,1)
+    devalfvp(ist)=dble(z1)
   else
-    devalfv(ist)=0.d0
+    devalfvp(ist)=0.d0
   end if
   call zgemv('C',nmq,nmq,zone,h,nmq,x,1,zzero,y,1)
   do i=1,nmq
     t1=evalfv(ist)-w(i)
-    if (abs(t1).gt.epsph) then
+    if (abs(t1).gt.epsdev) then
       y(i)=y(i)/t1
     else
       y(i)=0.d0

@@ -9,11 +9,11 @@ use modtddft
 use moddftu
 implicit none
 ! local variables
-integer ias
+integer is,ia,ias
 real(8) t1
 character(256) fext
 ! allocatable arrays
-real(8), allocatable :: rvfmt(:,:,:,:),rvfir(:,:)
+real(8), allocatable :: rvfmt(:,:,:),rvfir(:,:)
 ! file extension
 write(fext,'("_TS",I8.8,".OUT")') itimes
 ! delete all files at first time-step
@@ -26,17 +26,28 @@ if (itimes.le.1) then
   close(50,status='DELETE')
   open(50,file='MOMENTM_TD.OUT')
   close(50,status='DELETE')
+  open(50,file='MOMENTMT_TD.OUT')
+  close(50,status='DELETE')
+  open(50,file='MOMENTIR_TD.OUT')
+  close(50,status='DELETE')
   open(50,file='CURRENT_TD.OUT')
   close(50,status='DELETE')
   open(50,file='CURRENTM_TD.OUT')
   close(50,status='DELETE')
+  if (tddos) then
+    open(50,file='TDTEMP.OUT')
+    close(50,status='DELETE')
+  end if
 end if
 ! muffin-tin charges
 open(50,file='CHARGEMT_TD.OUT',action='WRITE',form='FORMATTED', &
  position='APPEND')
-write(50,'(G18.10)',advance='NO') times(itimes)
-do ias=1,natmtot
-  write(50,'(G18.10)',advance='NO') chgmt(ias)
+write(50,'(G18.10)') times(itimes)
+do is=1,nspecies
+  do ia=1,natoms(is)
+    ias=idxas(ia,is)
+    write(50,'(2I4,G18.10)') is,ia,chgmt(ias)
+  end do
 end do
 write(50,*)
 close(50)
@@ -51,6 +62,23 @@ write(50,'(4G18.10)') times(itimes),momtot(1:ndmag)
 close(50)
 open(50,file='MOMENTM_TD.OUT',action='WRITE',form='FORMATTED',position='APPEND')
 write(50,'(2G18.10)') times(itimes),momtotm
+close(50)
+! muffin-tin moments
+open(50,file='MOMENTMT_TD.OUT',action='WRITE',form='FORMATTED', &
+ position='APPEND')
+write(50,'(G18.10)') times(itimes)
+do is=1,nspecies
+  do ia=1,natoms(is)
+    ias=idxas(ia,is)
+    write(50,'(2I4,3G18.10)') is,ia,mommt(1:ndmag,ias)
+  end do
+end do
+write(50,*)
+close(50)
+! interstitial moment
+open(50,file='MOMENTIR_TD.OUT',action='WRITE',form='FORMATTED', &
+ position='APPEND')
+write(50,'(4G18.10)') times(itimes),momir(1:ndmag)
 close(50)
 ! total current
 open(50,file='CURRENT_TD.OUT',action='WRITE',form='FORMATTED',position='APPEND')
@@ -87,16 +115,16 @@ if (tdrho3d) then
 end if
 ! magnetisation in 2D or 3D
 if (tdmag2d.or.tdmag3d) then
-  allocate(rvfmt(lmmaxvr,nrmtmax,natmtot,3),rvfir(ngtot,3))
+  allocate(rvfmt(npmtmax,natmtot,3),rvfir(ngtot,3))
   if (ncmag) then
 ! non-collinear
-    rvfmt(:,:,:,:)=magmt(:,:,:,:)
+    rvfmt(:,:,:)=magmt(:,:,:)
     rvfir(:,:)=magir(:,:)
   else
 ! collinear
-    rvfmt(:,:,:,1:2)=0.d0
+    rvfmt(:,:,1:2)=0.d0
     rvfir(:,1:2)=0.d0
-    rvfmt(:,:,:,3)=magmt(:,:,:,1)
+    rvfmt(:,:,3)=magmt(:,:,1)
     rvfir(:,3)=magir(:,1)
   end if
   if (tdmag2d) then
@@ -123,6 +151,10 @@ if (dftu.ne.0) then
     end if
     close(50)
   end if
+end if
+! write time-dependent DOS
+if (tddos) then
+  call writetddos(fext)
 end if
 10 continue
 return

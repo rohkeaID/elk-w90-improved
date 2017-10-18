@@ -19,10 +19,10 @@ do ig=1,ngtot
 ! G+q-vector length and (theta, phi) coordinates
   call sphcrd(vgqc(:,ig),gqc(ig),tp)
 ! spherical harmonics for G+q-vectors
-  call genylm(lmaxvr,tp,ylmgq(:,ig))
+  call genylm(lmaxo,tp,ylmgq(:,ig))
 end do
 ! compute the spherical Bessel functions j_l(|G+q|R_mt)
-call genjlgpr(lnpsd,gqc,jlgqr)
+call genjlgprmt(lnpsd,ngvec,gqc,ngvec,jlgqrmt)
 ! structure factors for G+q
 call gensfacgp(ngvec,vgqc,ngvec,sfacgq)
 ! generate the smooth step function form factors for G+q

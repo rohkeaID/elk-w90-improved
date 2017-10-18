@@ -7,20 +7,22 @@ subroutine gradrf(rfmt,rfir,grfmt,grfir)
 use modmain
 implicit none
 ! arguments
-real(8), intent(in) :: rfmt(lmmaxvr,nrmtmax,natmtot),rfir(ngtot)
-real(8), intent(out) :: grfmt(lmmaxvr,nrmtmax,natmtot,3),grfir(ngtot,3)
+real(8), intent(in) :: rfmt(npmtmax,natmtot),rfir(ngtot)
+real(8), intent(out) :: grfmt(npmtmax,natmtot,3),grfir(ngtot,3)
 ! local variables
-integer is,ias,ig,ifg,i
+integer is,ias,np
+integer ig,ifg,i
 ! allocatable arrays
-real(8), allocatable :: grfmt1(:,:,:)
+real(8), allocatable :: grfmt1(:,:)
 complex(8), allocatable :: zfft1(:),zfft2(:)
 ! muffin-tin gradient
-allocate(grfmt1(lmmaxvr,nrmtmax,3))
+allocate(grfmt1(npmtmax,3))
 do ias=1,natmtot
   is=idxis(ias)
-  call gradrfmt(nrmt(is),nrmtinr(is),rsp(:,is),rfmt(:,:,ias),nrmtmax,grfmt1)
+  np=npmt(is)
+  call gradrfmt(nrmt(is),nrmti(is),rsp(:,is),rfmt(:,ias),npmtmax,grfmt1)
   do i=1,3
-    grfmt(:,1:nrmt(is),ias,i)=grfmt1(:,1:nrmt(is),i)
+    grfmt(1:np,ias,i)=grfmt1(1:np,i)
   end do
 end do
 deallocate(grfmt1)

@@ -36,7 +36,7 @@ allocate(a2fmr(nbph,nbph,nqptnr))
 allocate(a2fmp(nbph,nbph))
 ! get the eigenvalues from file
 do ik=1,nkpt
-  call getevalsv(filext,vkl(:,ik),evalsv(:,ik))
+  call getevalsv(filext,ik,vkl(:,ik),evalsv(:,ik))
 end do
 ! compute the density of states at the Fermi energy
 call occupy
@@ -121,7 +121,7 @@ else
 end if
 a2f(:)=t1*a2f(:)
 ! smooth Eliashberg function if required
-if (nswplot.gt.0) call fsmooth(nswplot,nwplot,1,a2f)
+if (nswplot.gt.0) call fsmooth(nswplot,nwplot,a2f)
 ! write Eliashberg function to file
 open(50,file='ALPHA2F.OUT',action='WRITE',form='FORMATTED')
 do iw=1,nwplot

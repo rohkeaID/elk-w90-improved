@@ -17,7 +17,7 @@ real(8) v(3),t1
 complex(8) vfxcp,z1
 ! allocatable arrays
 integer, allocatable :: ipiv(:)
-real(8), allocatable :: vgqc(:,:),gqc(:)
+real(8), allocatable :: vgqc(:,:),gqc(:),jlgqr(:,:,:)
 complex(8), allocatable :: ylmgq(:,:),sfacgq(:,:)
 complex(8), allocatable :: vchi0(:,:,:),vfxc(:,:,:)
 complex(8), allocatable :: eps0(:,:,:),eps(:,:,:)
@@ -50,13 +50,13 @@ call genapwfr
 call genlofr
 ! get the eigenvalues and occupancies from file
 do ik=1,nkpt
-  call getevalsv(filext,vkl(:,ik),evalsv(:,ik))
-  call getoccsv(filext,vkl(:,ik),occsv(:,ik))
+  call getevalsv(filext,ik,vkl(:,ik),evalsv(:,ik))
+  call getoccsv(filext,ik,vkl(:,ik),occsv(:,ik))
 end do
 ! generate the G+q-vectors and related quantities
-allocate(vgqc(3,ngrf),gqc(ngrf))
-allocate(ylmgq(lmmaxvr,ngrf),sfacgq(ngrf,natmtot))
-call gengqrf(vecqc,igq0,vgqc,gqc,ylmgq,sfacgq)
+allocate(vgqc(3,ngrf),gqc(ngrf),jlgqr(njcmax,nspecies,ngrf))
+allocate(ylmgq(lmmaxo,ngrf),sfacgq(ngrf,natmtot))
+call gengqrf(vecqc,igq0,vgqc,gqc,jlgqr,ylmgq,sfacgq)
 ! allocate local arrays
 allocate(vchi0(nwrf,ngrf,ngrf),vfxc(ngrf,ngrf,nwrf))
 allocate(eps0(ngrf,ngrf,nwrf),eps(ngrf,ngrf,nwrf))
@@ -71,7 +71,7 @@ do ik=1,nkptnr
   write(*,'("Info(tddftlr): ",I6," of ",I6," k-points")') ik,nkptnr
 !$OMP END CRITICAL
 ! compute v^1/2 chi0 v^1/2
-  call genvchi0(ik,optcomp(1,1),scissor,vecql,igq0,gqc,ylmgq,sfacgq,vchi0)
+  call genvchi0(ik,optcomp(1,1),scissor,vecql,igq0,gqc,jlgqr,ylmgq,sfacgq,vchi0)
 end do
 !$OMP END DO
 !$OMP END PARALLEL

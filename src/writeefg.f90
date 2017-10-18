@@ -29,42 +29,47 @@ implicit none
 integer, parameter :: lwork=10
 integer is,ia,ias
 integer nr,nri,ir
-integer i,j,info
+integer np,i,j,info
 real(8) efg(3,3),a(3,3)
 real(8) w(3),work(lwork)
 ! allocatable arrays
-real(8), allocatable :: rfmt(:,:),grfmt1(:,:,:),grfmt2(:,:,:)
+real(8), allocatable :: rfmt(:),grfmt1(:,:),grfmt2(:,:)
 ! initialise universal variables
 call init0
 ! read density and potentials from file
 call readstate
 ! allocate local arrays
-allocate(rfmt(lmmaxvr,nrmtmax))
-allocate(grfmt1(lmmaxvr,nrmtmax,3))
-allocate(grfmt2(lmmaxvr,nrmtmax,3))
+allocate(rfmt(npmtmax),grfmt1(npmtmax,3),grfmt2(npmtmax,3))
 open(50,file='EFG.OUT',action='WRITE',form='FORMATTED')
 write(50,*)
 write(50,'("(electric field gradient tensor is in Cartesian coordinates)")')
 do is=1,nspecies
   nr=nrmt(is)
-  nri=nrmtinr(is)
+  nri=nrmti(is)
+  np=npmt(is)
   do ia=1,natoms(is)
     ias=idxas(ia,is)
     write(50,*)
     write(50,*)
     write(50,'("Species : ",I4," (",A,"), atom : ",I4)') is,trim(spsymb(is)),ia
 ! remove the l=m=0 part of the potential
-    do ir=1,nr
-      rfmt(1,ir)=0.d0
-      rfmt(2:lmmaxvr,ir)=vclmt(2:lmmaxvr,ir,ias)
+    rfmt(1:np)=vclmt(1:np,ias)
+    i=1
+    do ir=1,nri
+      rfmt(i)=0.d0
+      i=i+lmmaxi
+    end do
+    do ir=nri+1,nr
+      rfmt(i)=0.d0
+      i=i+lmmaxo
     end do
 ! compute the gradient of the Coulomb potential
-    call gradrfmt(nr,nri,rsp(:,is),rfmt,nrmtmax,grfmt1)
+    call gradrfmt(nr,nri,rsp(:,is),rfmt,npmtmax,grfmt1)
     do i=1,3
 ! compute the gradient of the gradient
-      call gradrfmt(nr,nri,rsp(:,is),grfmt1(:,:,i),nrmtmax,grfmt2)
+      call gradrfmt(nr,nri,rsp(:,is),grfmt1(:,i),npmtmax,grfmt2)
       do j=1,3
-        efg(i,j)=grfmt2(1,1,j)*y00
+        efg(i,j)=grfmt2(1,j)*y00
       end do
     end do
 ! symmetrise the EFG

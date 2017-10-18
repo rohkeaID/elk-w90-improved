@@ -14,7 +14,7 @@ use modmain
 !   igpig : index from G+p-vectors to G-vectors (in,integer(ngkmax,nspnfv))
 !   vgpc  : G+p-vectors in Cartesian coordinates (in,real(3,ngkmax,nspnfv))
 !   wfmt  : muffin-tin wavefunction in spherical harmonics
-!           (in,complex(lmmaxvr,nrcmtmax,natmtot,nspinor,nstsv))
+!           (in,complex(npcmtmax,natmtot,nspinor,nstsv))
 !   wfir  : interstitial wavefunction in plane wave basis
 !           (in,complex(ngkmax,nspinor,nstsv))
 !   pmat  : momentum matrix elements (out,complex(nstsv,nstsv,3))
@@ -39,19 +39,20 @@ implicit none
 integer, intent(in) :: ngp(nspnfv)
 integer, intent(in) :: igpig(ngkmax,nspnfv)
 real(8), intent(in) :: vgpc(3,ngkmax,nspnfv)
-complex(8), intent(in) :: wfmt(lmmaxvr,nrcmtmax,natmtot,nspinor,nstsv)
+complex(8), intent(in) :: wfmt(npcmtmax,natmtot,nspinor,nstsv)
 complex(8), intent(in) :: wfir(ngkmax,nspinor,nstsv)
 complex(8), intent(out) :: pmat(nstsv,nstsv,3)
 ! local variables
 integer ispn,jspn,ist,jst
-integer is,ia,ias,i
-integer nrc,nrci,irc
-integer lmmax,itp,igp,ifg
+integer is,ia,ias
+integer nr,nri,nrc,nrci
+integer npc,igp,ifg,i
 real(8) cso
 complex(8) z1,z2,z11,z12,z21,z22,z31,z32
 ! allocatable arrays
-complex(8), allocatable :: gwfmt(:,:,:,:),gwfir(:,:),x(:)
-complex(8), allocatable :: gvmt(:,:,:),zfmt1(:,:,:),zfmt2(:,:,:,:)
+real(8), allocatable :: rfmt(:)
+complex(8), allocatable :: gwfmt(:,:,:),gwfir(:,:),x(:)
+complex(8), allocatable :: gvmt(:,:),zfmt1(:,:),zfmt2(:,:,:)
 ! external functions
 complex(8) zfmtinp,zdotc
 external zfmtinp,zdotc
@@ -62,67 +63,67 @@ pmat(:,:,:)=0.d0
 !---------------------------------!
 !     muffin-tin contribution     !
 !---------------------------------!
-allocate(gwfmt(lmmaxvr,nrcmtmax,3,nspinor))
+allocate(rfmt(npcmtmax),gwfmt(npcmtmax,3,nspinor))
 if (spinorb) then
-  allocate(gvmt(lmmaxvr,nrcmtmax,3))
-  allocate(zfmt1(lmmaxvr,nrcmtmax,nspinor))
-  allocate(zfmt2(lmmaxvr,nrcmtmax,3,nspinor))
+  allocate(gvmt(npcmtmax,3))
+  allocate(zfmt1(npcmtmax,nspinor))
+  allocate(zfmt2(npcmtmax,3,nspinor))
 end if
 do is=1,nspecies
+  nr=nrmt(is)
+  nri=nrmti(is)
   nrc=nrcmt(is)
-  nrci=nrcmtinr(is)
+  nrci=nrcmti(is)
+  npc=npcmt(is)
   do ia=1,natoms(is)
     ias=idxas(ia,is)
 ! compute gradient of potential for spin-orbit correction if required
     if (spinorb) then
-      call rtozfmt(nrc,nrci,lradstp,vsmt(:,:,ias),1,zfmt1)
-      call gradzfmt(nrc,nrci,rcmt(:,is),zfmt1,nrcmtmax,gvmt)
+      call rfmtftoc(nr,nri,vsmt(:,ias),rfmt)
+      call rtozfmt(nrc,nrci,rfmt,zfmt1)
+      call gradzfmt(nrc,nrci,rcmt(:,is),zfmt1,npcmtmax,gvmt)
 ! convert to spherical coordinates
       do i=1,3
-        zfmt1(:,1:nrc,1)=gvmt(:,1:nrc,i)
-        call zbsht(nrc,nrci,zfmt1,gvmt(:,:,i))
+        zfmt1(1:npc,1)=gvmt(1:npc,i)
+        call zbsht(nrc,nrci,zfmt1,gvmt(:,i))
       end do
     end if
     do jst=1,nstsv
       do ispn=1,nspinor
 ! compute the gradient of the wavefunction
-        call gradzfmt(nrc,nrci,rcmt(:,is),wfmt(:,:,ias,ispn,jst),nrcmtmax, &
-         gwfmt(:,:,:,ispn))
+        call gradzfmt(nrc,nrci,rcmt(:,is),wfmt(:,ias,ispn,jst),npcmtmax, &
+         gwfmt(:,:,ispn))
       end do
 ! add spin-orbit correction if required
       if (spinorb) then
         do ispn=1,nspinor
 ! convert wavefunction to spherical coordinates
-          call zbsht(nrc,nrci,wfmt(:,:,ias,ispn,jst),zfmt1(:,:,ispn))
+          call zbsht(nrc,nrci,wfmt(:,ias,ispn,jst),zfmt1(:,ispn))
         end do
 ! compute i sigma x (grad V(r)) psi(r)
-        lmmax=lmmaxinr
-        do irc=1,nrc
-          do itp=1,lmmax
-            z1=zfmt1(itp,irc,1)
-            z1=cmplx(-aimag(z1),dble(z1),8)
-            z2=zfmt1(itp,irc,2)
-            z2=cmplx(-aimag(z2),dble(z2),8)
-            z11=gvmt(itp,irc,1)*z1
-            z12=gvmt(itp,irc,1)*z2
-            z21=gvmt(itp,irc,2)*z1
-            z22=gvmt(itp,irc,2)*z2
-            z31=gvmt(itp,irc,3)*z1
-            z32=gvmt(itp,irc,3)*z2
-            zfmt2(itp,irc,1,1)=-z21-cmplx(-aimag(z32),dble(z32),8)
-            zfmt2(itp,irc,1,2)=z22+cmplx(-aimag(z31),dble(z31),8)
-            zfmt2(itp,irc,2,1)=z11-z32
-            zfmt2(itp,irc,2,2)=-z12-z31
-            zfmt2(itp,irc,3,1)=cmplx(-aimag(z12),dble(z12),8)+z22
-            zfmt2(itp,irc,3,2)=-cmplx(-aimag(z11),dble(z11),8)+z21
-          end do
-          if (irc.eq.nrci) lmmax=lmmaxvr
+        do i=1,npc
+          z1=zfmt1(i,1)
+          z1=cmplx(-aimag(z1),dble(z1),8)
+          z2=zfmt1(i,2)
+          z2=cmplx(-aimag(z2),dble(z2),8)
+          z11=gvmt(i,1)*z1
+          z12=gvmt(i,1)*z2
+          z21=gvmt(i,2)*z1
+          z22=gvmt(i,2)*z2
+          z31=gvmt(i,3)*z1
+          z32=gvmt(i,3)*z2
+          zfmt2(i,1,1)=-z21-cmplx(-aimag(z32),dble(z32),8)
+          zfmt2(i,1,2)=z22+cmplx(-aimag(z31),dble(z31),8)
+          zfmt2(i,2,1)=z11-z32
+          zfmt2(i,2,2)=-z12-z31
+          zfmt2(i,3,1)=cmplx(-aimag(z12),dble(z12),8)+z22
+          zfmt2(i,3,2)=-cmplx(-aimag(z11),dble(z11),8)+z21
         end do
 ! convert to spherical harmonics and add to wavefunction gradient
         do ispn=1,nspinor
           do i=1,3
-            call zfsht(nrc,nrci,zfmt2(:,:,i,ispn),zfmt1)
-            gwfmt(:,1:nrc,i,ispn)=gwfmt(:,1:nrc,i,ispn)+cso*zfmt1(:,1:nrc,1)
+            call zfsht(nrc,nrci,zfmt2(:,i,ispn),zfmt1)
+            gwfmt(1:npc,i,ispn)=gwfmt(1:npc,i,ispn)+cso*zfmt1(1:npc,1)
           end do
         end do
       end if
@@ -131,14 +132,14 @@ do is=1,nspecies
         do ist=1,jst
           do ispn=1,nspinor
             pmat(ist,jst,i)=pmat(ist,jst,i)+zfmtinp(nrc,nrci,rcmt(:,is), &
-             r2cmt(:,is),wfmt(:,:,ias,ispn,ist),gwfmt(:,:,i,ispn))
+             r2cmt(:,is),wfmt(:,ias,ispn,ist),gwfmt(:,i,ispn))
           end do
         end do
       end do
     end do
   end do
 end do
-deallocate(gwfmt)
+deallocate(rfmt,gwfmt)
 if (spinorb) deallocate(gvmt,zfmt1,zfmt2)
 !-----------------------------------!
 !     interstitial contribution     !

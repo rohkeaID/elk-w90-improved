@@ -54,57 +54,52 @@ use modmain
 implicit none
 ! arguments
 integer, intent(in) :: is
-real(8), intent(in) :: rhoup(lmmaxvr,nrmtmax)
-real(8), intent(in) :: rhodn(lmmaxvr,nrmtmax)
-real(8), intent(in) :: g2up(lmmaxvr,nrmtmax)
-real(8), intent(in) :: g2dn(lmmaxvr,nrmtmax)
-real(8), intent(out) :: gvup(lmmaxvr,nrmtmax,3)
-real(8), intent(out) :: gvdn(lmmaxvr,nrmtmax,3)
-real(8), intent(out) :: gup2(lmmaxvr,nrmtmax)
-real(8), intent(out) :: gdn2(lmmaxvr,nrmtmax)
-real(8), intent(out) :: gupdn(lmmaxvr,nrmtmax)
+real(8), intent(in) :: rhoup(npmtmax),rhodn(npmtmax)
+real(8), intent(in) :: g2up(npmtmax),g2dn(npmtmax)
+real(8), intent(out) :: gvup(npmtmax,3),gvdn(npmtmax,3)
+real(8), intent(out) :: gup2(npmtmax),gdn2(npmtmax),gupdn(npmtmax)
 ! local variables
-integer nr,nri,i
+integer nr,nri,np,i
 ! allocatable arrays
-real(8), allocatable :: rfmt1(:,:),rfmt2(:,:),grfmt(:,:,:)
-allocate(rfmt1(lmmaxvr,nrmtmax),rfmt2(lmmaxvr,nrmtmax))
-allocate(grfmt(lmmaxvr,nrmtmax,3))
+real(8), allocatable :: rfmt1(:),rfmt2(:),grfmt(:,:)
+allocate(rfmt1(npmtmax),rfmt2(npmtmax),grfmt(npmtmax,3))
 nr=nrmt(is)
-nri=nrmtinr(is)
+nri=nrmti(is)
+np=npmt(is)
 !----------------!
 !     rho up     !
 !----------------!
 ! convert rhoup to spherical harmonics
-call rfsht(nr,nri,1,rhoup,1,rfmt1)
+call rfsht(nr,nri,rhoup,rfmt1)
 ! compute grad^2 rhoup in spherical coordinates
 call grad2rfmt(nr,nri,rsp(:,is),rfmt1,rfmt2)
-call rbsht(nr,nri,1,rfmt2,1,g2up)
+call rbsht(nr,nri,rfmt2,g2up)
 ! grad rhoup in spherical coordinates
-call gradrfmt(nr,nri,rsp(:,is),rfmt1,nrmtmax,grfmt)
+call gradrfmt(nr,nri,rsp(:,is),rfmt1,npmtmax,grfmt)
 do i=1,3
-  call rbsht(nr,nri,1,grfmt(:,:,i),1,gvup(:,:,i))
+  call rbsht(nr,nri,grfmt(:,i),gvup(:,i))
 end do
 ! (grad rhoup)^2
-gup2(:,1:nr)=gvup(:,1:nr,1)**2+gvup(:,1:nr,2)**2+gvup(:,1:nr,3)**2
+gup2(1:np)=gvup(1:np,1)**2+gvup(1:np,2)**2+gvup(1:np,3)**2
 !------------------!
 !     rho down     !
 !------------------!
 ! convert rhodn to spherical harmonics
-call rfsht(nr,nri,1,rhodn,1,rfmt1)
+call rfsht(nr,nri,rhodn,rfmt1)
 ! compute grad^2 rhodn in spherical coordinates
 call grad2rfmt(nr,nri,rsp(:,is),rfmt1,rfmt2)
-call rbsht(nr,nri,1,rfmt2,1,g2dn)
+call rbsht(nr,nri,rfmt2,g2dn)
 ! grad rhodn in spherical coordinates
-call gradrfmt(nr,nri,rsp(:,is),rfmt1,nrmtmax,grfmt)
+call gradrfmt(nr,nri,rsp(:,is),rfmt1,npmtmax,grfmt)
 do i=1,3
-  call rbsht(nr,nri,1,grfmt(:,:,i),1,gvdn(:,:,i))
+  call rbsht(nr,nri,grfmt(:,i),gvdn(:,i))
 end do
 ! (grad rhodn)^2
-gdn2(:,1:nr)=gvdn(:,1:nr,1)**2+gvdn(:,1:nr,2)**2+gvdn(:,1:nr,3)**2
+gdn2(1:np)=gvdn(1:np,1)**2+gvdn(1:np,2)**2+gvdn(1:np,3)**2
 ! (grad rhoup).(grad rhodn)
-gupdn(:,1:nr)=gvup(:,1:nr,1)*gvdn(:,1:nr,1) &
-             +gvup(:,1:nr,2)*gvdn(:,1:nr,2) &
-             +gvup(:,1:nr,3)*gvdn(:,1:nr,3)
+gupdn(1:np)=gvup(1:np,1)*gvdn(1:np,1) &
+           +gvup(1:np,2)*gvdn(1:np,2) &
+           +gvup(1:np,3)*gvdn(1:np,3)
 deallocate(rfmt1,rfmt2,grfmt)
 return
 end subroutine

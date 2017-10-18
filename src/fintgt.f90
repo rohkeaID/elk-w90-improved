@@ -42,7 +42,7 @@ case(-2)
    +f(n-1)*(x0-x2)*(3.d0*x2-2.d0*x1-x0))/(6.d0*(x2-x1)*(x2-x0))
 case(-1)
 ! high accuracy integration from spline interpolation
-  call spline(n,x,1,f,cf)
+  call spline(n,x,f,cf)
   do i=1,n-1
     dx=x(i+1)-x(i)
     sum=sum+(((0.25d0*cf(3,i)*dx+0.3333333333333333333d0*cf(2,i))*dx &

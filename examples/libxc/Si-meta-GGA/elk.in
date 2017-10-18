@@ -2,8 +2,7 @@
 ! Band structure of silicon using meta-GGA. Note that the libxc library has to
 ! be linked into the code. See the manual for instructions on how to do this.
 
-! LAPW appears to be required to obtain accurate kinetic energy densities, thus
-! a special Si.in species file is included in this directory.
+! LAPW appears to be required to obtain accurate kinetic energy densities.
 
 ! Compare the meta-GGA and LDA band structures and band gaps.
 
@@ -19,6 +18,14 @@ xctype
 ! double the number of points in the muffin-tin
 nrmtscf
   2
+
+! use LAPW
+nxoapwlo
+  1
+
+! small mixing parameter to ensure convergence
+beta0
+  0.01
 
 avec
   5.13  5.13  0.00

@@ -7,8 +7,8 @@ complex(8) function rzfinp(rfmt,rfir,zfmt,zfir)
 use modmain
 implicit none
 ! arguments
-real(8), intent(in) :: rfmt(lmmaxvr,nrcmtmax,natmtot),rfir(ngtot)
-complex(8), intent(in) :: zfmt(lmmaxvr,nrcmtmax,natmtot),zfir(ngtot)
+real(8), intent(in) :: rfmt(npcmtmax,natmtot),rfir(ngtot)
+complex(8), intent(in) :: zfmt(npcmtmax,natmtot),zfir(ngtot)
 ! local variables
 integer ias,is,ir
 complex(8) zsum
@@ -26,8 +26,8 @@ zsum=zsum*(omega/dble(ngtot))
 !$OMP DO
 do ias=1,natmtot
   is=idxis(ias)
-  zsum=zsum+rzfmtinp(nrcmt(is),nrcmtinr(is),rcmt(:,is),r2cmt(:,is), &
-   rfmt(:,:,ias),zfmt(:,:,ias))
+  zsum=zsum+rzfmtinp(nrcmt(is),nrcmti(is),rcmt(:,is),r2cmt(:,is),rfmt(:,ias), &
+   zfmt(:,ias))
 end do
 !$OMP END DO
 !$OMP END PARALLEL

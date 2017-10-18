@@ -10,7 +10,7 @@ implicit none
 ! arguments
 logical, intent(in) :: tfv,tvclcr
 integer, intent(in) :: ik
-real(8), intent(in) :: vmt(lmmaxvr,nrcmtmax,natmtot),vir(ngtot)
+real(8), intent(in) :: vmt(npcmtmax,natmtot),vir(ngtot)
 ! local variables
 integer ist,ispn,recl
 ! automatic arrays
@@ -18,13 +18,13 @@ integer idx(nstsv)
 ! allocatable arrays
 complex(8), allocatable :: apwalm(:,:,:,:,:)
 complex(8), allocatable :: evecfv(:,:,:),evecsv(:,:)
-complex(8), allocatable :: wfmt(:,:,:,:,:),wfir(:,:,:)
+complex(8), allocatable :: wfmt(:,:,:,:),wfir(:,:,:)
 complex(8), allocatable :: kmat(:,:),a(:,:)
-! get the eigenvalues/vectors from file for input k-point
+! get the eigenvalues/vectors from file for input reduced k-point
 allocate(evecfv(nmatmax,nstfv,nspnfv),evecsv(nstsv,nstsv))
-call getevalsv(filext,vkl(:,ik),evalsv(:,ik))
-call getevecfv(filext,vkl(:,ik),vgkl(:,:,:,ik),evecfv)
-call getevecsv(filext,vkl(:,ik),evecsv)
+call getevalsv(filext,ik,vkl(:,ik),evalsv(:,ik))
+call getevecfv(filext,ik,vkl(:,ik),vgkl(:,:,:,ik),evecfv)
+call getevecsv(filext,ik,vkl(:,ik),evecsv)
 ! find the matching coefficients
 allocate(apwalm(ngkmax,apwordmax,lmmaxapw,natmtot,nspnfv))
 do ispn=1,nspnfv
@@ -36,8 +36,7 @@ do ist=1,nstsv
   idx(ist)=ist
 end do
 ! calculate the wavefunctions for all states of the input k-point
-allocate(wfmt(lmmaxvr,nrcmtmax,natmtot,nspinor,nstsv))
-allocate(wfir(ngkmax,nspinor,nstsv))
+allocate(wfmt(npcmtmax,natmtot,nspinor,nstsv),wfir(ngkmax,nspinor,nstsv))
 call genwfsv(.false.,.true.,nstsv,idx,ngk(:,ik),igkig(:,:,ik),apwalm,evecfv, &
  evecsv,wfmt,ngkmax,wfir)
 deallocate(apwalm,evecfv)
@@ -58,20 +57,18 @@ kmat(:,:)=-kmat(:,:)
 do ist=1,nstsv
   kmat(ist,ist)=kmat(ist,ist)+evalsv(ist,ik)
 end do
-allocate(a(nstsv,nstsv))
 ! add the Coulomb core matrix elements if required
-if (tvclcr) then
-  call vclcore(wfmt,a)
-  kmat(:,:)=kmat(:,:)+a(:,:)
-end if
+if (tvclcr) call vclcore(wfmt,kmat)
 ! rotate kinetic matrix elements to first-variational basis if required
 if (tfv) then
+  allocate(a(nstsv,nstsv))
   call zgemm('N','C',nstsv,nstsv,nstsv,zone,kmat,nstsv,evecsv,nstsv,zzero,a, &
    nstsv)
   call zgemm('N','N',nstsv,nstsv,nstsv,zone,evecsv,nstsv,a,nstsv,zzero,kmat, &
    nstsv)
+  deallocate(a)
 end if
-deallocate(evecsv,wfmt,a)
+deallocate(evecsv,wfmt)
 ! determine the record length
 inquire(iolength=recl) vkl(:,1),nstsv,kmat
 !$OMP CRITICAL

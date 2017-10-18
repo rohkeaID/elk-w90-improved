@@ -1,7 +1,7 @@
 
 ! Electron localisation function (ELF) of cubic boron nitride. Note that the ELF
 ! is not continuous at the muffin-tin boundaries. To make it smooth increase
-! several parameters such as rgkmax, gmaxvr, lmaxvr and lmaxapw.
+! several parameters such as rgkmax, gmaxvr, lmaxo and lmaxapw.
 
 tasks
   0

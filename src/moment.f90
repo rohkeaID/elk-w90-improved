@@ -20,13 +20,14 @@ use modtest
 !BOC
 implicit none
 ! local variables
-integer idm,is,ias,ir
+integer idm,is,ias
+integer nr,nri,ir,i
 real(8) t1
 ! automatic arrays
 real(8) fr(nrmtmax)
 ! external functions
-real(8) fintgt,ddot
-external fintgt,ddot
+real(8) fintgt
+external fintgt
 if (.not.spinpol) then
   mommt(:,:)=0.d0
   mommttot(:)=0.d0
@@ -39,8 +40,16 @@ mommttot(:)=0.d0
 do idm=1,ndmag
   do ias=1,natmtot
     is=idxis(ias)
-    do ir=1,nrmt(is)
-      fr(ir)=magmt(1,ir,ias,idm)*r2sp(ir,is)
+    nr=nrmt(is)
+    nri=nrmti(is)
+    i=1
+    do ir=1,nri
+      fr(ir)=magmt(i,ias,idm)*r2sp(ir,is)
+      i=i+lmmaxi
+    end do
+    do ir=nri+1,nr
+      fr(ir)=magmt(i,ias,idm)*r2sp(ir,is)
+      i=i+lmmaxo
     end do
     t1=fintgt(-1,nrmt(is),rsp(:,is),fr)
     mommt(idm,ias)=fourpi*y00*t1
@@ -49,7 +58,7 @@ do idm=1,ndmag
 end do
 ! find the interstitial moments
 do idm=1,ndmag
-  t1=ddot(ngtot,magir(:,idm),1,cfunir,1)
+  t1=dot_product(magir(:,idm),cfunir(:))
   momir(idm)=t1*omega/dble(ngtot)
 end do
 momtot(:)=mommttot(:)+momir(:)
@@ -64,3 +73,4 @@ end if
 return
 end subroutine
 !EOC
+

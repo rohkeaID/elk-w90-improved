@@ -8,8 +8,7 @@ use modmain
 use modphonon
 implicit none
 ! arguments
-integer, intent(in) :: ias
-integer, intent(in) :: ngp,ngpq
+integer, intent(in) :: ias,ngp,ngpq
 complex(8), intent(in) :: dapwalm(ngkmax,apwordmax,lmmaxapw)
 complex(8), intent(in) :: dapwalmq(ngkmax,apwordmax,lmmaxapw)
 integer, intent(in) :: ld

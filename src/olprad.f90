@@ -38,9 +38,9 @@ external fintgt
 do ias=1,natmtot
   is=idxis(ias)
   nr=nrmt(is)
-!--------------------------------------!
-!     APW-local-orbital integtrals     !
-!--------------------------------------!
+!-------------------------------------!
+!     APW-local-orbital integrals     !
+!-------------------------------------!
   do ilo=1,nlorb(is)
     l=lorbl(ilo,is)
     do io=1,apword(l,is)

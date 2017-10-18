@@ -14,7 +14,7 @@ real(8) vkql(3),v(3)
 real(8) qc,wd,dw,w,t1
 ! allocatable arrays
 real(8), allocatable :: e(:,:,:),f(:,:,:),ddcs(:)
-complex(8), allocatable :: expmt(:,:,:),emat(:,:)
+complex(8), allocatable :: expmt(:,:),emat(:,:)
 ! initialise universal variables
 call init0
 call init1
@@ -33,7 +33,7 @@ end if
 allocate(e(nstsv,nstsv,nkptnr))
 allocate(f(nstsv,nstsv,nkptnr))
 allocate(ddcs(nwplot))
-allocate(expmt(lmmaxvr,nrcmtmax,natmtot))
+allocate(expmt(npcmtmax,natmtot))
 ! read in the density and potentials from file
 call readstate
 ! read Fermi energy from file
@@ -46,8 +46,8 @@ call genapwfr
 call genlofr
 ! get the second-variational eigenvalues and occupancies from file
 do ik=1,nkpt
-  call getevalsv(filext,vkl(:,ik),evalsv(:,ik))
-  call getoccsv(filext,vkl(:,ik),occsv(:,ik))
+  call getevalsv(filext,ik,vkl(:,ik),evalsv(:,ik))
+  call getoccsv(filext,ik,vkl(:,ik),occsv(:,ik))
 end do
 ! generate the phase factor function exp(iq.r) in the muffin-tins
 call genexpmt(vecqc,expmt)

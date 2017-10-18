@@ -10,7 +10,7 @@ implicit none
 logical, intent(in) :: tsh,tgp
 integer, intent(in) :: nst,idx(nst)
 real(8), intent(in) :: vpl(3)
-complex(8), intent(out) :: wfmt(lmmaxvr,nrcmtmax,natmtot,nspinor,nst)
+complex(8), intent(out) :: wfmt(npcmtmax,natmtot,nspinor,nst)
 integer, intent(in) :: ld
 complex(8), intent(out) :: wfir(ld,nspinor,nst)
 ! local variables
@@ -57,10 +57,10 @@ end do
 deallocate(vgpc,gpc,sfacgp)
 ! get the first- and second-variational eigenvectors from file
 allocate(evecfv(nmatmax,nstfv,nspnfv))
-call getevecfv(filext,vpl,vgpl,evecfv)
+call getevecfv(filext,0,vpl,vgpl,evecfv)
 deallocate(vgpl)
 allocate(evecsv(nstsv,nstsv))
-call getevecsv(filext,vpl,evecsv)
+call getevecsv(filext,0,vpl,evecsv)
 ! calculate the second-variational wavefunctions
 call genwfsv(tsh,tgp,nst,idx,ngp,igpig,apwalm,evecfv,evecsv,wfmt,ld,wfir)
 deallocate(igpig,apwalm,evecfv,evecsv)

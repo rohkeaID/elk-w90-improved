@@ -21,12 +21,14 @@ use moddftu
 !BOC
 implicit none
 ! local variables
-integer is
+integer idm,is,ias
+! allocatable arrays
+real(8), allocatable :: rfmt(:,:,:),rvfmt(:,:,:,:),rvfcmt(:,:,:,:)
 open(50,file='STATE'//trim(filext),action='WRITE',form='UNFORMATTED')
 write(50) version
 write(50) spinpol
 write(50) nspecies
-write(50) lmmaxvr
+write(50) lmmaxo
 write(50) nrmtmax
 write(50) nrcmtmax
 do is=1,nspecies
@@ -44,19 +46,62 @@ write(50) fsmtype
 write(50) ftmtype
 write(50) dftu
 write(50) lmmaxdm
+! muffin-tin functions are unpacked to maintain backward compatibility
+allocate(rfmt(lmmaxo,nrmtmax,natmtot))
+if (spinpol) then
+  allocate(rvfmt(lmmaxo,nrmtmax,natmtot,ndmag))
+  allocate(rvfcmt(lmmaxo,nrcmtmax,natmtot,ndmag))
+end if
 ! write the density
-write(50) rhomt,rhoir
+do ias=1,natmtot
+  is=idxis(ias)
+  call rfmtpack(.false.,nrmt(is),nrmti(is),rhomt(:,ias),rfmt(:,:,ias))
+end do
+write(50) rfmt,rhoir
 ! write the Coulomb potential
-write(50) vclmt,vclir
+do ias=1,natmtot
+  is=idxis(ias)
+  call rfmtpack(.false.,nrmt(is),nrmti(is),vclmt(:,ias),rfmt(:,:,ias))
+end do
+write(50) rfmt,vclir
 ! write the exchange-correlation potential
-write(50) vxcmt,vxcir
+do ias=1,natmtot
+  is=idxis(ias)
+  call rfmtpack(.false.,nrmt(is),nrmti(is),vxcmt(:,ias),rfmt(:,:,ias))
+end do
+write(50) rfmt,vxcir
 ! write the Kohn-Sham effective potential
-write(50) vsmt,vsir
+do ias=1,natmtot
+  is=idxis(ias)
+  call rfmtpack(.false.,nrmt(is),nrmti(is),vsmt(:,ias),rfmt(:,:,ias))
+end do
+write(50) rfmt,vsir
 if (spinpol) then
 ! write the magnetisation, exchange-correlation and effective magnetic fields
-  write(50) magmt,magir
-  write(50) bxcmt,bxcir
-  write(50) bsmt,bsir
+  do idm=1,ndmag
+    do ias=1,natmtot
+      is=idxis(ias)
+      call rfmtpack(.false.,nrmt(is),nrmti(is),magmt(:,ias,idm), &
+       rvfmt(:,:,ias,idm))
+    end do
+  end do
+  write(50) rvfmt,magir
+  do idm=1,ndmag
+    do ias=1,natmtot
+      is=idxis(ias)
+      call rfmtpack(.false.,nrmt(is),nrmti(is),bxcmt(:,ias,idm), &
+       rvfmt(:,:,ias,idm))
+    end do
+  end do
+  write(50) rvfmt,bxcir
+  do idm=1,ndmag
+    do ias=1,natmtot
+      is=idxis(ias)
+      call rfmtpack(.false.,nrcmt(is),nrcmti(is),bsmt(:,ias,idm), &
+       rvfcmt(:,:,ias,idm))
+    end do
+  end do
+  write(50) rvfcmt,bsir
 ! write fixed spin moment magnetic fields
   if (fsmtype.ne.0) then
     write(50) bfsmc
@@ -72,6 +117,8 @@ if (ftmtype.ne.0) then
   write(50) vmftm
 end if
 close(50)
+deallocate(rfmt)
+if (spinpol) deallocate(rvfmt,rvfcmt)
 return
 end subroutine
 !EOC

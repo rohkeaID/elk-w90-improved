@@ -54,7 +54,7 @@ wfmax=20.d0*wrms
 tmin=tc/6.d0
 if (tmin.lt.1.d-2) tmin=0.1d0
 ! maximum temperature
-tmax=3.d0*tc
+tmax=5.d0*tc
 if (tmax.lt.1.d0) tmax=1.d0
 ! temperature step size
 dtemp=(tmax-tmin)/dble(ntemp)
@@ -89,7 +89,7 @@ write(62,'("Number of temperature steps : ",I6)') ntemp
 write(62,'("Number of output frequencies : ",I8)') nout
 write(62,'("Fermionic Matsubara frequency cut-off")')
 write(62,'(" phonons : ",G18.10)') wfmax
-write(62,'(" Coulomb : ",G18.10)') wrms
+write(62,'(" Coulomb : ",G18.10)') 2.d0*wrms
 call flushifc(62)
 d0(:)=1.d-4
 z0(:)=1.d0
@@ -103,7 +103,7 @@ do itemp=1,ntemp
 ! number of Matsubara frequencies
   nwf=nint(wfmax/(2.d0*t0))
   if (nwf.gt.maxwf) nwf=maxwf
-  nwfcl=nint(wrms/(2.d0*t0))
+  nwfcl=nint(2.d0*wrms/(2.d0*t0))
   if (nwfcl.lt.1) nwfcl=1
   if (nwfcl.gt.nwf) nwfcl=nwf
   write(62,'("Number of Matsubara frequencies")')

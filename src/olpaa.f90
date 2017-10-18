@@ -7,9 +7,8 @@ subroutine olpaa(ias,ngp,apwalm,ld,o)
 use modmain
 implicit none
 ! arguments
-integer, intent(in) :: ias
-integer, intent(in) :: ngp
-complex(8), intent(in) :: apwalm(ngkmax,apwordmax,lmmaxapw,natmtot)
+integer, intent(in) :: ias,ngp
+complex(8), intent(in) :: apwalm(ngkmax,apwordmax,lmmaxapw)
 integer, intent(in) :: ld
 complex(8), intent(inout) :: o(*)
 ! local variables
@@ -22,7 +21,7 @@ do l=0,lmaxmat
   do m=-l,l
     lm=lm+1
     do io=1,apword(l,is)
-      x(1:ngp)=conjg(apwalm(1:ngp,io,lm,ias))
+      x(1:ngp)=conjg(apwalm(1:ngp,io,lm))
       call zheri(ngp,1.d0,x,ld,o)
     end do
   end do

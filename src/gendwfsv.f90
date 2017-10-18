@@ -16,42 +16,41 @@ complex(8), intent(in) :: apwalmq(ngkmax,apwordmax,lmmaxapw,natmtot,nspnfv)
 complex(8), intent(in) :: dapwalm(ngkmax,apwordmax,lmmaxapw,nspnfv)
 complex(8), intent(in) :: evecfv(nmatmax,nstfv,nspnfv)
 complex(8), intent(in) :: devecfv(nmatmax,nstfv,nspnfv)
-complex(8), intent(in) :: evecsv(nstsv,nstsv)
-complex(8), intent(in) :: devecsv(nstsv,nstsv)
-complex(8), intent(out) :: dwfmt(lmmaxvr,nrcmtmax,natmtot,nspinor,nst)
+complex(8), intent(in) :: evecsv(nstsv,nstsv),devecsv(nstsv,nstsv)
+complex(8), intent(out) :: dwfmt(npcmtmax,natmtot,nspinor,nst)
 integer, intent(in) :: ld
 complex(8), intent(out) :: dwfir(ld,nspinor,nst)
 ! local variables
 integer ist,ispn,jspn
 integer is,ia,ias,nrc,nrci
-integer igp,ifg,i,j,k
+integer npc,igp,ifg,i,j,k
 real(8) t1
 complex(8) z1
 ! automatic arrays
 logical done(nstfv),ddone(nstfv)
 ! allocatable arrays
-complex(8), allocatable :: wfmt1(:,:,:),wfmt2(:,:),dwfmt1(:,:,:)
+complex(8), allocatable :: wfmt1(:,:),wfmt2(:),dwfmt1(:,:)
 !---------------------------------------------!
 !     muffin-tin wavefunction derivatives     !
 !---------------------------------------------!
 if (tevecsv) then
-  allocate(wfmt1(lmmaxvr,nrcmtmax,nstfv))
-  allocate(dwfmt1(lmmaxvr,nrcmtmax,nstfv))
+  allocate(wfmt1(npcmtmax,nstfv),dwfmt1(npcmtmax,nstfv))
 end if
-if (.not.tsh) allocate(wfmt2(lmmaxvr,nrcmtmax))
+if (.not.tsh) allocate(wfmt2(npcmtmax))
 do is=1,nspecies
   nrc=nrcmt(is)
-  nrci=nrcmtinr(is)
+  nrci=nrcmti(is)
+  npc=npcmt(is)
   do ia=1,natoms(is)
     ias=idxas(ia,is)
     done(:)=.false.
     do j=1,nst
       k=idx(j)
       if (tevecsv) then
-        dwfmt(:,:,ias,:,j)=0.d0
         i=0
         do ispn=1,nspinor
           jspn=jspnfv(ispn)
+          dwfmt(1:npc,ias,ispn,j)=0.d0
           do ist=1,nstfv
             i=i+1
             z1=devecsv(i,k)
@@ -60,45 +59,43 @@ do is=1,nspecies
               if (.not.done(ist)) then
                 if (tsh) then
                   call wavefmt(lradstp,ias,ngp(jspn),apwalmq(:,:,:,:,jspn), &
-                   evecfv(:,ist,jspn),wfmt1(:,:,ist))
+                   evecfv(:,ist,jspn),wfmt1(:,ist))
                 else
                   call wavefmt(lradstp,ias,ngp(jspn),apwalmq(:,:,:,:,jspn), &
                    evecfv(:,ist,jspn),wfmt2)
-                  call zbsht(nrc,nrci,wfmt2,wfmt1(:,:,ist))
-!****** fix
+                  call zbsht(nrc,nrci,wfmt2,wfmt1(:,ist))
                 end if
                 done(ist)=.true.
               end if
-              call zfmtadd(nrc,nrci,z1,wfmt1(:,:,ist),dwfmt(:,:,ias,ispn,j))
+              call zaxpy(npc,z1,wfmt1(:,ist),1,dwfmt(:,ias,ispn,j),1)
             end if
             z1=evecsv(i,k)
             if (abs(dble(z1))+abs(aimag(z1)).gt.epsocc) then
               if (.not.ddone(ist)) then
                 if (tsh) then
-                  call dwavefmt(lradstp,lmaxvr,ias,ngp(jspn),ngpq(jspn), &
+                  call dwavefmt(lradstp,ias,ngp(jspn),ngpq(jspn), &
                    apwalmq(:,:,:,:,jspn),dapwalm(:,:,:,jspn), &
-                   evecfv(:,ist,jspn),devecfv(:,ist,jspn),lmmaxvr, &
-                   dwfmt1(:,:,ist))
+                   evecfv(:,ist,jspn),devecfv(:,ist,jspn),dwfmt1(:,ist))
                 else
-                  call dwavefmt(lradstp,lmaxvr,ias,ngp(jspn),ngpq(jspn), &
+                  call dwavefmt(lradstp,ias,ngp(jspn),ngpq(jspn), &
                    apwalmq(:,:,:,:,jspn),dapwalm(:,:,:,jspn), &
-                   evecfv(:,ist,jspn),devecfv(:,ist,jspn),lmmaxvr,wfmt2)
-                  call zbsht(nrc,nrci,wfmt2,dwfmt1(:,:,ist))
+                   evecfv(:,ist,jspn),devecfv(:,ist,jspn),wfmt2)
+                  call zbsht(nrc,nrci,wfmt2,dwfmt1(:,ist))
                 end if
                 ddone(ist)=.true.
               end if
-              call zfmtadd(nrc,nrci,z1,dwfmt1(:,:,ist),dwfmt(:,:,ias,ispn,j))
+              call zaxpy(npc,z1,dwfmt1(:,ist),1,dwfmt(:,ias,ispn,j),1)
             end if
           end do
         end do
       else
         if (tsh) then
-          call dwavefmt(lradstp,lmaxvr,ias,ngp,ngpq,apwalmq,dapwalm, &
-           evecfv(:,k,1),devecfv(:,k,1),lmmaxvr,dwfmt(:,:,ias,1,j))
+          call dwavefmt(lradstp,ias,ngp,ngpq,apwalmq,dapwalm,evecfv(:,k,1), &
+           devecfv(:,k,1),dwfmt(:,ias,1,j))
         else
-          call dwavefmt(lradstp,lmaxvr,ias,ngp,ngpq,apwalmq,dapwalm, &
-           evecfv(:,k,1),devecfv(:,k,1),lmmaxvr,wfmt2)
-          call zbsht(nrc,nrci,wfmt2,dwfmt(:,:,ias,1,j))
+          call dwavefmt(lradstp,ias,ngp,ngpq,apwalmq,dapwalm,evecfv(:,k,1), &
+           devecfv(:,k,1),wfmt2)
+          call zbsht(nrc,nrci,wfmt2,dwfmt(:,ias,1,j))
         end if
       end if
     end do

@@ -23,7 +23,7 @@ do i=1,nstrain
   avec(:,:)=avec(:,:)-t1*strain(:,:,i)
 end do
 ! compute the new unit cell volume
-call reciplat
+call reciplat(avec,bvec,omega,omegabz)
 ! scale the vectors to conserve volume if required
 if (latvopt.eq.2) then
   t1=(omega0/omega)**(1.d0/3.d0)

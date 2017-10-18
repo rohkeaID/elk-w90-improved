@@ -14,8 +14,11 @@ real(8), intent(out) :: lambda,wlog,wrms,tc
 integer iw
 real(8) l1,l2,f1,f2,t1
 ! allocatable arrays
-real(8), allocatable :: f(:),g(:)
-allocate(f(nwplot),g(nwplot))
+real(8), allocatable :: f(:)
+! external functions
+real(8) fintgt
+external fintgt
+allocate(f(nwplot))
 ! compute the total lambda
 do iw=1,nwplot
   if (w(iw).gt.1.d-8) then
@@ -24,8 +27,8 @@ do iw=1,nwplot
     f(iw)=0.d0
   end if
 end do
-call fderiv(-3,nwplot,w,f,g)
-lambda=2.d0*g(nwplot)
+t1=fintgt(-3,nwplot,w,f)
+lambda=2.d0*t1
 ! compute the logarithmic average frequency
 do iw=1,nwplot
   if (w(iw).gt.1.d-8) then
@@ -34,8 +37,8 @@ do iw=1,nwplot
     f(iw)=0.d0
   end if
 end do
-call fderiv(-3,nwplot,w,f,g)
-t1=(2.d0/lambda)*g(nwplot)
+t1=fintgt(-3,nwplot,w,f)
+t1=(2.d0/lambda)*t1
 wlog=exp(t1)
 ! compute < w^2 >^(1/2)
 do iw=1,nwplot
@@ -45,8 +48,8 @@ do iw=1,nwplot
     f(iw)=0.d0
   end if
 end do
-call fderiv(-3,nwplot,w,f,g)
-t1=(2.d0/lambda)*g(nwplot)
+t1=fintgt(-3,nwplot,w,f)
+t1=(2.d0/lambda)*t1
 wrms=sqrt(abs(t1))
 ! compute McMillan-Allen-Dynes superconducting critical temperature
 t1=(-1.04d0*(1.d0+lambda))/(lambda-mustar-0.62d0*lambda*mustar)
@@ -56,7 +59,7 @@ l2=1.82d0*(1.d0+6.3d0*mustar)*(wrms/wlog)
 f1=(1.d0+(lambda/l1)**(3.d0/2.d0))**(1.d0/3.d0)
 f2=1.d0+(wrms/wlog-1.d0)*(lambda**2)/(lambda**2+l2**2)
 tc=tc*f1*f2
-deallocate(f,g)
+deallocate(f)
 return
 end subroutine
 

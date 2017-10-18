@@ -16,16 +16,16 @@ real(8), intent(out) :: evalsvp(nstsv)
 complex(8), intent(out) :: evecsv(nstsv,nstsv)
 ! local variables
 integer ld,ist,jst,ispn,jspn
-integer is,ia,ias,nrc,nrci,iro
-integer l,lm,lmi,nm,igp,ifg
-integer i,j,k,lwork,info
+integer is,ia,ias
+integer nrc,nrci,nrco
+integer l,lm,nm,npc,npci
+integer igp,ifg,i,j,k
 real(8) t1
 real(8) ts0,ts1
 complex(8) zq
 ! allocatable arrays
-real(8), allocatable :: rwork(:)
-complex(8), allocatable :: wfmt1(:,:,:,:),wfmt2(:,:,:),wfmt3(:,:),wfmt4(:,:,:)
-complex(8), allocatable :: wfir1(:,:),wfir2(:),z(:,:),work(:)
+complex(8), allocatable :: wfmt1(:,:,:),wfmt2(:,:),wfmt3(:),wfmt4(:,:)
+complex(8), allocatable :: wfir1(:,:),wfir2(:),z(:,:)
 ! external functions
 complex(8) zdotc,zfmtinp
 external zdotc,zfmtinp
@@ -42,16 +42,17 @@ evecsv(:,:)=0.d0
 !-------------------------!
 !     muffin-tin part     !
 !-------------------------!
-lmi=lmmaxinr
-allocate(wfmt1(lmmaxvr,nrcmtmax,nstfv,nspnfv))
-allocate(wfmt2(lmmaxvr,nrcmtmax,nspnfv))
-allocate(wfmt3(lmmaxvr,nrcmtmax),wfmt4(lmmaxvr,nrcmtmax,3))
+allocate(wfmt1(npcmtmax,nstfv,nspnfv))
+allocate(wfmt2(npcmtmax,nspnfv))
+allocate(wfmt3(npcmtmax),wfmt4(npcmtmax,3))
 do ias=1,natmtot
   is=idxis(ias)
   ia=idxia(ias)
   nrc=nrcmt(is)
-  nrci=nrcmtinr(is)
-  iro=nrci+1
+  nrci=nrcmti(is)
+  nrco=nrc-nrci
+  npc=npcmt(is)
+  npci=npcmti(is)
 ! de-phasing factor (FC, FB & LN)
   t1=-0.5d0*dot_product(vqcss(:),atposc(:,ia,is))
   zq=cmplx(cos(t1),sin(t1),8)
@@ -60,28 +61,23 @@ do ias=1,natmtot
     if (ispn.eq.2) zq=conjg(zq)
     do ist=1,nstfv
       call wavefmt(lradstp,ias,ngp(ispn),apwalm(:,:,:,:,ispn), &
-       evecfv(:,ist,ispn),wfmt1(:,:,ist,ispn))
+       evecfv(:,ist,ispn),wfmt1(:,ist,ispn))
 ! de-phase if required
-      if (ssdph) wfmt1(:,1:nrc,ist,ispn)=zq*wfmt1(:,1:nrc,ist,ispn)
+      if (ssdph) wfmt1(1:npc,ist,ispn)=zq*wfmt1(1:npc,ist,ispn)
     end do
   end do
   do jst=1,nstfv
 ! convert wavefunction to spherical coordinates
     do ispn=1,nspnfv
-      call zbsht(nrc,nrci,wfmt1(:,:,jst,ispn),wfmt2(:,:,ispn))
+      call zbsht(nrc,nrci,wfmt1(:,jst,ispn),wfmt2(:,ispn))
     end do
 ! apply effective magnetic field and convert to spherical harmonics
-    wfmt3(1:lmi,1:nrci)=bsmt(1:lmi,1:nrci,ias,3)*wfmt2(1:lmi,1:nrci,1)
-    wfmt3(:,iro:nrc)=bsmt(:,iro:nrc,ias,3)*wfmt2(:,iro:nrc,1)
-    call zfsht(nrc,nrci,wfmt3,wfmt4(:,:,1))
-    wfmt3(1:lmi,1:nrci)=-bsmt(1:lmi,1:nrci,ias,3)*wfmt2(1:lmi,1:nrci,2)
-    wfmt3(:,iro:nrc)=-bsmt(:,iro:nrc,ias,3)*wfmt2(:,iro:nrc,2)
-    call zfsht(nrc,nrci,wfmt3,wfmt4(:,:,2))
-    wfmt3(1:lmi,1:nrci)=cmplx(bsmt(1:lmi,1:nrci,ias,1), &
-     -bsmt(1:lmi,1:nrci,ias,2),8)*wfmt2(1:lmi,1:nrci,2)
-    wfmt3(:,iro:nrc)=cmplx(bsmt(:,iro:nrc,ias,1), &
-     -bsmt(:,iro:nrc,ias,2),8)*wfmt2(:,iro:nrc,2)
-    call zfsht(nrc,nrci,wfmt3,wfmt4(:,:,3))
+    wfmt3(1:npc)=bsmt(1:npc,ias,3)*wfmt2(1:npc,1)
+    call zfsht(nrc,nrci,wfmt3,wfmt4(:,1))
+    wfmt3(1:npc)=-bsmt(1:npc,ias,3)*wfmt2(1:npc,2)
+    call zfsht(nrc,nrci,wfmt3,wfmt4(:,2))
+    wfmt3(1:npc)=cmplx(bsmt(1:npc,ias,1),-bsmt(1:npc,ias,2),8)*wfmt2(1:npc,2)
+    call zfsht(nrc,nrci,wfmt3,wfmt4(:,3))
 ! apply muffin-tin potential matrix if required
     if (tvmatmt) then
       do l=0,lmaxdm
@@ -99,8 +95,13 @@ do ias=1,natmtot
               ispn=1
               jspn=2
             end if
-            call zgemm('N','N',nm,nrc,nm,zone,vmatmt(lm,ispn,lm,jspn,ias),ld, &
-             wfmt1(lm,1,jst,jspn),lmmaxvr,zone,wfmt4(lm,1,k),lmmaxvr)
+            if (l.le.lmaxi) then
+              call zgemm('N','N',nm,nrci,nm,zone,vmatmt(lm,ispn,lm,jspn,ias), &
+               ld,wfmt1(lm,jst,jspn),lmmaxi,zone,wfmt4(lm,k),lmmaxi)
+            end if
+            i=npci+lm
+            call zgemm('N','N',nm,nrco,nm,zone,vmatmt(lm,ispn,lm,jspn,ias),ld, &
+             wfmt1(i,jst,jspn),lmmaxo,zone,wfmt4(i,k),lmmaxo)
           end do
         end if
       end do
@@ -125,7 +126,7 @@ do ias=1,natmtot
         end if
         if (i.le.j) then
           evecsv(i,j)=evecsv(i,j)+zfmtinp(nrc,nrci,rcmt(:,is),r2cmt(:,is), &
-           wfmt1(:,:,ist,ispn),wfmt4(:,:,k))
+           wfmt1(:,ist,ispn),wfmt4(:,k))
         end if
       end do
     end do
@@ -203,19 +204,7 @@ do ispn=1,nspinor
   end do
 end do
 ! diagonalise the second-variational Hamiltonian
-allocate(rwork(3*nstsv))
-lwork=2*nstsv
-allocate(work(lwork))
-call zheev('V','U',nstsv,evecsv,nstsv,evalsvp,work,lwork,rwork,info)
-if (info.ne.0) then
-  write(*,*)
-  write(*,'("Error(eveqnss): diagonalisation of the second-variational &
-   &Hamiltonian failed")')
-  write(*,'(" ZHEEV returned INFO = ",I8)') info
-  write(*,*)
-  stop
-end if
-deallocate(rwork,work)
+call eveqnz(nstsv,nstsv,evecsv,evalsvp)
 call timesec(ts1)
 !$OMP CRITICAL
 timesv=timesv+ts1-ts0

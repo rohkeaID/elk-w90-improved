@@ -16,8 +16,8 @@ integer ip,i1,i2
 real(8) vl1(3),vl2(3)
 real(8) vc1(3),vc2(3),vc3(3)
 real(8) d1,d2,d12,t1,t2
-vl1(:)=vclp2d(:,2)-vclp2d(:,1)
-vl2(:)=vclp2d(:,3)-vclp2d(:,1)
+vl1(:)=vclp2d(:,1)-vclp2d(:,0)
+vl2(:)=vclp2d(:,2)-vclp2d(:,0)
 call r3mv(cvec,vl1,vc1)
 call r3mv(cvec,vl2,vc2)
 d1=sqrt(vc1(1)**2+vc1(2)**2+vc1(3)**2)
@@ -47,7 +47,7 @@ do i2=0,np2d(2)-1
     t1=dble(i1)/dble(np2d(1))
     t2=dble(i2)/dble(np2d(2))
 ! plot points in 3D space
-    vpl(:,ip)=t1*vl1(:)+t2*vl2(:)+vclp2d(:,1)
+    vpl(:,ip)=t1*vl1(:)+t2*vl2(:)+vclp2d(:,0)
 ! plot points on the plane
     vppc(1,ip)=t1*d1+t2*d2*d12
     vppc(2,ip)=t2*d2*sqrt(abs(1.d0-d12**2))

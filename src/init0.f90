@@ -13,6 +13,7 @@ use modxcifc
 use moddftu
 use modtddft
 use modphonon
+use modultra
 use modtest
 use modvars
 ! !DESCRIPTION:
@@ -45,13 +46,9 @@ call timesec(ts0)
 !------------------------------------!
 !     angular momentum variables     !
 !------------------------------------!
-lmmaxapw=(lmaxapw+1)**2
-lmmaxmat=(lmaxmat+1)**2
-lmmaxvr=(lmaxvr+1)**2
-lmmaxinr=(lmaxinr+1)**2
-if (lmaxvr.gt.lmaxapw) then
+if (lmaxo.gt.lmaxapw) then
   write(*,*)
-  write(*,'("Error(init0): lmaxvr > lmaxapw : ",2I8)') lmaxvr,lmaxapw
+  write(*,'("Error(init0): lmaxo > lmaxapw : ",2I8)') lmaxo,lmaxapw
   write(*,*)
   stop
 end if
@@ -61,8 +58,13 @@ if (lmaxmat.gt.lmaxapw) then
   write(*,*)
   stop
 end if
+lmaxi=min(lmaxi,lmaxo)
+lmmaxapw=(lmaxapw+1)**2
+lmmaxmat=(lmaxmat+1)**2
+lmmaxi=(lmaxi+1)**2
+lmmaxo=(lmaxo+1)**2
 ! check DOS lmax is within range
-lmaxdos=min(lmaxdos,lmaxvr)
+lmaxdos=min(lmaxdos,lmaxo)
 ! index to (l,m) pairs
 if (allocated(idxlm)) deallocate(idxlm)
 allocate(idxlm(0:lmaxapw,-lmaxapw:lmaxapw))
@@ -88,9 +90,9 @@ do l=0,lmaxapw
   zilc(l)=conjg(zil(l))
 end do
 ! write to VARIABLES.OUT
-call writevars('lmaxvr',iv=lmaxvr)
 call writevars('lmaxapw',iv=lmaxapw)
-call writevars('lmaxinr',iv=lmaxinr)
+call writevars('lmaxi',iv=lmaxi)
+call writevars('lmaxo',iv=lmaxo)
 
 !------------------------------------!
 !     index to atoms and species     !
@@ -162,7 +164,7 @@ end if
 ! spin-polarised calculations require second-variational eigenvectors
 if (spinpol) tevecsv=.true.
 ! Hartree-Fock/RDMFT requires second-variational eigenvectors
-if ((task.eq.5).or.(task.eq.300)) tevecsv=.true.
+if ((task.eq.5).or.(task.eq.300).or.(task.eq.600)) tevecsv=.true.
 ! get exchange-correlation functional data
 call getxcdata(xctype,xcdescr,xcspin,xcgrad,hybrid,hybridc)
 if ((spinpol).and.(xcspin.eq.0)) then
@@ -186,10 +188,13 @@ if (spinpol) then
   end do
 ! spin-orbit coupling is non-collinear in general
   if (spinorb) ndmag=3
+! source-free fields and spin-spirals must be non-collinear
+  if ((nosource).or.(spinsprl)) then
+    ndmag=3
+    cmagz=.false.
+  end if
 ! force collinear magnetism along the z-axis if required
   if (cmagz) ndmag=1
-! source-free fields and spin-spirals must be non-collinear
-  if ((nosource).or.(spinsprl)) ndmag=3
 else
   ndmag=0
 end if
@@ -205,6 +210,13 @@ if ((xcgrad.eq.3).and.ncmag) then
   write(*,'("Error(init0): meta-GGA is not valid for non-collinear magnetism")')
   write(*,*)
   stop
+end if
+if (ncmag.or.spinorb) then
+! spins are coupled in the second-variational Hamiltonian
+  spcpl=.true.
+else
+! spins are decoupled
+  spcpl=.false.
 end if
 ! spin-polarised cores
 if (.not.spinpol) spincore=.false.
@@ -255,7 +267,7 @@ call writevars('ndmag',iv=ndmag)
 !     crystal structure set up     !
 !----------------------------------!
 ! generate the reciprocal lattice vectors and unit cell volume
-call reciplat
+call reciplat(avec,bvec,omega,omegabz)
 ! inverse of the lattice vector matrix
 call r3minv(avec,ainv)
 ! inverse of the reciprocal vector matrix
@@ -277,6 +289,12 @@ omegamt=0.d0
 do is=1,nspecies
   omegamt=omegamt+dble(natoms(is))*(fourpi/3.d0)*rmt(is)**3
 end do
+! generate ultracell reciprocal lattice vectors if required
+if (ultracell) then
+  call reciplat(avecu,bvecu,omegau,omegabzu)
+end if
+! input q-vector in Cartesian coordinates
+call r3mv(bvec,vecql,vecqc)
 ! write to VARIABLES.OUT
 call writevars('avec',nv=9,rva=avec)
 call writevars('bvec',nv=9,rva=bvec)
@@ -322,6 +340,17 @@ do is=1,nspecies
 end do
 ! set up atomic and muffin-tin radial meshes
 call genrmesh
+! number of points in packed muffin-tins
+npmtmax=1
+npcmtmax=1
+do is=1,nspecies
+  npmti(is)=lmmaxi*nrmti(is)
+  npmt(is)=npmti(is)+lmmaxo*(nrmt(is)-nrmti(is))
+  npmtmax=max(npmtmax,npmt(is))
+  npcmti(is)=lmmaxi*nrcmti(is)
+  npcmt(is)=npcmti(is)+lmmaxo*(nrcmt(is)-nrcmti(is))
+  npcmtmax=max(npcmtmax,npcmt(is))
+end do
 
 !--------------------------------------!
 !     charges and number of states     !
@@ -393,24 +422,8 @@ else
     gkmax=rgkmax/minval(rmt(1:nspecies))
   end if
 end if
-! ensure |G| cut-off is at least twice |G+k| cut-off
-gmaxvr=max(gmaxvr,2.d0*gkmax+epslat)
-! find the G-vector grid sizes
-call gridsize(avec,gmaxvr,ngridg,ngtot,intgv)
-! allocate global G-vector arrays
-if (allocated(ivg)) deallocate(ivg)
-allocate(ivg(3,ngtot))
-if (allocated(ivgig)) deallocate(ivgig)
-allocate(ivgig(intgv(1,1):intgv(2,1),intgv(1,2):intgv(2,2), &
- intgv(1,3):intgv(2,3)))
-if (allocated(igfft)) deallocate(igfft)
-allocate(igfft(ngtot))
-if (allocated(vgc)) deallocate(vgc)
-allocate(vgc(3,ngtot))
-if (allocated(gc)) deallocate(gc)
-allocate(gc(ngtot))
 ! generate the G-vectors
-call gengvec(ngridg,ngtot,intgv,bvec,gmaxvr,ngvec,ivg,ivgig,igfft,vgc,gc)
+call gengvec
 ! write number of G-vectors to test file
 call writetest(900,'number of G-vectors',iv=ngvec)
 ! Poisson solver pseudocharge density constant
@@ -420,11 +433,11 @@ else
   t1=0.25d0*gmaxvr*2.d0
 end if
 npsd=max(nint(t1),1)
-lnpsd=lmaxvr+npsd+1
+lnpsd=lmaxo+npsd+1
 ! compute the spherical Bessel functions j_l(|G|R_mt)
-if (allocated(jlgr)) deallocate(jlgr)
-allocate(jlgr(0:lnpsd,ngvec,nspecies))
-call genjlgpr(lnpsd,gc,jlgr)
+if (allocated(jlgrmt)) deallocate(jlgrmt)
+allocate(jlgrmt(0:lnpsd,ngvec,nspecies))
+call genjlgprmt(lnpsd,ngvec,gc,ngvec,jlgrmt)
 ! generate the spherical harmonics of the G-vectors
 call genylmg
 ! allocate structure factor array for G-vectors
@@ -480,44 +493,44 @@ end if
 if (allocated(rhocr)) deallocate(rhocr)
 allocate(rhocr(nrspmax,natmtot,nspncr))
 
-!---------------------------------------!
-!     charge density and potentials     !
-!---------------------------------------!
+!-------------------------------------------------------------!
+!     charge density, potentials and exchange-correlation     !
+!-------------------------------------------------------------!
 ! allocate charge density arrays
 if (allocated(rhomt)) deallocate(rhomt)
-allocate(rhomt(lmmaxvr,nrmtmax,natmtot))
+allocate(rhomt(npmtmax,natmtot))
 if (allocated(rhoir)) deallocate(rhoir)
 allocate(rhoir(ngtot))
 ! allocate magnetisation arrays
 if (allocated(magmt)) deallocate(magmt)
 if (allocated(magir)) deallocate(magir)
 if (spinpol) then
-  allocate(magmt(lmmaxvr,nrmtmax,natmtot,ndmag))
+  allocate(magmt(npmtmax,natmtot,ndmag))
   allocate(magir(ngtot,ndmag))
 end if
 ! Coulomb potential
 if (allocated(vclmt)) deallocate(vclmt)
-allocate(vclmt(lmmaxvr,nrmtmax,natmtot))
+allocate(vclmt(npmtmax,natmtot))
 if (allocated(vclir)) deallocate(vclir)
 allocate(vclir(ngtot))
 ! exchange energy density
 if (allocated(exmt)) deallocate(exmt)
-allocate(exmt(lmmaxvr,nrmtmax,natmtot))
+allocate(exmt(npmtmax,natmtot))
 if (allocated(exir)) deallocate(exir)
 allocate(exir(ngtot))
 ! correlation energy density
 if (allocated(ecmt)) deallocate(ecmt)
-allocate(ecmt(lmmaxvr,nrmtmax,natmtot))
+allocate(ecmt(npmtmax,natmtot))
 if (allocated(ecir)) deallocate(ecir)
 allocate(ecir(ngtot))
 ! exchange-correlation potential
 if (allocated(vxcmt)) deallocate(vxcmt)
-allocate(vxcmt(lmmaxvr,nrmtmax,natmtot))
+allocate(vxcmt(npmtmax,natmtot))
 if (allocated(vxcir)) deallocate(vxcir)
 allocate(vxcir(ngtot))
 ! effective Kohn-Sham potential
 if (allocated(vsmt)) deallocate(vsmt)
-allocate(vsmt(lmmaxvr,nrmtmax,natmtot))
+allocate(vsmt(npmtmax,natmtot))
 if (allocated(vsir)) deallocate(vsir)
 allocate(vsir(ngtot))
 if (allocated(vsig)) deallocate(vsig)
@@ -528,9 +541,9 @@ if (allocated(bxcir)) deallocate(bxcir)
 if (allocated(bsmt)) deallocate(bsmt)
 if (allocated(bsir)) deallocate(bsir)
 if (spinpol) then
-  allocate(bxcmt(lmmaxvr,nrmtmax,natmtot,ndmag))
+  allocate(bxcmt(npmtmax,natmtot,ndmag))
   allocate(bxcir(ngtot,ndmag))
-  allocate(bsmt(lmmaxvr,nrcmtmax,natmtot,ndmag))
+  allocate(bsmt(npcmtmax,natmtot,ndmag))
   allocate(bsir(ngtot,ndmag))
 end if
 ! spin-orbit coupling radial function
@@ -545,6 +558,12 @@ if (allocated(chgmt)) deallocate(chgmt)
 allocate(chgmt(natmtot))
 if (allocated(mommt)) deallocate(mommt)
 allocate(mommt(3,natmtot))
+! check if scaled spin exchange-correlation (SSXC) should be used
+if (abs(ssxc-1.d0).gt.1.d-6) then
+  tssxc=.true.
+else
+  tssxc=.false.
+end if
 
 !-------------------------!
 !     force variables     !
@@ -640,8 +659,8 @@ iscl=0
 tlast=.false.
 ! set the Fermi energy to zero
 efermi=0.d0
-! input q-vector in Cartesian coordinates
-call r3mv(bvec,vecql,vecqc)
+! set the temperature from the smearing width
+tempk=swidth/kboltz
 
 call timesec(ts1)
 timeinit=timeinit+ts1-ts0

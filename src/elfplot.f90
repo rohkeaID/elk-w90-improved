@@ -37,24 +37,23 @@ implicit none
 ! local variables
 integer ik,is,ias
 integer nr,nri,ir
-integer lmmax,itp
 integer ig,ifg,i
 real(8) r,t1,t2,t3
 ! allocatable arrays
-real(8), allocatable :: gwf2mt(:,:,:),gwf2ir(:)
-real(8), allocatable :: rfmt1(:,:),rfmt2(:,:),grfir(:)
-real(8), allocatable :: grfmt1(:,:,:),grfmt2(:,:,:)
-real(8), allocatable :: elfmt(:,:,:),elfir(:)
+real(8), allocatable :: gwf2mt(:,:),gwf2ir(:)
+real(8), allocatable :: rfmt1(:),rfmt2(:),grfir(:)
+real(8), allocatable :: grfmt1(:,:),grfmt2(:,:)
+real(8), allocatable :: elfmt(:,:),elfir(:)
 complex(8), allocatable :: evecfv(:,:),evecsv(:,:)
 complex(8), allocatable :: zfft1(:),zfft2(:)
 ! initialise universal variables
 call init0
 call init1
 ! allocate local arrays
-allocate(gwf2mt(lmmaxvr,nrmtmax,natmtot),gwf2ir(ngtot))
-allocate(rfmt1(lmmaxvr,nrmtmax),rfmt2(lmmaxvr,nrmtmax),grfir(ngtot))
-allocate(grfmt1(lmmaxvr,nrmtmax,3),grfmt2(lmmaxvr,nrmtmax,3))
-allocate(elfmt(lmmaxvr,nrmtmax,natmtot),elfir(ngtot))
+allocate(gwf2mt(npmtmax,natmtot),gwf2ir(ngtot))
+allocate(rfmt1(npmtmax),rfmt2(npmtmax),grfir(ngtot))
+allocate(grfmt1(npmtmax,3),grfmt2(npmtmax,3))
+allocate(elfmt(npmtmax,natmtot),elfir(ngtot))
 allocate(evecfv(nmatmax,nstfv),evecsv(nstsv,nstsv))
 allocate(zfft1(ngtot),zfft2(ngtot))
 ! read density and potentials from file
@@ -70,13 +69,13 @@ call genapwfr
 ! generate the local-orbital radial functions
 call genlofr
 ! set the gradient squared to zero
-gwf2mt(:,:,:)=0.d0
+gwf2mt(:,:)=0.d0
 gwf2ir(:)=0.d0
 do ik=1,nkpt
 ! get the eigenvectors and occupancies from file
-  call getoccsv(filext,vkl(:,ik),occsv(:,ik))
-  call getevecfv(filext,vkl(:,ik),vgkl(:,:,:,ik),evecfv)
-  call getevecsv(filext,vkl(:,ik),evecsv)
+  call getoccsv(filext,ik,vkl(:,ik),occsv(:,ik))
+  call getevecfv(filext,ik,vkl(:,ik),vgkl(:,:,:,ik),evecfv)
+  call getevecsv(filext,ik,vkl(:,ik),evecsv)
 ! add the valence wavefunction gradient squared
   call gradwf2(ik,evecfv,evecsv,gwf2mt,gwf2ir)
 end do
@@ -88,32 +87,28 @@ call gradwfcr2(gwf2mt)
 do ias=1,natmtot
   is=idxis(ias)
   nr=nrmt(is)
-  nri=nrmtinr(is)
+  nri=nrmti(is)
 ! convert rho from spherical harmonics to spherical coordinates
-  call rbsht(nr,nri,1,rhomt(:,:,ias),1,rfmt1)
+  call rbsht(nr,nri,rhomt(:,ias),rfmt1)
 ! compute the gradient of the density
-  call gradrfmt(nr,nri,rsp(:,is),rhomt(:,:,ias),nrmtmax,grfmt1)
+  call gradrfmt(nr,nri,rsp(:,is),rhomt(:,ias),npmtmax,grfmt1)
 ! convert gradient to spherical coordinates
   do i=1,3
-    call rbsht(nr,nri,1,grfmt1(:,:,i),1,grfmt2(:,:,i))
+    call rbsht(nr,nri,grfmt1(:,i),grfmt2(:,i))
   end do
-  lmmax=lmmaxinr
-  do ir=1,nr
-    do itp=1,lmmax
-      r=abs(rfmt1(itp,ir))
+  do i=1,npmt(is)
+    r=abs(rfmt1(i))
 ! square of gradient of rho
-      t1=grfmt2(itp,ir,1)**2+grfmt2(itp,ir,2)**2+grfmt2(itp,ir,3)**2
+    t1=grfmt2(i,1)**2+grfmt2(i,2)**2+grfmt2(i,3)**2
 ! D for inhomogeneous density
-      t2=(1.d0/2.d0)*(gwf2mt(itp,ir,ias)-(1.d0/4.d0)*t1/r)
+    t2=(1.d0/2.d0)*(gwf2mt(i,ias)-(1.d0/4.d0)*t1/r)
 ! D0 for uniform electron gas
-      t3=(3.d0/5.d0)*((6.d0*pi**2)**(2.d0/3.d0))*(r/2.d0)**(5.d0/3.d0)
+    t3=(3.d0/5.d0)*((6.d0*pi**2)**(2.d0/3.d0))*(r/2.d0)**(5.d0/3.d0)
 ! ELF function
-      rfmt2(itp,ir)=1.d0/(1.d0+(t2/t3)**2)
-    end do
-    if (ir.eq.nri) lmmax=lmmaxvr
+    rfmt2(i)=1.d0/(1.d0+(t2/t3)**2)
   end do
 ! convert ELF from spherical coordinates to spherical harmonics
-  call rfsht(nr,nri,1,rfmt2,1,elfmt(:,:,ias))
+  call rfsht(nr,nri,rfmt2,elfmt(:,ias))
 end do
 !--------------------------!
 !     interstitial ELF     !
@@ -145,7 +140,7 @@ do ir=1,ngtot
   elfir(ir)=1.d0/(1.d0+(t1/t2)**2)
 end do
 ! symmetrise the ELF
-call symrf(1,elfmt,elfir)
+call symrf(nrmt,nrmti,npmt,npmtmax,elfmt,elfir)
 ! plot the ELF to file
 select case(task)
 case(51)

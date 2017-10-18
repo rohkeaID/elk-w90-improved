@@ -22,14 +22,13 @@ complex(8) dt1,dz1,dz2
 ! allocatable arrays
 integer, allocatable :: ijg(:,:),ijgq(:,:)
 real(8), allocatable :: dp(:,:),dpq(:,:),evalfv(:,:)
-complex(8), allocatable :: devalfv(:,:)
 complex(8), allocatable :: apwalm(:,:,:,:),apwalmq(:,:,:,:),dapwalm(:,:,:)
 complex(8), allocatable :: evecfv(:,:,:),devecfv(:,:,:)
 complex(8), allocatable :: evecsv(:,:),devecsv(:,:)
-complex(8), allocatable :: o(:),hq(:,:),oq(:,:),dh(:,:),od(:,:)
-complex(8), allocatable :: dlo(:),dlhq(:,:),dloq(:,:)
-complex(8), allocatable :: ddlh(:,:),ddlo(:,:)
-complex(8), allocatable :: vo(:),dvh(:),dvo(:)
+complex(8), allocatable :: h(:),o(:),dlh(:),dlo(:)
+complex(8), allocatable :: hq(:,:),oq(:,:),dh(:,:),od(:,:)
+complex(8), allocatable :: dlhq(:,:),dloq(:,:),ddlh(:,:),ddlo(:,:)
+complex(8), allocatable :: vh(:),vo(:),dvh(:),dvo(:)
 complex(8), allocatable :: ffv(:,:),dffv(:,:),y(:),dy(:)
 ! external functions
 complex(8) zdotc
@@ -38,29 +37,31 @@ nm2=nmatmax**2
 ! allocate local arrays
 allocate(ijg(nmatmax,nmatmax),ijgq(nmatmax,nmatmax))
 allocate(dp(nmatmax,nmatmax),dpq(nmatmax,nmatmax))
-allocate(evalfv(nstfv,nspnfv),devalfv(nstfv,nspnfv))
+allocate(evalfv(nstfv,nspnfv))
 allocate(apwalm(ngkmax,apwordmax,lmmaxapw,natmtot))
 allocate(apwalmq(ngkmax,apwordmax,lmmaxapw,natmtot))
 allocate(dapwalm(ngkmax,apwordmax,lmmaxapw))
 allocate(evecfv(nmatmax,nstfv,nspnfv))
 allocate(devecfv(nmatmax,nstfv,nspnfv))
-allocate(evecsv(nstsv,nstsv),devecsv(nstsv,nstsv))
-allocate(o(nm2),hq(nmatmax,nmatmax),oq(nmatmax,nmatmax))
+allocate(h(nm2),o(nm2),dlh(nm2),dlo(nm2))
+allocate(hq(nmatmax,nmatmax),oq(nmatmax,nmatmax))
 allocate(dh(nmatmax,nmatmax),od(nmatmax,nmatmax))
-allocate(dlo(nm2),dlhq(nmatmax,nmatmax),dloq(nmatmax,nmatmax))
+allocate(dlhq(nmatmax,nmatmax),dloq(nmatmax,nmatmax))
 allocate(ddlh(nmatmax,nmatmax),ddlo(nmatmax,nmatmax))
-allocate(vo(nmatmax),dvh(nmatmax),dvo(nmatmax))
+allocate(vh(nmatmax),vo(nmatmax),dvh(nmatmax),dvo(nmatmax))
 allocate(ffv(nstfv,nstfv),dffv(nstfv,nstfv),y(nstfv),dy(nstfv))
 ! equivalent reduced k-point
 jk=ivkik(ivk(1,ik),ivk(2,ik),ivk(3,ik))
 ! get the eigenvalues/vectors from file
-call getevalfv(filext,vkl(:,ik),evalfv)
-call getevecfv(filext,vkl(:,ik),vgkl(:,:,:,ik),evecfv)
-call getevecsv(filext,vkl(:,ik),evecsv)
+call getevalfv(filext,0,vkl(:,ik),evalfv)
+call getevecfv(filext,0,vkl(:,ik),vgkl(:,:,:,ik),evecfv)
 ! get the eigenvalue/vector derivatives from file
-call getdevalfv(ik,iqph,isph,iaph,ipph,devalfv)
 call getdevecfv(ik,iqph,isph,iaph,ipph,devecfv)
-call getdevecsv(ik,iqph,isph,iaph,ipph,devecsv)
+if (tevecsv) then
+  allocate(evecsv(nstsv,nstsv),devecsv(nstsv,nstsv))
+  call getevecsv(filext,0,vkl(:,ik),evecsv)
+  call getdevecsv(ik,iqph,isph,iaph,ipph,devecsv)
+end if
 ! loop over first-variational spin components
 do jspn=1,nspnfv
   if (spinsprl) then
@@ -98,21 +99,27 @@ do jspn=1,nspnfv
   do ias=1,natmtot
     is=idxis(ias)
 ! Hamiltonian and overlap matrices
+    h(:)=0.d0
+    call hmlaa(ias,n,apwalm(:,:,:,ias),nm,h)
+    call hmlalo(ias,n,apwalm(:,:,:,ias),nm,h)
     o(:)=0.d0
-    call olpaa(ias,n,apwalm,nm,o)
-    call olpalo(ias,n,apwalm,nm,o)
+    call olpaa(ias,n,apwalm(:,:,:,ias),nm,o)
+    call olpalo(ias,n,apwalm(:,:,:,ias),nm,o)
     hq(:,:)=0.d0
-    call hmlaaq(ias,n,nq,apwalm,apwalmq,nmatmax,hq)
-    call hmlaloq(ias,n,nq,apwalm,apwalmq,nmatmax,hq)
+    call hmlaaq(ias,n,nq,apwalm(:,:,:,ias),apwalmq(:,:,:,ias),nmatmax,hq)
+    call hmlaloq(ias,n,nq,apwalm(:,:,:,ias),apwalmq(:,:,:,ias),nmatmax,hq)
     oq(:,:)=0.d0
-    call olpaaq(ias,n,nq,apwalm,apwalmq,nmatmax,oq)
-    call olpaloq(ias,n,nq,apwalm,apwalmq,nmatmax,oq)
+    call olpaaq(ias,n,nq,apwalm(:,:,:,ias),apwalmq(:,:,:,ias),nmatmax,oq)
+    call olpaloq(ias,n,nq,apwalm(:,:,:,ias),apwalmq(:,:,:,ias),nmatmax,oq)
 ! Hamiltonian and overlap derivatives
     dh(:,:)=0.d0
-    call dhmlaa(ias,n,n,apwalm,apwalm,dapwalm,dapwalm,nmatmax,dh)
-    call dhmlalo(ias,n,n,apwalm,apwalm,dapwalm,dapwalm,nmatmax,dh)
+    call dhmlaa(ias,n,n,apwalm(:,:,:,ias),apwalm(:,:,:,ias),dapwalm,dapwalm, &
+     nmatmax,dh)
+    call dhmlalo(ias,n,n,apwalm(:,:,:,ias),apwalm(:,:,:,ias),dapwalm,dapwalm, &
+     nmatmax,dh)
     od(:,:)=0.d0
-    call dolpaa(ias,n,n,apwalm,apwalm,dapwalm,dapwalm,nmatmax,od)
+    call dolpaa(ias,n,n,apwalm(:,:,:,ias),apwalm(:,:,:,ias),dapwalm,dapwalm, &
+     nmatmax,od)
     call dolpalo(ias,n,n,dapwalm,dapwalm,nmatmax,od)
 ! loop over Cartesian directions
     do l=1,3
@@ -124,6 +131,8 @@ do jspn=1,nspnfv
           ig=ijg(i,j)
           t1=vgc(l,ig)
           z1=-ffacg(ig,is)*conjg(sfacg(ig,ias))
+          z2=t1*(dp(i,j)*z1+h(k))
+          dlh(k)=cmplx(-aimag(z2),dble(z2),8)
           z2=t1*(z1+o(k))
           dlo(k)=cmplx(-aimag(z2),dble(z2),8)
         end do
@@ -134,12 +143,15 @@ do jspn=1,nspnfv
         do i=1,n
           k=k+1
           t1=vgkc(l,i,jspn,ik)
+          z1=t1*h(k)
+          dlh(k)=cmplx(-aimag(z1),dble(z1),8)
           z1=t1*o(k)
           dlo(k)=cmplx(-aimag(z1),dble(z1),8)
         end do
 ! zero the local-orbital-local-orbital contribution
         do i=n+1,j
           k=k+1
+          dlh(k)=0.d0
           dlo(k)=0.d0
         end do
       end do
@@ -219,6 +231,19 @@ do jspn=1,nspnfv
           ddlo(i,j)=0.d0
         end do
       end do
+      if (tphq0) then
+! compute the force matrix elements in the first-variational basis
+        do jst=1,nstfv
+          call zhemv('U',nm,zone,dlh,nm,evecfv(:,jst,jspn),1,zzero,vh,1)
+          call zhemv('U',nm,zone,dlo,nm,evecfv(:,jst,jspn),1,zzero,vo,1)
+          t1=evalfv(jst,jspn)
+          do ist=1,nstfv
+            z1=zdotc(nm,evecfv(:,ist,jspn),1,vh,1)
+            z2=zdotc(nm,evecfv(:,ist,jspn),1,vo,1)
+            ffv(ist,jst)=z1-t1*z2
+          end do
+        end do
+      end if
 ! compute the force derivative matrix elements in the first-variational basis
       dffv(:,:)=0.d0
       do jst=1,nstfv
@@ -226,7 +251,7 @@ do jspn=1,nspnfv
         call zgemv('N',nm,nm,zone,ddlh,nmatmax,evecfv(:,jst,jspn),1,zzero,dvh,1)
         call zgemv('N',nm,nm,zone,ddlo,nmatmax,evecfv(:,jst,jspn),1,zzero,dvo,1)
         t1=evalfv(jst,jspn)
-        dt1=devalfv(jst,jspn)
+        dt1=devalfv(jst,jspn,ik)
         do ist=1,nstfv
           z2=zdotc(nm,evecfv(:,ist,jspn),1,vo,1)
           dz1=zdotc(nm,evecfv(:,ist,jspn),1,dvh,1)
@@ -255,12 +280,16 @@ do jspn=1,nspnfv
             dz1=zdotc(nstfv,evecsv(i,j),1,dy,1)
             dz1=dz1+zdotc(nstfv,devecsv(i,j),1,y,1)
             zsum=zsum+occsv(j,jk)*dz1
+!******** doccsv
           end do
         end do
       else
 ! spin-unpolarised case
         do j=1,nstsv
           zsum=zsum+occsv(j,jk)*dffv(j,j)
+          if (tphq0) then
+            zsum=zsum+doccsv(j,ik)*dble(ffv(j,j))
+          end if
         end do
       end if
 !$OMP CRITICAL
@@ -272,12 +301,13 @@ do jspn=1,nspnfv
   end do
 ! end loop over first-variational spins
 end do
-deallocate(ijg,ijgq,dp,dpq,evalfv,devalfv)
+deallocate(ijg,ijgq,dp,dpq,evalfv)
 deallocate(apwalm,apwalmq,dapwalm)
-deallocate(evecfv,devecfv,evecsv,devecsv)
-deallocate(o,hq,oq,dh,od)
-deallocate(dlo,dlhq,dloq,ddlh,ddlo)
-deallocate(vo,dvh,dvo,ffv,dffv,y,dy)
+deallocate(evecfv,devecfv)
+if (tevecsv) deallocate(evecsv,devecsv)
+deallocate(h,o,dlh,dlo,hq,oq,dh,od)
+deallocate(dlhq,dloq,ddlh,ddlo)
+deallocate(vh,vo,dvh,dvo,ffv,dffv,y,dy)
 return
 end subroutine
 

@@ -110,7 +110,7 @@ do is=1,nspecies
   write(fnum,'(" atomic mass : ",G18.10)') spmass(is)
   write(fnum,'(" muffin-tin radius : ",G18.10)') rmt(is)
   write(fnum,'(" number of radial points in muffin-tin : ",I6)') nrmt(is)
-  write(fnum,'(" number on inner part of muffin-tin    : ",I6)') nrmtinr(is)
+  write(fnum,'(" number on inner part of muffin-tin    : ",I6)') nrmti(is)
   write(fnum,'(" atomic positions (lattice), magnetic fields (Cartesian) :")')
   do ia=1,natoms(is)
     write(fnum,'(I4," : ",3F12.8,"  ",3F12.8)') ia,atposl(:,ia,is), &
@@ -165,6 +165,10 @@ if ((abs(fsmtype).eq.2).or.(abs(fsmtype).eq.3)) then
       write(fnum,'("   ",I4,3G18.10)') ia,mommtfix(:,ia,is)
     end do
   end do
+end if
+if (tssxc) then
+  write(fnum,'(" scaled spin exchange-correlation (SSXC) enabled")')
+  write(fnum,'("  scaling factor : ",G18.10)') ssxc
 end if
 if (ftmtype.ne.0) then
   write(fnum,*)
@@ -235,8 +239,8 @@ write(fnum,*)
 write(fnum,'("Maximum angular momentum used for")')
 write(fnum,'(" APW functions                      : ",I4)') lmaxapw
 write(fnum,'(" H and O matrix elements outer loop : ",I4)') lmaxmat
-write(fnum,'(" potential and density              : ",I4)') lmaxvr
-write(fnum,'(" inner part of muffin-tin           : ",I4)') lmaxinr
+write(fnum,'(" outer part of muffin-tin           : ",I4)') lmaxo
+write(fnum,'(" inner part of muffin-tin           : ",I4)') lmaxi
 write(fnum,*)
 write(fnum,'("Total nuclear charge    : ",G18.10)') chgzn
 write(fnum,'("Total core charge       : ",G18.10)') chgcrtot

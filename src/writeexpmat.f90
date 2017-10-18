@@ -10,12 +10,12 @@ implicit none
 integer nk,ik,jk,i,j
 real(8) a,b
 ! allocatable arrays
-complex(8), allocatable :: expmt(:,:,:)
-complex(8), allocatable :: emat(:,:)
+complex(8), allocatable :: expmt(:,:),emat(:,:)
 ! initialise universal variables
 call init0
 call init1
-allocate(expmt(lmmaxvr,nrcmtmax,natmtot))
+! allocate the muffin-tin function exp(iq.r)
+allocate(expmt(npcmtmax,natmtot))
 ! allocate the matrix elements array for < i,k+G+q | exp(iq.r) | j,k >
 allocate(emat(nstsv,nstsv))
 ! read in the density and potentials from file

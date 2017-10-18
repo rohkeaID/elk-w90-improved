@@ -46,17 +46,13 @@ real(8), intent(in) :: sol
 logical, intent(in) :: ptnucl
 real(8), intent(in) :: zn
 integer, intent(in) :: nst
-integer, intent(in) :: n(nst)
-integer, intent(in) :: l(nst)
-integer, intent(in) :: k(nst)
+integer, intent(in) :: n(nst),l(nst),k(nst)
 real(8), intent(inout) :: occ(nst)
-integer, intent(in) :: xctype(3)
-integer, intent(in) :: xcgrad
+integer, intent(in) :: xctype(3),xcgrad
 integer, intent(in) :: nr
 real(8), intent(in) :: r(nr)
 real(8), intent(out) :: eval(nst)
-real(8), intent(out) :: rho(nr)
-real(8), intent(out) :: vr(nr)
+real(8), intent(out) :: rho(nr),vr(nr)
 real(8), intent(out) :: rwf(nr,2,nst)
 ! local variables
 integer, parameter :: maxscl=200

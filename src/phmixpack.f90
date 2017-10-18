@@ -14,9 +14,9 @@ real(8), intent(inout) :: v(*)
 ! local variables
 integer idm
 n=0
-call zfpack(tpack,n,nrmt,nrmtinr,nrmtmax,dvsmt,dvsir,v)
+call zfpack(tpack,n,npmt,npmtmax,dvsmt,dvsir,v)
 do idm=1,ndmag
-  call zfpack(tpack,n,nrcmt,nrcmtinr,nrcmtmax,dbsmt(:,:,:,idm),dbsir(:,idm),v)
+  call zfpack(tpack,n,npcmt,npcmtmax,dbsmt(:,:,idm),dbsir(:,idm),v)
 end do
 return
 end subroutine

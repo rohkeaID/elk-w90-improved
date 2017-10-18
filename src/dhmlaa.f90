@@ -10,8 +10,8 @@ implicit none
 ! arguments
 integer, intent(in) :: ias
 integer, intent(in) :: ngp,ngpq
-complex(8), intent(in) :: apwalm(ngkmax,apwordmax,lmmaxapw,natmtot)
-complex(8), intent(in) :: apwalmq(ngkmax,apwordmax,lmmaxapw,natmtot)
+complex(8), intent(in) :: apwalm(ngkmax,apwordmax,lmmaxapw)
+complex(8), intent(in) :: apwalmq(ngkmax,apwordmax,lmmaxapw)
 complex(8), intent(in) :: dapwalm(ngkmax,apwordmax,lmmaxapw)
 complex(8), intent(in) :: dapwalmq(ngkmax,apwordmax,lmmaxapw)
 integer, intent(in) :: ld
@@ -38,7 +38,7 @@ do l1=0,lmaxmat
           lm3=lm3+1
           do jo=1,apword(l3,is)
             zsum=0.d0
-            do l2=0,lmaxvr
+            do l2=0,lmaxo
               if (mod(l1+l2+l3,2).eq.0) then
                 do m2=-l2,l2
                   lm2=idxlm(l2,m2)
@@ -47,7 +47,7 @@ do l1=0,lmaxmat
               end if
             end do
             if (abs(dble(zsum))+abs(aimag(zsum)).gt.1.d-14) then
-              call zaxpy(ngp,zsum,apwalm(:,jo,lm3,ias),1,y1,1)
+              call zaxpy(ngp,zsum,apwalm(:,jo,lm3),1,y1,1)
             end if
           end do
         end do
@@ -60,7 +60,7 @@ do l1=0,lmaxmat
             lm3=lm3+1
             do jo=1,apword(l3,is)
               zsum=0.d0
-              do l2=0,lmaxvr
+              do l2=0,lmaxo
                 if (mod(l1+l2+l3,2).eq.0) then
                   do m2=-l2,l2
                     lm2=idxlm(l2,m2)
@@ -70,7 +70,7 @@ do l1=0,lmaxmat
               end do
               if (abs(dble(zsum))+abs(aimag(zsum)).gt.1.d-14) then
                 call zaxpy(ngp,zsum,dapwalm(:,jo,lm3),1,y1,1)
-                call zaxpy(ngp,zsum,apwalm(:,jo,lm3,ias),1,y2,1)
+                call zaxpy(ngp,zsum,apwalm(:,jo,lm3),1,y2,1)
               end if
             end do
           end do
@@ -78,7 +78,7 @@ do l1=0,lmaxmat
         x1(1:ngpq)=conjg(dapwalmq(1:ngpq,io,lm1))
         call zgerci(ngpq,ngp,zone,x1,y2,ld,dh)
       end if
-      x1(1:ngpq)=conjg(apwalmq(1:ngpq,io,lm1,ias))
+      x1(1:ngpq)=conjg(apwalmq(1:ngpq,io,lm1))
       call zgerci(ngpq,ngp,zone,x1,y1,ld,dh)
     end do
   end do
@@ -91,12 +91,12 @@ do l1=0,lmaxmat
   do m1=-l1,l1
     lm1=lm1+1
     do io=1,apword(l1,is)
-      x1(1:ngpq)=conjg(apwalmq(1:ngpq,io,lm1,ias))
+      x1(1:ngpq)=conjg(apwalmq(1:ngpq,io,lm1))
       x2(1:ngpq)=conjg(dapwalmq(1:ngpq,io,lm1))
       do jo=1,apword(l1,is)
         z1=t1*apwfr(nrmt(is),1,io,l1,ias)*apwdfr(jo,l1,ias)
         call zgerci(ngpq,ngp,z1,x1,dapwalm(:,jo,lm1),ld,dh)
-        call zgerci(ngpq,ngp,z1,x2,apwalm(:,jo,lm1,ias),ld,dh)
+        call zgerci(ngpq,ngp,z1,x2,apwalm(:,jo,lm1),ld,dh)
       end do
     end do
   end do

@@ -25,7 +25,7 @@ call init1
 call readfermi
 ! get the eigenvalues from file
 do ik1=1,nkpt
-  call getevalsv(filext,vkl(:,ik1),evalsv(:,ik1))
+  call getevalsv(filext,ik1,vkl(:,ik1),evalsv(:,ik1))
 end do
 ! generate the BSE state index arrays
 call genidxbse

@@ -8,19 +8,20 @@ use modmain
 use modphonon
 implicit none
 ! local variables
-integer nr,nri
+integer nr,nri,np
 ! allocatable arrays
-real(8), allocatable :: rfmt(:,:),grfmt(:,:,:)
+complex(8), allocatable :: zfmt(:),gzfmt(:,:)
 ! add gradient contribution from rigid shift of muffin-tin
-allocate(rfmt(lmmaxvr,nrmtmax),grfmt(lmmaxvr,nrmtmax,3))
+allocate(zfmt(npmtmax),gzfmt(npmtmax,3))
 nr=nrmt(isph)
-nri=nrmtinr(isph)
-call gradrfmt(nr,nri,rsp(:,isph),rhomt(:,:,iasph),nrmtmax,grfmt)
-! convert to spherical coordinates
-call rbsht(nr,nri,1,grfmt(:,:,ipph),1,rfmt)
-! subtract from density derivative
-drhomt(:,1:nr,iasph)=drhomt(:,1:nr,iasph)-rfmt(:,1:nr)
-deallocate(rfmt,grfmt)
+nri=nrmti(isph)
+np=npmt(isph)
+! convert the density to complex spherical harmonic expansion
+call rtozfmt(nr,nri,rhomt(:,iasph),zfmt)
+! compute the gradient
+call gradzfmt(nr,nri,rsp(:,isph),zfmt,npmtmax,gzfmt)
+drhomt(1:np,iasph)=drhomt(1:np,iasph)-gzfmt(1:np,ipph)
+deallocate(zfmt,gzfmt)
 return
 end subroutine
 

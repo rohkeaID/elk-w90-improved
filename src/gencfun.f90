@@ -35,7 +35,6 @@ real(8) t1
 complex(8) z1
 ! allocatable arrays
 complex(8), allocatable :: zfft(:)
-allocate(zfft(ngtot))
 ! allocate global characteristic function arrays
 if (allocated(cfunig)) deallocate(cfunig)
 allocate(cfunig(ngtot))
@@ -56,6 +55,7 @@ do is=1,nspecies
     end do
   end do
 end do
+allocate(zfft(ngtot))
 do ig=1,ngtot
   zfft(igfft(ig))=cfunig(ig)
 end do
