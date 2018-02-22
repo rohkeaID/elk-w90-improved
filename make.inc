@@ -5,10 +5,13 @@ F90_OPTS = -O3 -ffast-math -funroll-loops -fopenmp
 F77 = gfortran
 F77_OPTS = -O3 -ffast-math -funroll-loops -fopenmp
 AR = ar
-LIB_SYS = 
+LIB_SYS =
 # LAPACK and BLAS libraries
 LIB_LPK = /usr/local/lib/liblapack.a /usr/local/lib/libblas.a
 LIB_FFT = fftlib.a
+
+# WANNIER90 library
+LIB_W90 = libwannier.a
 
 #-------------------------------------------------------------------------------
 SRC_MPI = mpi_stub.f90
@@ -60,4 +63,3 @@ SRC_FFT = zfftifc.f90
 # SRC_FFT = zfftifc_fftw.f90
 #
 #-------------------------------------------------------------------------------
-

@@ -165,7 +165,7 @@ EXE = elk
 #-------------------------------------------------------------------------------
 elk:	$(OBJ)
 	$(F90) $(F90_OPTS) -o $(EXE) $(OBJ) $(LIB_LPK) $(LIB_FFT) $(LIB_libxc) \
-         $(LIB_SYS)
+         $(LIB_SYS) $(LIB_W90)
 
 blas:
 	cd BLAS; $(MAKE); cp blas.a ..
@@ -255,4 +255,3 @@ spaces:
 
 vim:
 	./vimelk
-

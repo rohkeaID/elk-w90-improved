@@ -20,6 +20,7 @@ use modw90
 
 implicit none
 ! local variables
+character(20) :: atomFileName
 integer ik,jk,n,m,ig,is,ias,i
 integer innkp,ikp,inn,ispn
 integer nrc,nrci,irco,ia,lm,l,ist,ir
@@ -27,6 +28,7 @@ integer reducek0,redkfil,nstsv_,recl
 logical exists
 real(8) t1
 complex(8) :: z1
+integer jst
 ! allocatable arrays
 complex(8), allocatable :: expmt(:,:)
 complex(8), allocatable :: mmn(:,:,:,:)
@@ -37,7 +39,7 @@ complex(8), allocatable :: wfmtq(:,:,:,:),wfirq(:,:,:)
 complex(8), allocatable :: twfmt(:,:,:,:),twfir(:,:,:),twfmt1(:)
 real(8), allocatable :: evalsv_(:)
 ! automatic arrays
-real(8) :: bqvec(3),bqc(3), vkql(3)
+real(8) :: bqvec(3),bqc(3),vkql(3)
 character(256) filename
 character(10) dat,tim
 real(8) vkl_(3),vec_0(3)
@@ -66,8 +68,66 @@ call init2
 call init3
 
 ! get the nearest neighbour k-points and projections
-call getw90nnkp
-call getw90proj
+wann_natoms = 0
+do is = 1,nspecies
+  wann_natoms = wann_natoms + natoms(is)
+enddo ! ia, loop over species
+allocate(wann_atomsymb(wann_natoms))
+allocate(wann_atompos(3,wann_natoms))
+do is = 1,nspecies
+  do ia = 1,natoms(is)
+    atomFileName = trim(spfname(is))
+    wann_atomsymb(is + ia - 1) = atomFileName(1:(len(trim(atomFileName))-3)) ! erase '.in'
+    ! write(*,*) "wann_atomsymb(",is + ia - 1,") = ", atomFileName(1:(len(trim(atomFileName))-3))
+    wann_atompos(:,is + ia - 1) = atposc(:,ia,is) * bohr2angstrom
+  enddo ! is, loop over atoms of a species
+enddo ! ia, loop over species
+
+! get the nearest neighbour k-points and projections
+! call getw90nnkp
+allocate(nnlist_lib(nkpt,num_nnmax))
+allocate(nncell_lib(3,nkpt,num_nnmax))
+if(allocated(wann_proj_site_lib))     deallocate(wann_proj_site_lib)
+allocate(wann_proj_site_lib(3,wann_nband))
+if(allocated(wann_proj_l_lib))     deallocate(wann_proj_l_lib)
+allocate(wann_proj_l_lib(wann_nband))
+if(allocated(wann_proj_m_lib))     deallocate(wann_proj_m_lib)
+allocate(wann_proj_m_lib(wann_nband))
+if(allocated(wann_proj_zaxis_lib))     deallocate(wann_proj_zaxis_lib)
+allocate(wann_proj_zaxis_lib(3,wann_nband))
+if(allocated(wann_proj_xaxis_lib))     deallocate(wann_proj_xaxis_lib)
+allocate(wann_proj_xaxis_lib(3,wann_nband))
+if(allocated(wann_proj_radial_lib))     deallocate(wann_proj_radial_lib)
+allocate(wann_proj_radial_lib(wann_nband))
+if(allocated(wann_proj_zona_lib))     deallocate(wann_proj_zona_lib)
+allocate(wann_proj_zona_lib(wann_nband))
+if(allocated(wann_proj_exclude_bands_lib))     deallocate(wann_proj_exclude_bands_lib)
+allocate(wann_proj_exclude_bands_lib(wann_nband))
+if(allocated(wann_proj_spin_lib))     deallocate(wann_proj_spin_lib)
+allocate(wann_proj_spin_lib(wann_nband))
+if(allocated(wann_proj_quantdir_lib))     deallocate(wann_proj_quantdir_lib)
+allocate(wann_proj_quantdir_lib(3,wann_nband))
+
+call wannier_setup(trim(wann_seedname),ngridk,nkpt,bohr2angstrom*avec,&
+                   (1/bohr2angstrom)*bvec,vkl,wann_nband,wann_natoms,&
+                   wann_atomsymb,wann_atompos,.false.,spinpol,wann_nntot,&
+                   nnlist_lib,nncell_lib,wann_nband_out,wann_nwf_lib,&
+                   wann_proj_site_lib,&
+                   wann_proj_l_lib,wann_proj_m_lib,wann_proj_radial_lib,&
+                   wann_proj_zaxis_lib,&
+                   wann_proj_xaxis_lib,wann_proj_zona_lib,&
+                   wann_proj_exclude_bands_lib,&
+                   wann_proj_spin_lib,wann_proj_quantdir_lib)
+
+! call getw90proj
+if(allocated(wann_proj_isrand))   deallocate(wann_proj_isrand)
+allocate(wann_proj_isrand(wann_nband))
+wann_proj_isrand = .false.
+
+! write(*,*) 'wann_proj_isrand: '
+! do jst = 1,wann_nproj
+!   write(*,*) 'jst = ', jst, 'wann_proj_isrand = ', wann_proj_isrand(jst)
+! enddo
 
 ! Open files for writting
 filename = trim(wann_seedname)//'.mmn'
@@ -230,9 +290,12 @@ do ikp=1,nkpt
 
   do inn=1,wann_nntot
     innkp=inn+(ikp-1)*wann_nntot
-    ik = wann_nnkp(1,innkp)
-    jk=wann_nnkp(2,innkp)
-    bqvec=wann_nnkp(3:5,innkp)+vkl(:,jk)-vkl(:,ik)
+    ! ik = wann_nnkp(1,innkp)
+    ik = ikp
+    ! jk=wann_nnkp(2,innkp)
+    jk = nnlist_lib(ik,inn)
+    ! bqvec=wann_nnkp(3:5,innkp)+vkl(:,jk)-vkl(:,ik)
+    bqvec=nncell_lib(1:3,ik,inn)+vkl(:,jk)-vkl(:,ik)
 
     ! b-vector in Cartesian coordinates
     call r3mv(bvec,bqvec,bqc)
@@ -249,7 +312,8 @@ do ikp=1,nkpt
 
 !$OMP CRITICAL
     !Write the Mmn matrix elements
-    write(500,'(5I8)') wann_nnkp(:,innkp)
+    ! write(500,'(5I8)') wann_nnkp(:,innkp)
+    write(500,'(5I8)') ikp,nnlist_lib(ikp,inn),nncell_lib(:,ikp,inn)
     do n=1,wann_nband
       do m=1,wann_nband
         if (nspinor.eq.1) then

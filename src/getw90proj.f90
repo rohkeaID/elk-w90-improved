@@ -62,7 +62,7 @@ do il=1,wann_projlines
     if(trim(adjustl(lv)).eq.'f'.or.trim(adjustl(lv)).eq.'c') then
       read(rv,*) cen0(:,1)
       ncen = 1
-    else 
+    else
       write(*,*)
       write(*,'("Error(getw90proj): Unrecognised site notation: ",A)') trim(adjustl(element))
       write(*,*)
@@ -110,7 +110,7 @@ do il=1,wann_projlines
   read(wann_projstr(il)(l2:),'(A256)') options
   lastpass = .false.
   if(trim(options).ne.'') then
-    do 
+    do
       isc = index(options,":")
       opt = options(:isc-1)
       options = options(isc+1:)
@@ -124,10 +124,10 @@ do il=1,wann_projlines
       if(lv.eq.'zona') then
         read(rv,'(F9.0)') zonaval
       else if(lv.eq.'r') then
-        read(rv,'(I9)') rval 
+        read(rv,'(I9)') rval
       elseif(lv.eq.'x') then
         read(rv,'(3F9.0)') xval
-      elseif(lv.eq.'z') then 
+      elseif(lv.eq.'z') then
         read(rv,'(3F9.0)') zval
       else
         write(*,*)
@@ -262,6 +262,7 @@ do i=1,wann_nproj
     wann_proj_isrand(i) = .true.
     cycle
   end if
+  !попробуй закомментить сначала это, прежде чем убирать остальной код
   wann_proj_site(:,i) = cen(:,i)
   wann_proj_l(i) = lmr(1,i)
   wann_proj_m(i) = lmr(2,i)

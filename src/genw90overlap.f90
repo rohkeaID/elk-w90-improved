@@ -83,8 +83,10 @@ allocate(cfunir_complex(ngtot))
 omnmt = cmplx(0.0d0,0.0d0,kind=8)
 cfunir_complex = cmplx(cfunir,0.0d0,kind=8)
 
+! write(*,*) 'nproj = ',nproj,' wann_nproj = ',wann_nproj,' size(wann_proj_isrand) = ',size(wann_proj_isrand)
+
 do jst = 1,nproj
-  if(nproj .eq. wann_nproj .and. wann_proj_isrand(jst)) then ! Amn case
+  if((nproj .eq. wann_nproj) .and. wann_proj_isrand(jst)) then ! Amn case
     ! if this projection should be random (at present, any non-atom centred projection!)
     norm = 0.0d0
     do jspin = 1,nspinor
