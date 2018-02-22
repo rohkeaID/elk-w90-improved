@@ -5,7 +5,7 @@ include ../make.inc
 SRC_modules = modmain.f90 $(SRC_MPI) modmpi.f90 $(SRC_libxc) modxcifc.f90 \
  modfxcifc.f90 moddftu.f90 modrdm.f90 modphonon.f90 modscdft.f90 modtest.f90 \
  modrandom.f90 modstore.f90 modpw.f90 modvars.f90 modtddft.f90 modgw.f90 \
- modultra.f90 modw90.f90
+ modultra.f90 modw90.f90 modw90overlap.f90
 
 # Elk program
 SRC_elk = elk.f90
@@ -143,7 +143,7 @@ SRC_XC = \
 
 SRC_WANN = \
  getw90bands.f90 genw90twf.f90 getw90nnkp.f90 getw90proj.f90 \
- writew90win.f90 genw90input.f90 genw90overlap.f90 \
+ writew90win.f90 genw90input.f90 \
  runw90.f90
 
 SRC = $(SRC_modules) $(SRC_FFT) $(SRC_elk) $(SRC_main) $(SRC_phonon) \

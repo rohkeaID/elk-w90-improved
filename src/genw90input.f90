@@ -9,6 +9,7 @@ subroutine genw90input
 ! !USES:
 use modmain
 use modw90
+use modw90overlap
 ! !DESCRIPTION:
 !   Writes the Mmn and Amn matrices required for Wannier90 to file.
 !
@@ -82,9 +83,9 @@ do is = 1,nspecies
     wann_atompos(:,is + ia - 1) = atposc(:,ia,is) * bohr2angstrom
   enddo ! is, loop over atoms of a species
 enddo ! ia, loop over species
-
-! get the nearest neighbour k-points and projections
-! call getw90nnkp
+! allocate(wann_nnkp(nkpt,wann_nntot)) ! wann_nntot - поменять на num_nnmax, переписать логику под новый wann_nnkp
+! if(allocated(wann_nnkp))     deallocate(wann_nnkp)
+! allocate(wann_nnkp(5,wann_nntot*nkpt))
 allocate(nnlist_lib(nkpt,num_nnmax))
 allocate(nncell_lib(3,nkpt,num_nnmax))
 if(allocated(wann_proj_site_lib))     deallocate(wann_proj_site_lib)
@@ -119,6 +120,8 @@ call wannier_setup(trim(wann_seedname),ngridk,nkpt,bohr2angstrom*avec,&
                    wann_proj_exclude_bands_lib,&
                    wann_proj_spin_lib,wann_proj_quantdir_lib)
 
+! get the nearest neighbour k-points and projections
+! call getw90nnkp
 ! call getw90proj
 if(allocated(wann_proj_isrand))   deallocate(wann_proj_isrand)
 allocate(wann_proj_isrand(wann_nband))
@@ -341,10 +344,11 @@ do ikp=1,nkpt
       end do
     end do
   else
-    do n=1,2*wann_nproj,2
+    ! do n=1,2*wann_nproj,2
+    do n=1,wann_nproj
       do m=1,wann_nband
-          write(501,'(3I8,2G18.10)') m,n,ikp,dble(amn(m,1,n,1)),aimag(amn(m,1,n,1))
-          write(501,'(3I8,2G18.10)') m,n+1,ikp,dble(amn(m,2,n,1)),aimag(amn(m,2,n,1))
+          write(501,'(3I8,2G18.10)') m,2*n-1,ikp,dble(amn(m,1,n,1)),aimag(amn(m,1,n,1))
+          write(501,'(3I8,2G18.10)') m,2*n,ikp,dble(amn(m,2,n,1)),aimag(amn(m,2,n,1))
       end do
     end do
   end if
