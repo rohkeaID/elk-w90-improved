@@ -27,7 +27,7 @@ module modw90overlap
       integer,                                                    intent(in   ) :: nproj
       complex(8), dimension(npcmtmax,natmtot,nspinor,nproj),      intent(in   ) :: wfmtq
       complex(8), dimension(ngtot,nspinor,nproj),                 intent(in   ) :: wfirq
-      complex(8), dimension(wann_nband,4,nproj,4),                intent(inout) :: omn
+      complex(8), dimension(wann_nband,nspinor,nproj,nspinor),    intent(inout) :: omn
       complex(8), dimension(npcmtmax,natmtot),          optional, intent(in   ) :: phase
 
       ! local variables
@@ -83,8 +83,8 @@ module modw90overlap
 
       !Calculate matrix elements
       allocate(zrhomt(npcmtmax,natmtot),zrhoir(ngtot))
-      allocate(omnmt(wann_nband,4,nproj,4))
-      allocate(omnir(wann_nband,4,nproj,4))
+      allocate(omnmt(wann_nband,nspinor,nproj,nspinor))
+      allocate(omnir(wann_nband,nspinor,nproj,nspinor))
       allocate(cfunir_complex(ngtot))
 
       omnmt = cmplx(0.0d0,0.0d0,kind=8)

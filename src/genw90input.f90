@@ -29,7 +29,6 @@ integer reducek0,redkfil,nstsv_,recl
 logical exists
 real(8) t1
 complex(8) :: z1
-integer jst
 ! allocatable arrays
 complex(8), allocatable :: expmt(:,:)
 complex(8), allocatable :: mmn(:,:,:,:)
@@ -126,11 +125,6 @@ call wannier_setup(trim(wann_seedname),ngridk,nkpt,bohr2angstrom*avec,&
 if(allocated(wann_proj_isrand))   deallocate(wann_proj_isrand)
 allocate(wann_proj_isrand(wann_nband))
 wann_proj_isrand = .false.
-
-! write(*,*) 'wann_proj_isrand: '
-! do jst = 1,wann_nproj
-!   write(*,*) 'jst = ', jst, 'wann_proj_isrand = ', wann_proj_isrand(jst)
-! enddo
 
 ! Open files for writting
 filename = trim(wann_seedname)//'.mmn'
@@ -283,8 +277,8 @@ allocate(wfir(ngtot,nspinor,wann_nband))
 allocate(expmt(npcmtmax,natmtot))
 allocate(wfmtq(npcmtmax,natmtot,nspinor,wann_nband))
 allocate(wfirq(ngtot,nspinor,wann_nband))
-allocate(mmn(wann_nband,4,wann_nband,4))
-allocate(amn(wann_nband,4,wann_nproj,4))
+allocate(mmn(wann_nband,nspinor,wann_nband,nspinor))
+allocate(amn(wann_nband,nspinor,wann_nproj,nspinor))
 
 !$OMP DO
 do ikp=1,nkpt
