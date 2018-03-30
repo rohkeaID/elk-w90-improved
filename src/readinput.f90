@@ -1724,14 +1724,15 @@ case('wmaxgw')
   read(50,*,err=20) wmaxgw
 case('gwdiag')
   read(50,*,err=20) gwdiag
-case('wann_nwf')
-  read(50,*,err=20) wann_nwf
-case('wann_bands')
-  read(50,'(A256)',err=20) str
+case('wannier')
+  read(50,'(A256)',err=20) str ! wann_seedname
+  if (trim(str).ne.'') then
+    wann_seedname = adjustl(trim(str))
+  end if
+  read(50,*,err=20) wann_nwf   ! wann_nwf
+  read(50,'(A256)',err=20) str ! wann_bands
   call getw90bands(str)
-! Parse projections block for Wannier functions. Uses same syntax as Wannier90
-case('wann_projections')
-  read(50,'(A256)',err=20) str
+  read(50,'(A256)',err=20) str ! wann_projections
   if (trim(str).eq.'') then
     write(*,*)
     write(*,'("Error(readinput): no projections given in wann_projections")')
@@ -1755,16 +1756,7 @@ case('wann_projections')
       end if
     end if
   end do
-case('wann_seedname')
-  read(50,'(A256)',err=20) str
-  wann_seedname = adjustl(trim(str))
-case('wann_tol')
-  read(50,*,err=20) wann_tol
-case('wann_maxshell')
-  read(50,*,err=20) wann_maxshell
-case('wann_numiter')
-  read(50,*,err=20) wann_numiter
-case('wann_input')
+case('wannierExtra')
   do
     read(50,'(A256)',err=20) str
     if (trim(str).eq.'') then
@@ -1774,6 +1766,12 @@ case('wann_input')
       wann_input(wann_inputlines) = trim(str)
     end if
   end do
+case('wann_tol')
+  read(50,*,err=20) wann_tol
+case('wann_maxshell')
+  read(50,*,err=20) wann_maxshell
+case('wann_numiter')
+  read(50,*,err=20) wann_numiter
 case('')
   goto 10
 case default

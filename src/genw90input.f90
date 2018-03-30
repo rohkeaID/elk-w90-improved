@@ -82,9 +82,6 @@ do is = 1,nspecies
     wann_atompos(:,is + ia - 1) = atposc(:,ia,is) * bohr2angstrom
   enddo ! is, loop over atoms of a species
 enddo ! ia, loop over species
-! allocate(wann_nnkp(nkpt,wann_nntot)) ! wann_nntot - поменять на num_nnmax, переписать логику под новый wann_nnkp
-! if(allocated(wann_nnkp))     deallocate(wann_nnkp)
-! allocate(wann_nnkp(5,wann_nntot*nkpt))
 allocate(nnlist_lib(nkpt,num_nnmax))
 allocate(nncell_lib(3,nkpt,num_nnmax))
 if(allocated(wann_proj_site_lib))     deallocate(wann_proj_site_lib)
