@@ -294,10 +294,9 @@ wann_nwf=-1
 wann_nband=-1
 wann_projlines=-1
 wann_seedname='ELK'
-wann_tol=1.d-6
-wann_maxshell=12
 wann_numiter=500
 wann_inputlines=0
+wann_ngridk(:)=1
 
 !--------------------------!
 !     read from elk.in     !
@@ -1729,6 +1728,13 @@ case('wannier')
   if (trim(str).ne.'') then
     wann_seedname = adjustl(trim(str))
   end if
+  read(50,*,err=20) wann_ngridk(:) ! Fine k-point grid
+  if ((wann_ngridk(1).le.0).or.(wann_ngridk(2).le.0).or.(wann_ngridk(3).le.0)) then
+    write(*,*)
+    write(*,'("Error(readinput): invalid ngridk for Wannier : ",3I8)') wann_ngridk
+    write(*,*)
+    stop
+  end if
   read(50,*,err=20) wann_nwf   ! wann_nwf
   read(50,'(A256)',err=20) str ! wann_bands
   call getw90bands(str)
@@ -1766,10 +1772,6 @@ case('wannierExtra')
       wann_input(wann_inputlines) = trim(str)
     end if
   end do
-case('wann_tol')
-  read(50,*,err=20) wann_tol
-case('wann_maxshell')
-  read(50,*,err=20) wann_maxshell
 case('wann_numiter')
   read(50,*,err=20) wann_numiter
 case('')

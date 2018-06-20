@@ -8,7 +8,7 @@
 ! !INTERFACE:
 module modw90overlap
   contains
-    subroutine genw90overlap(wfmt,wfir,nproj,wfmtq,wfirq,omn,phase)
+    subroutine genw90overlap(wfmt,wfir,nproj,ns,wfmtq,wfirq,omn,phase)
       ! !USES:
       use modmain
       use modrandom
@@ -25,9 +25,10 @@ module modw90overlap
       complex(8), dimension(npcmtmax,natmtot,nspinor,wann_nband), intent(in   ) :: wfmt
       complex(8), dimension(ngtot,nspinor,wann_nband),            intent(in   ) :: wfir
       integer,                                                    intent(in   ) :: nproj
+      integer,                                                    intent(in   ) :: ns
       complex(8), dimension(npcmtmax,natmtot,nspinor,nproj),      intent(in   ) :: wfmtq
       complex(8), dimension(ngtot,nspinor,nproj),                 intent(in   ) :: wfirq
-      complex(8), dimension(wann_nband,nspinor,nproj,nspinor),    intent(inout) :: omn
+      complex(8), dimension(wann_nband,nspinor,nproj,ns),         intent(inout) :: omn
       complex(8), dimension(npcmtmax,natmtot),          optional, intent(in   ) :: phase
 
       ! local variables
@@ -55,10 +56,8 @@ module modw90overlap
 
       ! generate the wavefunctions for all states at k+q
       allocate(wfmtq1(npcmtmax,natmtot,nspinor,nproj))
-      ! write(*,*) 'Mmn case: phase is present?', present(phase), ' phase dimention: ', size(phase)
 
       if(present(phase))then ! Mmn case
-        ! write(*,*) 'Mmn case'
         do ist = 1, nproj
           do ispin = 1,nspinor
             do is = 1, nspecies
@@ -67,49 +66,40 @@ module modw90overlap
               npc=npcmt(is)
               do ia = 1,natoms(is)
                 ias = idxas(ia,is)
-                ! multiply by exp(-ib.r)
-                ! AG: genzrmt1 deleted
-                ! call genzrmt1(nrc,nrci,phase(:,ias),wfmtq(:,ias,ispin,ist),wfmtq1(:,ias,ispin,ist))
-                ! write(*,*) 'npc = ', npc, ' size(phase,1) = ', size(phase,1), ' ias = ', ias, ' size(phase,1) = ', size(phase,2)
                 wfmtq1(1:npc,ias,ispin,ist) = conjg(phase(1:npc,ias))*wfmtq(1:npc,ias,ispin,ist)
               end do
             end do
           end do
         end do
       else ! Amn case
-        ! write(*,*) 'Amn case'
         wfmtq1 = wfmtq
       endif
 
       !Calculate matrix elements
       allocate(zrhomt(npcmtmax,natmtot),zrhoir(ngtot))
-      allocate(omnmt(wann_nband,nspinor,nproj,nspinor))
-      allocate(omnir(wann_nband,nspinor,nproj,nspinor))
+      allocate(omnmt(wann_nband,nspinor,nproj,ns))
+      allocate(omnir(wann_nband,nspinor,nproj,ns))
       allocate(cfunir_complex(ngtot))
 
       omnmt = cmplx(0.0d0,0.0d0,kind=8)
       omnir = cmplx(0.0d0,0.0d0,kind=8)
       cfunir_complex = cmplx(cfunir,0.0d0,kind=8)
 
-      ! write(*,*) 'nproj = ',nproj,' wann_nproj = ',wann_nproj,' size(wann_proj_isrand) = ',size(wann_proj_isrand)
-
       do jst = 1,nproj
         if((.not. present(phase)) .and. wann_proj_isrand(jst)) then ! Amn case
           ! if this projection should be random (at present, any non-atom centred projection!)
           norm = 0.0d0
-          do jspin = 1,nspinor
-            do ispin = 1,nspinor
-              do ist = 1,wann_nband
-                matel = cmplx(randomu(),randomu(),kind=8)
-                norm = norm + abs(matel)
-                omn(ist,ispin,jst,jspin) = matel
-              end do
+          do ispin = 1,nspinor
+            do ist = 1,wann_nband
+              matel = cmplx(randomu(),randomu(),kind=8)
+              norm = norm + abs(matel)
+              omn(ist,ispin,jst,1) = matel
             end do
           end do
-          omn(:,:,jst,:) = omn(:,:,jst,:) / norm
+          omn(:,:,jst,1) = omn(:,:,jst,1) / norm
         else ! Amn and Mmn case
           do ist = 1,wann_nband
-            do jspin = 1,nspinor
+            do jspin = 1,ns
               do ispin = 1,nspinor
 
                 call genzrho(.true.,.false.,wfmt(:,:,ispin,ist)  , &
@@ -118,16 +108,6 @@ module modw90overlap
                                             wfirq(:,jspin,jst)   , &
                                             zrhomt,zrhoir)
 
-                ! find the muffin-tin omn
-                ! do ias = 1,natmtot
-                !   is = idxis(ias)
-                !   nr = nrcmt(is) ! AG: npcmt - p means packed for coarse radial mesh
-                !   fr(1:nr) = zrhomt(1,1:nr,ias)*r2cmt(1:nr,is)
-                !   t1real = fintgt(-1,nrcmt(is),rcmt(:,is),dble(fr))!rcmt->?
-                !   t1img = fintgt(-1,nrcmt(is),rcmt(:,is),aimag(fr))
-                !   t1 = cmplx(t1real,t1img,kind=8)
-                !   omnmt(ist,ispin,jst,jspin) = omnmt(ist,ispin,jst,jspin) + fourpi*y00*t1
-                ! end do
                 do ias=1,natmtot
                   is=idxis(ias)
                   nrc=nrcmt(is)

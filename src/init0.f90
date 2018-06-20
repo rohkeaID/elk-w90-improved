@@ -668,4 +668,3 @@ timeinit=timeinit+ts1-ts0
 return
 end subroutine
 !EOC
-

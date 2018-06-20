@@ -19,15 +19,11 @@ use modw90
 implicit none
 ! local variables
 integer is,ia,ik,i
-integer wnkptnr,wnkpt
-! allocatable arrays
-integer, allocatable :: wikmap(:,:,:),wikmapnr(:,:,:),wivk(:,:)
-real(8), allocatable :: wvkl(:,:),wvkc(:,:),wwkpt(:)
+integer reducek0
 ! automatic arrays
 real(8) v2(3)
-real(8) wkptboxl(3,4)
 character(256) filename
-! fixed values
+! fixed value
 
 ! Checks that user has defined bands and projections
 if(wann_projlines.eq.-1) then
@@ -49,26 +45,13 @@ end if
 call init0
 
 ! Code to generate the k-point mesh for w90 (from init1.f90)
-! set up the default k-point box
-wkptboxl=0.d0
-wkptboxl(1,2)=1.d0
-wkptboxl(2,3)=1.d0
-wkptboxl(3,4)=1.d0
-! allocate the k-point set arrays
-allocate(wikmap(0:ngridk(1)-1,0:ngridk(2)-1,0:ngridk(3)-1))
-allocate(wikmapnr(0:ngridk(1)-1,0:ngridk(2)-1,0:ngridk(3)-1))
-wnkptnr=ngridk(1)*ngridk(2)*ngridk(3)
-allocate(wivk(3,wnkptnr))
-allocate(wvkl(3,wnkptnr))
-allocate(wvkc(3,wnkptnr))
-allocate(wwkpt(wnkptnr))
-! generate the k-point set
-call genppts(.false.,1,symlat,ngridk,wnkptnr,epslat,bvec,wkptboxl,wnkpt, &
-    wikmap,wikmapnr,wivk,wvkl,wvkc,wwkpt,wkptnr)
+! set up the k-point box (based on k-points set, specified in wannier-block)
+ngridk = wann_ngridk
+reducek0=reducek !мб нужно просто reducek=0
+reducek=0
+call init1
+reducek=reducek0
 
-! reads the projections and checks that the number of wannier functions
-! given is equal to the number of projections
-call getw90proj
 ! checks that the number of bands is greater than or equal to the number projections
 if(wann_nband.lt.wann_nwf) then
   write(*,*)
@@ -88,9 +71,9 @@ write(50,'(" num_iter = ",I8)') wann_numiter
 
 ! writes spinors if necessary
 if (nspinor.eq.2) then
-write(50,*)
-write(50,'(" spinors = true")')
-write(50,'(" spn_formatted = true")')
+  write(50,*)
+  write(50,'(" spinors = true")')
+  write(50,'(" spn_formatted = true")')
 end if
 
 ! writes the unit cell
@@ -133,8 +116,8 @@ write(50,*)
 write(50,'(" mp_grid = ",3I8)') ngridk
 write(50,*)
 write(50,'(" begin kpoints")')
-do ik=1,wnkpt
-  write(50,'(3G18.10)') wvkl(:,ik)
+do ik=1,nkpt
+  write(50,'(3G18.10)') vkl(:,ik)
 end do
 write(50,'(" end kpoints")')
 if(wann_inputlines.gt.0) then
@@ -144,13 +127,6 @@ if(wann_inputlines.gt.0) then
 end if
 close(50)
 !end do
-
-deallocate(wikmap)
-deallocate(wikmapnr)
-deallocate(wivk)
-deallocate(wvkl)
-deallocate(wvkc)
-deallocate(wwkpt)
 
 end subroutine
 !EOC

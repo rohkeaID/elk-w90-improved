@@ -1,17 +1,17 @@
 
 MAKE = make
 F90 = gfortran
-F90_OPTS = -O3 -ffast-math -funroll-loops -fopenmp
+F90_OPTS = -O3 -ffast-math -funroll-loops -fopenmp -g -Wall -Wextra -Warray-temporaries -Wconversion -fimplicit-none -fbacktrace -ffree-line-length-0 -fcheck=all -ffpe-trap=zero,overflow,underflow -finit-real=nan
 F77 = gfortran
-F77_OPTS = -O3 -ffast-math -funroll-loops -fopenmp
+F77_OPTS = -O3 -ffast-math -funroll-loops -fopenmp -g -Wall -Wextra -Warray-temporaries -Wconversion -fimplicit-none -fbacktrace -ffree-line-length-0 -fcheck=all -ffpe-trap=zero,overflow,underflow -finit-real=nan
 AR = ar
 LIB_SYS =
 # LAPACK and BLAS libraries
-LIB_LPK = /usr/local/lib/liblapack.a /usr/local/lib/libblas.a
+LIB_LPK = /usr/local/lapack_gcc_new/lib64/liblapack.a /usr/local/lapack_gcc_new/lib64/libblas.a
 LIB_FFT = fftlib.a
 
 # WANNIER90 library
-LIB_W90 = libwannier.a
+LIB_W90 = /home/gerasimov/src/elk-w90-improved/libwannier.a
 
 #-------------------------------------------------------------------------------
 SRC_MPI = mpi_stub.f90
@@ -63,3 +63,4 @@ SRC_FFT = zfftifc.f90
 # SRC_FFT = zfftifc_fftw.f90
 #
 #-------------------------------------------------------------------------------
+

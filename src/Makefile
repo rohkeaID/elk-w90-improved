@@ -142,7 +142,7 @@ SRC_XC = \
   x_wc06.f90 x_pbe.f90 c_pbe.f90 c_pbe_gcor.f90 xc_vbh.f90 fxc_pwca.f90
 
 SRC_WANN = \
- getw90bands.f90 genw90twf.f90 getw90nnkp.f90 getw90proj.f90 \
+ getw90bands.f90 genw90twf.f90 \
  writew90win.f90 genw90input.f90 \
  runw90.f90
 
@@ -164,8 +164,8 @@ EXE = elk
 # Targets
 #-------------------------------------------------------------------------------
 elk:	$(OBJ)
-	$(F90) $(F90_OPTS) -o $(EXE) $(OBJ) $(LIB_LPK) $(LIB_FFT) $(LIB_libxc) \
-         $(LIB_SYS) $(LIB_W90)
+	$(F90) $(F90_OPTS) -o $(EXE) $(OBJ) $(LIB_W90) $(LIB_LPK) $(LIB_FFT) $(LIB_libxc) \
+         $(LIB_SYS)
 
 blas:
 	cd BLAS; $(MAKE); cp blas.a ..

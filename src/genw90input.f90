@@ -1,4 +1,4 @@
-! Copyright (C) 2015 Jon Lafuente and Manh Duc Le
+! Copyright (C) 2015 Jon Lafuente and Manh Duc Le, 2017 Arsenii Gerasimov
 ! This file is distributed under the terms of the GNU General Public License.
 ! See the file COPYING for license details.
 
@@ -21,14 +21,15 @@ use modw90overlap
 
 implicit none
 ! local variables
-character(20) :: atomFileName
-integer ik,jk,n,m,ig,is,ias,i
-integer innkp,ikp,inn,ispn
+character(20)  :: atomFileName
+integer jk,n,m,ig,is,ias,i
+integer ikp,inn,ispn
 integer nrc,nrci,irco,ia,lm,l,ist,ir
 integer reducek0,redkfil,nstsv_,recl
 logical exists
 real(8) t1
-complex(8) :: z1
+complex(8)     :: z1
+logical        :: spinors_lib = .false.
 ! allocatable arrays
 complex(8), allocatable :: expmt(:,:)
 complex(8), allocatable :: mmn(:,:,:,:)
@@ -37,113 +38,104 @@ complex(8), allocatable :: spn_x(:,:),spn_y(:,:),spn_z(:,:)
 complex(8), allocatable :: wfmt(:,:,:,:),wfir(:,:,:)
 complex(8), allocatable :: wfmtq(:,:,:,:),wfirq(:,:,:)
 complex(8), allocatable :: twfmt(:,:,:,:),twfir(:,:,:),twfmt1(:)
-real(8), allocatable :: evalsv_(:)
+real(8),    allocatable :: evalsv_(:)
 ! automatic arrays
-real(8) :: bqvec(3),bqc(3),vkql(3)
-character(256) filename
-character(10) dat,tim
-real(8) vkl_(3),vec_0(3)
+real(8)        :: bqvec(3),bqc(3),vkql(3)
+character(256)    filename
+character(10)     dat,tim
+real(8)           vkl_(3),vec_0(3)
 
-! Checks that user has defined bands and projections
+! check that user has defined bands and projections
 if(wann_projlines.eq.-1) then
   write(*,*)
-  write(*,'("Error(writew90mmn): No projections specified - please input using the wann_projections block.")')
+  write(*,*) "Error(genw90input): No projections specified - please input &
+                                        &using the wann_projections block."
   write(*,*)
   stop
 end if
 if(wann_nband.eq.-1) then
   write(*,*)
-  write(*,'("Error(writew90mmn): No bands specified - please input using the wann_bands block.")')
+  write(*,*) "Error(genw90input): No bands specified - please input using &
+                                                    &the wann_bands block."
   write(*,*)
   stop
 end if
 
 ! initialise global variables
 call init0
-! if reducek=1 was used in ground state calculations, need to regenerate the eigenvectors set for the full BZ.
-reducek0=reducek
+reducek0=reducek  ! if reducek=1 was used in ground state calculations,
+                  ! need to regenerate the eigenvectors set for the full BZ.
 if (reducek0.ne.0) reducek=0
+ngridk = wann_ngridk ! AG: should solve
 call init1
 call init2
 call init3
 
-! get the nearest neighbour k-points and projections
-wann_natoms = 0
-do is = 1,nspecies
-  wann_natoms = wann_natoms + natoms(is)
-enddo ! ia, loop over species
-allocate(wann_atomsymb(wann_natoms))
-allocate(wann_atompos(3,wann_natoms))
+! initialise variables for Wannierization
+allocate(wann_atomsymb(natmtot),wann_atompos(3,natmtot))
+allocate(nnlist(nkpt,num_nnmax),nncell(3,nkpt,num_nnmax))
+allocate(wann_proj_site(3,nstsv))
+allocate(wann_proj_l(nstsv),wann_proj_m(nstsv),wann_proj_radial(nstsv))
+allocate(wann_proj_zaxis(3,nstsv),wann_proj_xaxis(3,nstsv))
+allocate(wann_proj_zona(nstsv))
+allocate(wann_proj_exclude_bands_lib(nstsv))
+allocate(wann_proj_spin(nstsv))
+allocate(wann_proj_quantdir(3,nstsv))
+allocate(wann_proj_isrand(nstsv))
+
+! prepare variables for calling lib of wannier90
 do is = 1,nspecies
   do ia = 1,natoms(is)
     atomFileName = trim(spfname(is))
     wann_atomsymb(is + ia - 1) = atomFileName(1:(len(trim(atomFileName))-3)) ! erase '.in'
-    ! write(*,*) "wann_atomsymb(",is + ia - 1,") = ", atomFileName(1:(len(trim(atomFileName))-3))
     wann_atompos(:,is + ia - 1) = atposc(:,ia,is) * bohr2angstrom
   enddo ! is, loop over atoms of a species
 enddo ! ia, loop over species
-allocate(nnlist_lib(nkpt,num_nnmax))
-allocate(nncell_lib(3,nkpt,num_nnmax))
-if(allocated(wann_proj_site_lib))     deallocate(wann_proj_site_lib)
-allocate(wann_proj_site_lib(3,wann_nband))
-if(allocated(wann_proj_l_lib))     deallocate(wann_proj_l_lib)
-allocate(wann_proj_l_lib(wann_nband))
-if(allocated(wann_proj_m_lib))     deallocate(wann_proj_m_lib)
-allocate(wann_proj_m_lib(wann_nband))
-if(allocated(wann_proj_zaxis_lib))     deallocate(wann_proj_zaxis_lib)
-allocate(wann_proj_zaxis_lib(3,wann_nband))
-if(allocated(wann_proj_xaxis_lib))     deallocate(wann_proj_xaxis_lib)
-allocate(wann_proj_xaxis_lib(3,wann_nband))
-if(allocated(wann_proj_radial_lib))     deallocate(wann_proj_radial_lib)
-allocate(wann_proj_radial_lib(wann_nband))
-if(allocated(wann_proj_zona_lib))     deallocate(wann_proj_zona_lib)
-allocate(wann_proj_zona_lib(wann_nband))
-if(allocated(wann_proj_exclude_bands_lib))     deallocate(wann_proj_exclude_bands_lib)
-allocate(wann_proj_exclude_bands_lib(wann_nband))
-if(allocated(wann_proj_spin_lib))     deallocate(wann_proj_spin_lib)
-allocate(wann_proj_spin_lib(wann_nband))
-if(allocated(wann_proj_quantdir_lib))     deallocate(wann_proj_quantdir_lib)
-allocate(wann_proj_quantdir_lib(3,wann_nband))
 
-call wannier_setup(trim(wann_seedname),ngridk,nkpt,bohr2angstrom*avec,&
-                   (1/bohr2angstrom)*bvec,vkl,wann_nband,wann_natoms,&
-                   wann_atomsymb,wann_atompos,.false.,spinpol,wann_nntot,&
-                   nnlist_lib,nncell_lib,wann_nband_out,wann_nwf_lib,&
-                   wann_proj_site_lib,&
-                   wann_proj_l_lib,wann_proj_m_lib,wann_proj_radial_lib,&
-                   wann_proj_zaxis_lib,&
-                   wann_proj_xaxis_lib,wann_proj_zona_lib,&
-                   wann_proj_exclude_bands_lib,&
-                   wann_proj_spin_lib,wann_proj_quantdir_lib)
+if ( nspinor .eq. 2 ) then
+  spinors_lib = .true.
+end if
 
-! get the nearest neighbour k-points and projections
-! call getw90nnkp
-! call getw90proj
-if(allocated(wann_proj_isrand))   deallocate(wann_proj_isrand)
-allocate(wann_proj_isrand(wann_nband))
-wann_proj_isrand = .false.
+! call wannier90 library
+call wannier_setup(trim(wann_seedname),ngridk,nkpt,bohr2angstrom*avec,&   !in
+                   (1/bohr2angstrom)*bvec,vkl,nstsv,natmtot,&             !in
+                   wann_atomsymb,wann_atompos,.false.,spinors_lib,&       !in
+                   wann_nntot,nnlist,nncell,wann_nband_total,wann_nwf,&   !out
+                   wann_proj_site,wann_proj_l,wann_proj_m,&               !out
+                   wann_proj_radial,wann_proj_zaxis,wann_proj_xaxis,&     !out
+                   wann_proj_zona,wann_proj_exclude_bands_lib,&           !out
+                   wann_proj_spin,wann_proj_quantdir)                     !out
 
-! Open files for writting
+wann_proj_radial = 0
+wann_proj_isrand = .false. ! AG: solve later
+if (nspinor .eq. 2)Then
+  wann_nproj = wann_nwf / 2
+else
+  wann_nproj = wann_nwf
+endif
+
+! open outputting files
+! Mmn
 filename = trim(wann_seedname)//'.mmn'
 open(500,file=filename,action='WRITE',form='FORMATTED')
 call date_and_time(date=dat,time=tim)
 write(500,'("Generated by ELK on ",A4,"-",A2,"-",A2," at ",A2,":",A2,":",A2)')&
-    dat(1:4),dat(5:6),dat(7:8),tim(1:2),tim(3:4),tim(5:6)
+                          dat(1:4),dat(5:6),dat(7:8),tim(1:2),tim(3:4),tim(5:6)
 write(500,'(3I8)') wann_nband,nkpt,wann_nntot
+! Amn
 filename = trim(wann_seedname)//'.amn'
 open(501,file=filename,action='WRITE',form='FORMATTED')
-call date_and_time(date=dat,time=tim)
 write(501,'("Generated by ELK on ",A4,"-",A2,"-",A2," at ",A2,":",A2,":",A2)')&
-    dat(1:4),dat(5:6),dat(7:8),tim(1:2),tim(3:4),tim(5:6)
+                          dat(1:4),dat(5:6),dat(7:8),tim(1:2),tim(3:4),tim(5:6)
 if (nspinor.eq.1) then
   write(501,'(3I8)') wann_nband,nkpt,wann_nproj
 else
-  write(501,'(3I8)') wann_nband,nkpt,2*wann_nproj
+  write(501,'(3I8)') wann_nband,nkpt,wann_nwf
+  ! spn
   filename = trim(wann_seedname)//'.spn'
   open(502,file=filename,action='WRITE',form='FORMATTED')
-  call date_and_time(date=dat,time=tim)
   write(502,'("Generated by ELK on ",A4,"-",A2,"-",A2," at ",A2,":",A2,":",A2)')&
-      dat(1:4),dat(5:6),dat(7:8),tim(1:2),tim(3:4),tim(5:6)
+                            dat(1:4),dat(5:6),dat(7:8),tim(1:2),tim(3:4),tim(5:6)
   write(502,'(3I8)') wann_nband,nkpt
 end if
 
@@ -160,12 +152,12 @@ call genlofr
 ! generates the trial wavefunctions from the projection definitions read in
 call genw90twf
 
-! creates the trial wavefunction matrix
+! create the trial wavefunction matrix
 allocate(twfmt1(npcmtmax))
 allocate(twfmt(npcmtmax,natmtot,nspinor,wann_nproj))
 allocate(twfir(ngtot,nspinor,wann_nproj))
 twfmt = cmplx(0.d0,0.d0,kind=8)
-twfir = cmplx(0.d0,0.d0,kind=8)     ! trial wavefunction is zero outside muffin-tin.
+twfir = cmplx(0.d0,0.d0,kind=8)! trial wavefunction is zero outside muffin-tin.
 do ispn=1,nspinor
   do is=1,nspecies
     nrc=nrcmt(is)
@@ -215,16 +207,16 @@ deallocate(twfmt1)
 allocate(evalsv_(nstsv))
 redkfil=0
 inquire(iolength=recl) vkl_,nstsv_,evalsv_
-do ik=1,nkpt
+do ikp=1,nkpt
   exists=.false.
   t1=9.d99
   inquire(file='EVALSV'//trim(filext),exist=exists)
   if(exists) then
     open(70,file='EVALSV'//trim(filext),action='READ',form='UNFORMATTED', &
         access='DIRECT',recl=recl,err=101)
-    read(70,rec=ik,err=101) vkl_,nstsv_,evalsv_
+    read(70,rec=ikp,err=101) vkl_,nstsv_,evalsv_
     close(70)
-    t1=abs(vkl(1,ik)-vkl_(1))+abs(vkl(2,ik)-vkl_(2))+abs(vkl(3,ik)-vkl_(3))
+    t1=abs(vkl(1,ikp)-vkl_(1))+abs(vkl(2,ikp)-vkl_(2))+abs(vkl(3,ikp)-vkl_(3))
   end if
 101 continue
   if (.not.exists.or.t1.gt.epslat.or.nstsv.ne.nstsv_) then
@@ -234,8 +226,8 @@ do ik=1,nkpt
 end do
 ! If kpoint not found in saved eigen-values/vectors, then need to recompute EVEC*OUT.
 if (redkfil.ne.0) then
-  write(*,'("Info(writew90mmn): saved k-points do not contain all required k-points. &
-           &Recalculating wavefunctions")')
+  write(*,*) "Info(genw90input): saved k-points do not contain all required &
+                                   &k-points. Recalculating wavefunctions..."
 ! compute the overlap radial integrals
   call olprad
 ! compute the Hamiltonian radial integrals
@@ -244,16 +236,17 @@ if (redkfil.ne.0) then
   call gensocfr
 ! generate the first- and second-variational eigenvectors and eigenvalues
   call genevfsv
+  write(*,*) "Info(genw90input): Wavefunctions recalculated"
 end if
 
-! write .eig file for wannier90
+! write seedname.eig file for wannier90
 filename = trim(wann_seedname)//'.eig'
 open(50,file=filename,action='WRITE',form='FORMATTED')
-do ik=1,nkpt
-  call getevalsv(filext,ik,vkl(:,ik),evalsv_)
+do ikp=1,nkpt
+  call getevalsv(filext,ikp,vkl(:,ikp),evalsv_)
   do ig=1,wann_nband
-    ist=wann_bands(ig)
-    write(50,'(2I12,G18.10)') ig,ik,(evalsv_(ist)-efermi)*27.211385  ! convert to eV
+    ist=wann_bands(ig) ! AG :
+    write(50,'(2I12,G18.10)') ig,ikp,(evalsv_(ist)-efermi)*27.211385 ! convert to eV
   end do
 end do
 close(50)
@@ -265,9 +258,9 @@ if(nspinor.eq.2) then
   allocate(spn_z(nkpt,(wann_nband*(wann_nband+1))/2))
 end if
 
-!Loop over k and k+b points
+! loop over k and k+b points
 !$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(ikp,innkp,inn,ik,jk,bqvec,mmn,amn,vkql,wfmt,wfir,wfmtq,wfirq,expmt)
+!$OMP PRIVATE(ikp,inn,jk,bqvec,mmn,amn,vkql,wfmt,wfir,wfmtq,wfirq,expmt)
 
 allocate(wfmt(npcmtmax,natmtot,nspinor,wann_nband))
 allocate(wfir(ngtot,nspinor,wann_nband))
@@ -275,7 +268,7 @@ allocate(expmt(npcmtmax,natmtot))
 allocate(wfmtq(npcmtmax,natmtot,nspinor,wann_nband))
 allocate(wfirq(ngtot,nspinor,wann_nband))
 allocate(mmn(wann_nband,nspinor,wann_nband,nspinor))
-allocate(amn(wann_nband,nspinor,wann_nproj,nspinor))
+allocate(amn(wann_nband,nspinor,wann_nproj,1))
 
 !$OMP DO
 do ikp=1,nkpt
@@ -283,13 +276,8 @@ do ikp=1,nkpt
   call genwfsvp(.false.,.false.,wann_nband,wann_bands,vkl(:,ikp),wfmt,ngtot,wfir)
 
   do inn=1,wann_nntot
-    innkp=inn+(ikp-1)*wann_nntot
-    ! ik = wann_nnkp(1,innkp)
-    ik = ikp
-    ! jk=wann_nnkp(2,innkp)
-    jk = nnlist_lib(ik,inn)
-    ! bqvec=wann_nnkp(3:5,innkp)+vkl(:,jk)-vkl(:,ik)
-    bqvec=nncell_lib(1:3,ik,inn)+vkl(:,jk)-vkl(:,ik)
+    jk = nnlist(ikp,inn)
+    bqvec=nncell(1:3,ikp,inn)+vkl(:,jk)-vkl(:,ikp)
 
     ! b-vector in Cartesian coordinates
     call r3mv(bvec,bqvec,bqc)
@@ -297,64 +285,63 @@ do ikp=1,nkpt
     call genexpmt(bqc,expmt)
 
     ! k+b-vector in lattice coordinates
-    vkql = vkl(:,ik)+bqvec
+    vkql = vkl(:,ikp)+bqvec
     call genwfsvp(.false.,.false.,wann_nband,wann_bands,vkql,wfmtq,ngtot,wfirq)
 
     ! compute Mmn
     mmn = cmplx(0.d0,0.d0,kind=8)
-    call genw90overlap(wfmt,wfir,wann_nband,wfmtq,wfirq,mmn,expmt)
+    call genw90overlap(wfmt,wfir,wann_nband,nspinor,wfmtq,wfirq,mmn,expmt)
 
 !$OMP CRITICAL
-    !Write the Mmn matrix elements
-    ! write(500,'(5I8)') wann_nnkp(:,innkp)
-    write(500,'(5I8)') ikp,nnlist_lib(ikp,inn),nncell_lib(:,ikp,inn)
+    ! write the Mmn matrix elements
+    write(500,'(5I8)') ikp,nnlist(ikp,inn),nncell(:,ikp,inn)
     do n=1,wann_nband
       do m=1,wann_nband
         if (nspinor.eq.1) then
-          write(500,'(2G18.10)') dble(mmn(m,1,n,1)),aimag(mmn(m,1,n,1))
+          write(500,'(2G18.10)') dble(mmn(m,1,n,1)),&
+                                aimag(mmn(m,1,n,1))
         else
-          write(500,'(2G18.10)') dble(mmn(m,1,n,1)+mmn(m,2,n,2)),aimag(mmn(m,1,n,1)+mmn(m,2,n,2))
+          write(500,'(2G18.10)') dble(mmn(m,1,n,1)+mmn(m,2,n,2)),&
+                                aimag(mmn(m,1,n,1)+mmn(m,2,n,2))
         end if
       end do
     end do
-    write(*,'("Info(writew90mmn): completed ",I5," of ",I5," Mmn(k,k+b) points")')&
-        innkp,wann_nntot*nkpt
 !$OMP END CRITICAL
 
-  end do !End loop over b points
+  end do ! end loop over b points
 
-
-  ! Calculates the overlap integrals Amn(k)
+  ! calculate the overlap integrals Amn(k)
   amn = cmplx(0.d0,0.d0,kind=8)
-  call genw90overlap(wfmt,wfir,wann_nproj,twfmt,twfir,amn)
+  call genw90overlap(wfmt,wfir,wann_nproj,1,twfmt,twfir,amn)
 !$OMP CRITICAL
+  ! write the Amn matrix elements
   if (nspinor.eq.1) then
     do n=1,wann_nproj
       do m=1,wann_nband
-          write(501,'(3I8,2G18.10)') m,n,ikp,dble(amn(m,1,n,1)),aimag(amn(m,1,n,1))
+          write(501,'(3I8,2G18.10)') m,    n,ikp,dble(amn(m,1,n,1)),&
+                                                aimag(amn(m,1,n,1))
       end do
     end do
   else
-    ! do n=1,2*wann_nproj,2
     do n=1,wann_nproj
       do m=1,wann_nband
-          write(501,'(3I8,2G18.10)') m,2*n-1,ikp,dble(amn(m,1,n,1)),aimag(amn(m,1,n,1))
-          write(501,'(3I8,2G18.10)') m,2*n,ikp,dble(amn(m,2,n,1)),aimag(amn(m,2,n,1))
+          write(501,'(3I8,2G18.10)') m,2*n-1,ikp,dble(amn(m,1,n,1)),&
+                                                aimag(amn(m,1,n,1))
+          write(501,'(3I8,2G18.10)') m,  2*n,ikp,dble(amn(m,2,n,1)),&
+                                                aimag(amn(m,2,n,1))
       end do
     end do
   end if
-  write(*,'("Info(writew90amn): completed ",I5," of ",I5," Amn(k) points")')&
-      ik,nkpt
 !$OMP END CRITICAL
 
-  !Write the .spn file
+  ! compute spn
   if(nspinor.eq.2) then
     vec_0(1)=0.d0
     vec_0(2)=0.d0
     vec_0(3)=0.d0
     call genexpmt(vec_0,expmt)
     mmn = cmplx(0.d0,0.d0,kind=8)
-    call genw90overlap(wfmt,wfir,wann_nband,wfmt,wfir,mmn,expmt)
+    call genw90overlap(wfmt,wfir,wann_nband,nspinor,wfmt,wfir,mmn,expmt)
   !$OMP CRITICAL
     is=1
     do m=1,wann_nband
@@ -370,6 +357,11 @@ do ikp=1,nkpt
 
   end if
 
+!$OMP CRITICAL
+    write(*,'("Info(wannierization): completed ",I6," of ",I6," k-points")')&
+                                                                    &ikp,nkpt
+!$OMP END CRITICAL
+
 end do !End loop over k points
 !$OMP END DO
 
@@ -381,9 +373,16 @@ deallocate(amn)
 
 !$OMP END PARALLEL
 
+write(*,*)
+write(*,*) "Info(wannierization): Mmn and Amn for each k-point are computed"
+
+! close seedname.mmn and seedname.amn
 close(500)
 close(501)
 
+deallocate(twfmt,twfir)
+
+! write seedname.spn
 if(nspinor.eq.2) then
   do ikp=1,nkpt
     do is=1,(wann_nband*(wann_nband+1))/2
@@ -392,9 +391,30 @@ if(nspinor.eq.2) then
       write(502,'(2G18.10)') spn_z(ikp,is)
     end do
   end do
+
+  ! close seedname.spn
   close(502)
+
+  write(*,*)
+  write(*,*) "Info(wannierization): matrix elements of S between Bloch states &
+                                                                 &are computed"
+
   deallocate(spn_x,spn_y,spn_z)
 end if
+
+deallocate(wann_atomsymb,wann_atompos)
+deallocate(nnlist,nncell)
+deallocate(wann_proj_site)
+deallocate(wann_proj_l,wann_proj_m,wann_proj_radial)
+deallocate(wann_proj_zaxis,wann_proj_xaxis)
+deallocate(wann_proj_zona)
+deallocate(wann_proj_exclude_bands_lib)
+deallocate(wann_proj_spin)
+deallocate(wann_proj_quantdir)
+deallocate(wann_proj_isrand)
+
+write(*,*)
+write(*,*) "Info(wannierization): wannierization completed"
 
 reducek=reducek0
 

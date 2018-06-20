@@ -10,7 +10,7 @@ subroutine getw90bands(str)
 use modmain
 use modw90
 ! !INPUT/OUTPUT PARAMETERS:
-!   str    : string defining which bands to pass to wannier90 
+!   str    : string defining which bands to pass to wannier90
 !
 ! !DESCRIPTION:
 !   Parses the string from elk.in denoting which bands to pass to wannier90
@@ -73,7 +73,7 @@ do
   i0 = i1+1
   if (i0.gt.len(str)) exit
   i1 = index(str(i0:len(str)),',')+i0-1
-  if (i1.eq.i0-1) then 
+  if (i1.eq.i0-1) then
     end_next=.true.
     i1=len(str)
   end if
@@ -92,4 +92,3 @@ return
 
 end subroutine
 !EOC
-
