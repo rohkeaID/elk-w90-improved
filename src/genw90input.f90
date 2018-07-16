@@ -97,8 +97,8 @@ if ( nspinor .eq. 2 ) then
 end if
 
 ! call wannier90 library
-call wannier_setup(trim(wann_seedname),ngridk,nkpt,bohr2angstrom*avec,&   !in
-                   (1/bohr2angstrom)*bvec,vkl,nstsv,natmtot,&             !in
+call wannier_setup(trim(wann_seedname),ngridk,nkpt,bohr2angstrom*transpose(avec),&   !in
+                   (1/bohr2angstrom)*transpose(bvec),vkl,nstsv,natmtot,&             !in
                    wann_atomsymb,wann_atompos,.false.,spinors_lib,&       !in
                    wann_nntot,nnlist,nncell,wann_nband_total,wann_nwf,&   !out
                    wann_proj_site,wann_proj_l,wann_proj_m,&               !out
