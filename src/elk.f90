@@ -201,7 +201,7 @@ do itask=1,ntasks
   case(603)
     call runw90
   case(604)
-    ! call genw90amn
+     call genw90amn
   case default
     write(*,*)
     write(*,'("Error(elk): task not defined : ",I8)') task
