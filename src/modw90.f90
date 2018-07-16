@@ -8,9 +8,10 @@ module modw90
 !-------------------------------------------------!
 !     Wannier90 interface variables               !
 !-------------------------------------------------!
+integer                      reducek0
 ! conversion factor from a.u. (Bohr) to Angstrom (needed 4: libwannier.a)
-real(8),      parameter   :: bohr2angstrom = 0.52917721067
-real(8),      parameter   :: hartree2ev    = 27.2113850560
+real(8),      parameter   :: au2angstrom = 0.5291772108d0
+real(8),      parameter   :: hartree2ev  = 27.211385056d0
 ! total number of atoms to pass to wannier90
 integer                      wann_natoms
 ! number of bands to pass to wannier90

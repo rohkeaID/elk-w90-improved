@@ -5,23 +5,30 @@
 !BOP
 ! !ROUTINE: genw90twf
 ! !INTERFACE:
-subroutine genw90twf
+subroutine genw90twf(twfmt,twfir)
 ! !USES:
 use modmain
 use modw90
 ! !DESCRIPTION:
-!   Generates the trial orbitals for the projection Amn matrix required by wannier90
+!   Generates the trial orbitals and wave functions 
+!   for the projection Amn matrix required by wannier90
 !
 ! !REVISION HISTORY:
-!   Created January 2015 (Manh Duc Le)
+!   Created January 2015 (Manh Duc Le), 
+!   Revised and edited July 2018 (Arsenii Gerasimov)
 !EOP
 !BOC
 implicit none
+complex(8), dimension(npcmtmax,natmtot,nspinor,wann_nproj), intent(inout) :: twfmt
+complex(8), dimension(ngtot,nspinor,wann_nproj),   intent(inout) :: twfir
 ! local variables
 integer i,is,ia,ias,lmaxproj,lmmaxproj,lm,l,m,n,nr,ir,irc
 real(8) s2,s3,s6,s12
+integer irco,ispn,nrc,nrci
+complex(8) :: z1
 ! allocatable arrays
 real(8), allocatable :: rlm(:)
+complex(8), allocatable :: twfmt1(:)
 ! automatic arrays
 real(8) v1(3)
 integer irlm(16)
@@ -216,6 +223,55 @@ do n=1,wann_nproj
     wann_proj_isrand(n)=.true.
   end if
 end do
+
+! create the trial wavefunction matrix
+allocate(twfmt1(npcmtmax))
+twfmt = cmplx(0.d0,0.d0,kind=8)
+twfir = cmplx(0.d0,0.d0,kind=8)! trial wavefunction is zero outside muffin-tin.
+do ispn=1,nspinor
+  do is=1,nspecies
+    nrc=nrcmt(is)
+    nrci=nrcmti(is)
+    irco=nrci+1
+    do ia=1,natoms(is)
+      ias=idxas(ia,is)
+      do n=1,wann_nproj
+        if(.not.wann_proj_haswt(n,ias)) cycle
+        ! zero the wavefunction
+        twfmt1 = cmplx(0.d0,0.d0,kind=8)
+        i=1
+        do ir=1,nrci
+          lm=0
+          do l=0,lmaxi
+            do m=-l,l
+              lm=lm+1
+              z1=wann_projclm(lm,ias,n)
+              if(abs(z1).gt.1.d-14) then
+                twfmt1(i)=twfmt1(i)+z1*wann_projulr(ir,l,ias,n)
+              end if
+              i=i+1
+            end do
+          end do
+        end do
+        do ir=nrci+1,nrc
+          lm=0
+          do l=0,lmaxo
+            do m=-l,l
+              lm=lm+1
+              z1=wann_projclm(lm,ias,n)
+              if(abs(z1).gt.1.d-14) then
+                twfmt1(i)=twfmt1(i)+z1*wann_projulr(ir,l,ias,n)
+              end if
+              i=i+1
+            end do
+          end do
+        end do
+        call zbsht(nrc,nrci,twfmt1,twfmt(:,ias,ispn,n))
+      end do
+    end do
+  end do
+end do
+deallocate(twfmt1)
 
 return
 

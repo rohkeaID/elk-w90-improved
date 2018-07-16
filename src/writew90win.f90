@@ -19,7 +19,6 @@ use modw90
 implicit none
 ! local variables
 integer is,ia,ik,i
-integer reducek0
 ! automatic arrays
 real(8) v2(3)
 character(256) filename
@@ -47,10 +46,10 @@ call init0
 ! Code to generate the k-point mesh for w90 (from init1.f90)
 ! set up the k-point box (based on k-points set, specified in wannier-block)
 ngridk = wann_ngridk
-reducek0=reducek !мб нужно просто reducek=0
+reducek0=reducek ! if reducek=1 was used in ground state calculations,
+                 ! need to regenerate the eigenvectors set for the full BZ.
 reducek=0
 call init1
-reducek=reducek0
 
 ! checks that the number of bands is greater than or equal to the number projections
 if(wann_nband.lt.wann_nwf) then
@@ -127,6 +126,8 @@ if(wann_inputlines.gt.0) then
 end if
 close(50)
 !end do
+
+reducek=reducek0
 
 end subroutine
 !EOC
