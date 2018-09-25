@@ -6,22 +6,23 @@
 !BOP
 ! !ROUTINE: genzrho
 ! !INTERFACE:
-subroutine genzrho(tsh,tspc,wfmt1,wfir1,wfmt2,wfir2,zrhomt,zrhoir)
+subroutine genzrho(tsh,tspc,ngt,wfmt1,wfir1,wfmt2,wfir2,zrhomt,zrhoir)
 ! !USES:
 use modmain
 ! !INPUT/OUTPUT PARAMETERS:
 !   tsh    : .true. if the muffin-tin density is to be in spherical harmonics
 !            (in,logical)
 !   tspc   : .true. if the density should be contracted over spin (in,logical)
+!   ngt    : total number of grid points (in,integer)
 !   wfmt1  : muffin-tin part of wavefunction 1 in spherical coordinates
-!            (in,complex(npcmtmax,natmtot,nspinor))
-!   wfir1  : interstitial wavefunction 1 (in,complex(ngtot))
+!            (in,complex(npcmtmax,natmtot,*))
+!   wfir1  : interstitial wavefunction 1 (in,complex(ngt,*))
 !   wfmt2  : muffin-tin part of wavefunction 2 in spherical coordinates
-!            (in,complex(npcmtmax,natmtot,nspinor))
-!   wfir2  : interstitial wavefunction 2 (in,complex(ngtot))
+!            (in,complex(npcmtmax,natmtot,*))
+!   wfir2  : interstitial wavefunction 2 (in,complex(ngt,*))
 !   zrhomt : muffin-tin charge density in spherical harmonics/coordinates
 !            (out,complex(npcmtmax,natmtot))
-!   zrhoir : interstitial charge density (out,complex(ngtot))
+!   zrhoir : interstitial charge density (out,complex(ngt))
 ! !DESCRIPTION:
 !   Calculates the complex overlap charge density from two input wavefunctions:
 !   $$ \rho({\bf r})\equiv\Psi_1^{\dag}({\bf r})\cdot\Psi_2({\bf r}). $$
@@ -37,9 +38,10 @@ use modmain
 implicit none
 ! arguments
 logical, intent(in) :: tsh,tspc
-complex(8), intent(in) ::  wfmt1(npcmtmax,natmtot,*),wfir1(ngtot,*)
-complex(8), intent(in) ::  wfmt2(npcmtmax,natmtot,*),wfir2(ngtot,*)
-complex(8), intent(out) :: zrhomt(npcmtmax,natmtot),zrhoir(ngtot)
+integer, intent(in) :: ngt
+complex(8), intent(in) ::  wfmt1(npcmtmax,natmtot,*),wfir1(ngt,*)
+complex(8), intent(in) ::  wfmt2(npcmtmax,natmtot,*),wfir2(ngt,*)
+complex(8), intent(out) :: zrhomt(npcmtmax,natmtot),zrhoir(ngt)
 ! local variables
 integer is,ias
 ! allocatable arrays
@@ -71,9 +73,9 @@ end do
 if (tsh) deallocate(zfmt)
 ! interstitial part
 if (tspc.and.spinpol) then
-  call zrho2(ngtot,wfir1(:,1),wfir1(:,2),wfir2(:,1),wfir2(:,2),zrhoir)
+  call zrho2(ngt,wfir1(:,1),wfir1(:,2),wfir2(:,1),wfir2(:,2),zrhoir)
 else
-  call zrho1(ngtot,wfir1(:,1),wfir2(:,1),zrhoir)
+  call zrho1(ngt,wfir1(:,1),wfir2(:,1),zrhoir)
 end if
 return
 

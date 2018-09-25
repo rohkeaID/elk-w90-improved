@@ -10,33 +10,33 @@
 module modstore
 use modmain
 
-real(8) avec0(3,3)
-real(8) bvec0(3,3),binv0(3,3)
-real(8) omega0
-real(8) avecu0(3,3)
-logical tshift0
-logical primcell0
-integer natoms0(maxspecies)
-integer natmtot0
-integer idxis0(maxatoms*maxspecies)
-real(8) atposl0(3,maxatoms,maxspecies)
-real(8) atposc0(3,maxatoms,maxspecies)
-real(8) rmtdelta0
-integer ngridg0(3),ngtot0
-integer, allocatable :: ivg0(:,:),igfft0(:)
-logical spinpol0,spinorb0,cmagz0
-real(8) bfieldc00(3)
-real(8) bfcmt00(3,maxatoms,maxspecies)
-real(8) reducebf0
-integer fsmtype0
-real(8) momfix0(3)
-real(8) mommtfix0(3,maxatoms,maxspecies)
-logical tforce0
-logical autokpt0
-integer ngridk0(3)
-real(8) vkloff0(3)
-integer lmaxi0
-logical trimvg0
+real(8) avec_(3,3)
+real(8) bvec_(3,3),binv_(3,3)
+real(8) omega_
+logical tshift_
+logical primcell_
+integer natoms_(maxspecies)
+integer natmtot_
+integer idxis_(maxatoms*maxspecies)
+real(8) atposl_(3,maxatoms,maxspecies)
+real(8) atposc_(3,maxatoms,maxspecies)
+integer ngridg_(3),ngtot_
+integer, allocatable :: ivg_(:,:),igfft_(:)
+logical spinpol_,spinorb_,cmagz_,spinsprl_
+real(8) bfieldc0_(3)
+real(8) bfcmt0_(3,maxatoms,maxspecies)
+real(8) reducebf_
+integer fsmtype_
+real(8) momfix_(3)
+real(8) mommtfix_(3,maxatoms,maxspecies)
+logical tforce_
+logical autokpt_
+integer ngridk_(3)
+real(8) vkloff_(3)
+integer lmaxi_
+logical tfav0_
+real(8) vqlss_(3)
+integer msmooth_
 
 end module
 

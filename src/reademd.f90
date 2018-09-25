@@ -17,10 +17,9 @@ real(8), allocatable :: emd(:)
 allocate(emd(nhkmax))
 ! find the record length
 inquire(iolength=recl) vkl(:,1),nhkmax,emd
-open(85,file='EMD.OUT',action='READ',form='UNFORMATTED',access='DIRECT', &
- recl=recl)
+open(160,file='EMD.OUT',form='UNFORMATTED',access='DIRECT',recl=recl)
 do ik=1,nkpt
-  read(85,rec=ik) vkl_,nhk_,emd
+  read(160,rec=ik) vkl_,nhk_,emd
   t1=abs(vkl(1,ik)-vkl_(1))+abs(vkl(2,ik)-vkl_(2))+abs(vkl(3,ik)-vkl_(3))
   if (t1.gt.epslat) then
     write(*,*)
@@ -41,7 +40,7 @@ do ik=1,nkpt
 ! store momentum density in single precision array
   emds(:,ik)=real(emd(:))
 end do
-close(85)
+close(160)
 deallocate(emd)
 return
 end subroutine

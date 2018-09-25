@@ -22,10 +22,12 @@ implicit none
 ! initialise global variables
 call init0
 call init1
-! generate q-point set and wiq2 array
+! generate q-point set and gclq array
 call init2
 ! read density and potentials from file
 call readstate
+! Fourier transform Kohn-Sham potential to G-space
+call genvsig
 ! generate the core wavefunctions and densities
 call gencore
 ! read Fermi energy from file
@@ -44,11 +46,6 @@ call hmlrad
 call gensocfr
 ! compute the kinetic energy of the core
 call energykncr
-! delete any existing Coulomb matrix elements files
-if (mp_mpi) then
-  open(95,file='VNLIJJI.OUT'); close(95,status='DELETE')
-  open(95,file='VNLIJJK.OUT'); close(95,status='DELETE')
-end if
 ! generate the first- and second-variational eigenvectors and eigenvalues
 call genevfsv
 ! find the occupation numbers
@@ -57,14 +54,14 @@ call occupy
 call genkmat(.true.,.false.)
 ! open information files (MPI master process only)
 if (mp_mpi) then
-  open(60,file='RDM_INFO.OUT',action='WRITE',form='FORMATTED')
-  open(61,file='RDMN_ENERGY.OUT',action='WRITE',form='FORMATTED')
-  open(62,file='RDMC_ENERGY.OUT',action='WRITE',form='FORMATTED')
+  open(60,file='RDM_INFO.OUT',form='FORMATTED')
+  open(61,file='RDMN_ENERGY.OUT',form='FORMATTED')
+  open(62,file='RDMC_ENERGY.OUT',form='FORMATTED')
   if (spinpol) then
-    open(63,file='RDMN_MOMENT.OUT',action='WRITE',form='FORMATTED')
-    open(64,file='RDMC_MOMENT.OUT',action='WRITE',form='FORMATTED')
+    open(63,file='RDMN_MOMENT.OUT',form='FORMATTED')
+    open(64,file='RDMC_MOMENT.OUT',form='FORMATTED')
   end if
-  open(65,file='RDM_ENERGY.OUT',action='WRITE',form='FORMATTED')
+  open(65,file='RDM_ENERGY.OUT',form='FORMATTED')
 ! write out general information to RDM_INFO.OUT
   call writeinfo(60)
   write(60,*)
@@ -79,12 +76,12 @@ do iscl=1,rdmmaxscl
     write(60,'("+--------------------+")')
     write(60,'("| Loop number : ",I4," |")') iscl
     write(60,'("+--------------------+")')
-    call flushifc(60)
+    flush(60)
     write(*,*)
     write(*,'("Info(rdmft): self-consistent loop number : ",I4)') iscl
   end if
 ! synchronise MPI processes
-  call mpi_barrier(mpi_comm_kpt,ierror)
+  call mpi_barrier(mpicom,ierror)
 ! minimisation over natural orbitals
   call rdmminc
 ! minimisation over occupation number
@@ -97,7 +94,7 @@ do iscl=1,rdmmaxscl
     call writeeval
 ! write out the total energy
     write(65,'(G18.10)') engytot
-    call flushifc(65)
+    flush(65)
   end if
 end do
 if (mp_mpi) then
@@ -126,3 +123,4 @@ end if
 return
 end subroutine
 !EOC
+

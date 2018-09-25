@@ -26,8 +26,8 @@ integer, intent(in) :: ik
 ! local variables
 integer ispn0,ispn1,ispn,jspn
 integer n,nm,nm2,is,ias,ist,jst
-integer iv(3),ig,i,j,k,l
-real(8) sum,t1
+integer iv(3),jv(3),ig,i,j,k,l
+real(8) vj(3),sum,t1
 complex(8) z1,z2
 ! allocatable arrays
 integer, allocatable :: ijg(:)
@@ -66,12 +66,13 @@ do jspn=1,nspnfv
   nm=nmat(jspn,ik)
   do j=1,n
     k=(j-1)*nm
+    jv(:)=ivg(:,igkig(j,jspn,ik))
+    vj(:)=0.5d0*vgkc(:,j,jspn,ik)
     do i=1,j
       k=k+1
-      iv(:)=ivg(:,igkig(i,jspn,ik))-ivg(:,igkig(j,jspn,ik))
-      iv(:)=modulo(iv(:)-intgv(1,:),ngridg(:))+intgv(1,:)
+      iv(:)=ivg(:,igkig(i,jspn,ik))-jv(:)
       ijg(k)=ivgig(iv(1),iv(2),iv(3))
-      dp(k)=0.5d0*dot_product(vgkc(:,i,jspn,ik),vgkc(:,j,jspn,ik))
+      dp(k)=dot_product(vgkc(:,i,jspn,ik),vj(:))
     end do
   end do
 ! find the matching coefficients
@@ -149,9 +150,9 @@ do jspn=1,nspnfv
           sum=sum+occsv(j,ik)*dble(ffv(j,j))
         end do
       end if
-!$OMP CRITICAL
+!$OMP CRITICAL(forcek_)
       forceibs(l,ias)=forceibs(l,ias)+wkpt(ik)*sum
-!$OMP END CRITICAL
+!$OMP END CRITICAL(forcek_)
 ! end loop over Cartesian components
     end do
 ! end loop over atoms and species

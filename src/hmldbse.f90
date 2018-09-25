@@ -6,21 +6,25 @@
 subroutine hmldbse
 use modmain
 use modmpi
+use modomp
 implicit none
 ! local variables
-integer ik2
-!$OMP PARALLEL DEFAULT(SHARED)
+integer ik2,nthd
+call omp_hold(nkptnr/np_mpi,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ik2=1,nkptnr
 ! distribute among MPI processes
   if (mod(ik2-1,np_mpi).ne.lp_mpi) cycle
-!$OMP CRITICAL
+!$OMP CRITICAL(hmldbse_)
   write(*,'("Info(hmldbse): ",I6," of ",I6," k-points")') ik2,nkptnr
-!$OMP END CRITICAL
+!$OMP END CRITICAL(hmldbse_)
   call hmldbsek(ik2)
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 return
 end subroutine
 

@@ -7,11 +7,14 @@
 
 module libxcifc
 
+integer libxcv(3)
+
 contains
 
 subroutine xcifc_libxc(xctype,n,c_tb09,rho,rhoup,rhodn,g2rho,g2up,g2dn,grho2, &
- gup2,gdn2,gupdn,tau,tauup,taudn,ex,ec,vx,vc,vxup,vxdn,vcup,vcdn,dxdg2,dxdgu2, &
- dxdgd2,dxdgud,dcdg2,dcdgu2,dcdgd2,dcdgud)
+ gup2,gdn2,gupdn,tau,tauup,taudn,ex,ec,vx,vc,vxup,vxdn,vcup,vcdn,dxdgr2, &
+ dxdgu2,dxdgd2,dxdgud,dcdgr2,dcdgu2,dcdgd2,dcdgud,dxdg2r,dxdg2u,dxdg2d,dcdg2r, &
+ dcdg2u,dcdg2d,wx,wxup,wxdn,wc,wcup,wcdn)
 implicit none
 ! mandatory arguments
 integer, intent(in) :: xctype(3),n
@@ -23,8 +26,12 @@ real(8), optional :: grho2(n),gup2(n),gdn2(n),gupdn(n)
 real(8), optional :: tau(n),tauup(n),taudn(n)
 real(8), optional :: ex(n),ec(n),vx(n),vc(n)
 real(8), optional :: vxup(n),vxdn(n),vcup(n),vcdn(n)
-real(8), optional :: dxdg2(n),dxdgu2(n),dxdgd2(n),dxdgud(n)
-real(8), optional :: dcdg2(n),dcdgu2(n),dcdgd2(n),dcdgud(n)
+real(8), optional :: dxdgr2(n),dxdgu2(n),dxdgd2(n),dxdgud(n)
+real(8), optional :: dcdgr2(n),dcdgu2(n),dcdgd2(n),dcdgud(n)
+real(8), optional :: dxdg2r(n),dxdg2u(n),dxdg2d(n)
+real(8), optional :: dcdg2r(n),dcdg2u(n),dcdg2d(n)
+real(8), optional :: wx(n),wxup(n),wxdn(n)
+real(8), optional :: wc(n),wcup(n),wcdn(n)
 write(*,*)
 write(*,'("Error(libxcifc): libxc not or improperly installed")')
 write(*,*)

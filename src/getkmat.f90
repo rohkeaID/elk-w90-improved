@@ -10,16 +10,25 @@ implicit none
 integer, intent(in) :: ik
 complex(8), intent(out) :: kmat(nstsv,nstsv)
 ! local variables
-integer recl,nstsv_
+integer recl,nstsv_,i
 real(8) vkl_(3),t1
 ! find the record length
 inquire(iolength=recl) vkl_,nstsv_,kmat
-!$OMP CRITICAL
-open(85,file='KMAT.OUT',action='READ',form='UNFORMATTED',access='DIRECT', &
- recl=recl)
-read(85,rec=ik) vkl_,nstsv_,kmat
-close(85)
-!$OMP END CRITICAL
+!$OMP CRITICAL(u140)
+do i=1,2
+  open(140,file='KMAT.OUT',form='UNFORMATTED',access='DIRECT',recl=recl,err=10)
+  read(140,rec=ik,err=10) vkl_,nstsv_,kmat
+  exit
+10 continue
+  if (i.eq.2) then
+    write(*,*)
+    write(*,'("Error(getkmat): unable to read from KMAT.OUT")')
+    write(*,*)
+    stop
+  end if
+  close(140)
+end do
+!$OMP END CRITICAL(u140)
 t1=abs(vkl(1,ik)-vkl_(1))+abs(vkl(2,ik)-vkl_(2))+abs(vkl(3,ik)-vkl_(3))
 if (t1.gt.epslat) then
   write(*,*)

@@ -11,15 +11,27 @@ character(*), intent(in) :: fext
 integer, intent(in) :: ik
 complex(8), intent(in) :: evecfv(nmatmax,nstfv,nspnfv)
 ! local variables
-integer recl
+integer recl,i
+character(256) fname
 ! find the record length
 inquire(iolength=recl) vkl(:,ik),nmatmax,nstfv,nspnfv,evecfv
-!$OMP CRITICAL
-open(70,file=trim(scrpath)//'EVECFV'//trim(fext),action='WRITE', &
- form='UNFORMATTED',access='DIRECT',recl=recl)
-write(70,rec=ik) vkl(:,ik),nmatmax,nstfv,nspnfv,evecfv
-close(70)
-!$OMP END CRITICAL
+fname=trim(scrpath)//'EVECFV'//trim(fext)
+!$OMP CRITICAL(u122)
+do i=1,2
+  open(122,file=trim(fname),form='UNFORMATTED',access='DIRECT',recl=recl,err=10)
+  write(122,rec=ik,err=10) vkl(:,ik),nmatmax,nstfv,nspnfv,evecfv
+  close(122)
+  exit
+10 continue
+  if (i.eq.2) then
+    write(*,*)
+    write(*,'("Error(putevecfv): unable to write to ",A)') trim(fname)
+    write(*,*)
+    stop
+  end if
+  close(122)
+end do
+!$OMP END CRITICAL(u122)
 return
 end subroutine
 

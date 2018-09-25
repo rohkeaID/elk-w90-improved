@@ -3,22 +3,24 @@
 ! This file is distributed under the terms of the GNU General Public License.
 ! See the file COPYING for license details.
 
-subroutine gentaucr(taumt)
+subroutine gentaucr
 use modmain
+use modomp
 implicit none
-! arguments
-real(8), intent(inout) :: taumt(npmtmax,natmtot,nspinor)
 ! local variables
 integer ist,ispn,jspn
-integer is,ia,ias
+integer is,ia,ias,nthd
 integer nr,nri,np,i,m
 ! allocatable arrays
-complex(8), allocatable :: wfcr(:,:)
-complex(8), allocatable :: gzfmt(:,:),zfmt(:)
+real(8), allocatable :: rfmt(:)
+complex(8), allocatable :: wfcr(:,:),gzfmt(:,:),zfmt(:)
+taucr(:,:,:)=0.d0
+call omp_hold(natmtot,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP PRIVATE(wfcr,gzfmt,zfmt) &
 !$OMP PRIVATE(is,ia,nr,nri,np) &
-!$OMP PRIVATE(ist,m,ispn,jspn,i)
+!$OMP PRIVATE(ist,m,ispn,jspn,i) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ias=1,natmtot
   allocate(wfcr(npmtmax,2))
@@ -45,7 +47,7 @@ do ias=1,natmtot
 ! convert gradient to spherical coordinates
             call zbsht(nr,nri,gzfmt(:,i),zfmt)
 ! add to total in muffin-tin
-            taumt(1:np,ias,jspn)=taumt(1:np,ias,jspn) &
+            taucr(1:np,ias,jspn)=taucr(1:np,ias,jspn) &
              +0.5d0*(dble(zfmt(1:np))**2+aimag(zfmt(1:np))**2)
           end do
         end do
@@ -56,6 +58,17 @@ do ias=1,natmtot
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
+! convert core tau to spherical harmonics
+allocate(rfmt(npmtmax))
+do ispn=1,nspinor
+  do ias=1,natmtot
+    is=idxis(ias)
+    call dcopy(npmt(is),taucr(:,ias,ispn),1,rfmt,1)
+    call rfsht(nrmt(is),nrmti(is),rfmt,taucr(:,ias,ispn))
+  end do
+end do
+deallocate(rfmt)
 return
 end subroutine
 

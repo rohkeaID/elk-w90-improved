@@ -39,7 +39,6 @@ real(8), intent(in) :: r(nr),r2(nr)
 complex(8), intent(in) :: zfmt1(*),zfmt2(*)
 ! local variables
 integer ir,i
-real(8) a,b
 complex(8) z1
 ! automatic arrays
 real(8) fr1(nr),fr2(nr)
@@ -47,23 +46,34 @@ real(8) fr1(nr),fr2(nr)
 real(8) fintgt
 complex(8) zdotc
 external fintgt,zdotc
+! compute the dot-products for each radial point
 i=1
-do ir=1,nri
-  z1=zdotc(lmmaxi,zfmt1(i),1,zfmt2(i),1)*r2(ir)
-  fr1(ir)=dble(z1)
-  fr2(ir)=aimag(z1)
-  i=i+lmmaxi
-end do
+if (lmaxi.eq.1) then
+  do ir=1,nri
+    z1=(conjg(zfmt1(i))*zfmt2(i) &
+       +conjg(zfmt1(i+1))*zfmt2(i+1) &
+       +conjg(zfmt1(i+2))*zfmt2(i+2) &
+       +conjg(zfmt1(i+3))*zfmt2(i+3))*r2(ir)
+    fr1(ir)=dble(z1)
+    fr2(ir)=aimag(z1)
+    i=i+4
+  end do
+else
+  do ir=1,nri
+    z1=zdotc(lmmaxi,zfmt1(i),1,zfmt2(i),1)*r2(ir)
+    fr1(ir)=dble(z1)
+    fr2(ir)=aimag(z1)
+    i=i+lmmaxi
+  end do
+end if
 do ir=nri+1,nr
   z1=zdotc(lmmaxo,zfmt1(i),1,zfmt2(i),1)*r2(ir)
   fr1(ir)=dble(z1)
   fr2(ir)=aimag(z1)
   i=i+lmmaxo
 end do
-! integrate
-a=fintgt(-1,nr,r,fr1)
-b=fintgt(-1,nr,r,fr2)
-zfmtinp=cmplx(a,b,8)
+! integrate over r
+zfmtinp=cmplx(fintgt(-1,nr,r,fr1),fintgt(-1,nr,r,fr2),8)
 return
 end function
 !EOC

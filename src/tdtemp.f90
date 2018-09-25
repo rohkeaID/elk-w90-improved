@@ -3,12 +3,12 @@
 ! This file is distributed under the terms of the GNU General Public License.
 ! See the file COPYING for license details.
 
-subroutine tdtemp(occsvt)
+subroutine tdtemp(occsvp)
 use modmain
 use modtddft
 implicit none
 ! arguments
-real(8), intent(in) :: occsvt(nstsv,nkpt)
+real(8), intent(in) :: occsvp(nstsv,nkpt)
 ! local variables
 integer, parameter :: maxit=1000
 integer ik,ist,it
@@ -31,7 +31,7 @@ do it=1,maxit
       x=(efermi-evalsv(ist,ik))*t1
       t2=occmax*stheta_fd(x)
       t3=sdelta_fd(x)*x*t1
-      sum=sum+(occsvt(ist,ik)-t2)*t3
+      sum=sum+(occsvp(ist,ik)-t2)*t3
     end do
   end do
   if ((sum*sp).lt.0.d0) then
@@ -50,7 +50,7 @@ return
 10 continue
 ! write effective temperature to file
 t1=sw/kboltz
-open(50,file='TDTEMP.OUT',action='WRITE',form='FORMATTED',position='APPEND')
+open(50,file='TDTEMP.OUT',form='FORMATTED',position='APPEND')
 write(50,'(2G18.10)') times(itimes),t1
 close(50)
 return

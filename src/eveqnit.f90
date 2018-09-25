@@ -5,6 +5,7 @@
 
 subroutine eveqnit(nmatp,ngp,igpig,vpl,vgpl,vgpc,apwalm,evalfv,evecfv)
 use modmain
+use modomp
 implicit none
 ! arguments
 integer, intent(in) :: nmatp,ngp
@@ -16,7 +17,8 @@ real(8), intent(out) :: evalfv(nstfv)
 complex(8), intent(out) :: evecfv(nmatmax,nstfv)
 ! local variables
 integer n2,ns,ist,ias
-integer it,i,lwork,info
+integer it,i,nthd
+integer lwork,info
 real(8) rmax,t1
 real(8) ts1,ts0
 ! allocatable arrays
@@ -33,6 +35,8 @@ if (iscl.ge.2) then
 ! read in the eigenvalues/vectors from file
   call getevalfv(filext,0,vpl,evalfv)
   call getevecfv(filext,0,vpl,vgpl,evecfv)
+!**** error with spin-spirals
+
 else
 ! initialise the eigenvectors to canonical basis vectors
   evecfv(1:nmatp,:)=0.d0
@@ -43,7 +47,10 @@ end if
 ! compute Hamiltonian and overlap matrices
 call timesec(ts0)
 allocate(h(nmatp,nmatp),o(nmatp,nmatp))
-!$OMP PARALLEL SECTIONS DEFAULT(SHARED) PRIVATE(ias,i)
+call omp_hold(2,nthd)
+!$OMP PARALLEL SECTIONS DEFAULT(SHARED) &
+!$OMP PRIVATE(i,ias) &
+!$OMP NUM_THREADS(nthd)
 !$OMP SECTION
 ! Hamiltonian
 do i=1,nmatp
@@ -67,10 +74,11 @@ do ias=1,natmtot
 end do
 call olpistl(ngp,igpig,nmatp,o)
 !$OMP END PARALLEL SECTIONS
+call omp_free(nthd)
 call timesec(ts1)
-!$OMP CRITICAL
+!$OMP CRITICAL(eveqnit_1)
 timemat=timemat+ts1-ts0
-!$OMP END CRITICAL
+!$OMP END CRITICAL(eveqnit_1)
 call timesec(ts0)
 allocate(w(ns),rwork(3*ns))
 allocate(hv(nmatp,nstfv),ov(nmatp,nstfv))
@@ -81,7 +89,10 @@ allocate(work(lwork))
 ! start iteration loop
 do it=1,maxitefv
   rmax=0.d0
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(t1)
+  call omp_hold(nstfv,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(t1) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
   do ist=1,nstfv
 ! operate with O on the current eigenvector
@@ -109,9 +120,9 @@ do it=1,maxitefv
     call zhemv('U',nmatp,zone,o,nmatp,u(:,ist),1,zzero,ou(:,ist),1)
 ! compute the overlap of the residual with itself
     t1=dble(zdotc(nmatp,u(:,ist),1,ou(:,ist),1))
-!$OMP CRITICAL
+!$OMP CRITICAL(eveqnit_2)
     if (t1.gt.rmax) rmax=t1
-!$OMP END CRITICAL
+!$OMP END CRITICAL(eveqnit_2)
 ! normalise the residual
     if (t1.gt.0.d0) then
       t1=1.d0/sqrt(t1)
@@ -123,9 +134,12 @@ do it=1,maxitefv
   end do
 !$OMP END DO
 !$OMP END PARALLEL
+  call omp_free(nthd)
 ! compute the Hamiltonian and overlap matrices in the subspace formed by the
 ! eigenvectors and their residuals
-!$OMP PARALLEL DEFAULT(SHARED)
+  call omp_hold(nstfv,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
   do ist=1,nstfv
     call zgemv('C',nmatp,nstfv,zone,evecfv,nmatmax,hv(:,ist),1,zzero, &
@@ -137,7 +151,10 @@ do it=1,maxitefv
   end do
 !$OMP END DO
 !$OMP END PARALLEL
-!$OMP PARALLEL DEFAULT(SHARED)
+  call omp_free(nthd)
+  call omp_hold(nstfv,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
   do ist=1,nstfv
     call zgemv('C',nmatp,nstfv,zone,evecfv,nmatmax,ov(:,ist),1,zzero, &
@@ -149,11 +166,14 @@ do it=1,maxitefv
   end do
 !$OMP END DO
 !$OMP END PARALLEL
+  call omp_free(nthd)
 ! solve the generalised eigenvalue problem in the subspace
   call zhegv(1,'V','U',ns,hs,ns,os,ns,w,work,lwork,rwork,info)
   if (info.ne.0) exit
 ! construct the new eigenvectors
-!$OMP PARALLEL DEFAULT(SHARED)
+  call omp_hold(nstfv,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
   do ist=1,nstfv
     call zgemv('N',nmatp,nstfv,zone,evecfv,nmatmax,hs(1,ist),1,zzero, &
@@ -162,13 +182,17 @@ do it=1,maxitefv
   end do
 !$OMP END DO
 !$OMP END PARALLEL
-!$OMP PARALLEL DEFAULT(SHARED)
+  call omp_free(nthd)
+  call omp_hold(nstfv,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
   do ist=1,nstfv
     call zcopy(nmatp,ov(:,ist),1,evecfv(:,ist),1)
   end do
 !$OMP END DO
 !$OMP END PARALLEL
+  call omp_free(nthd)
 ! check for convergence
   rmax=sqrt(abs(rmax)/dble(nmatp))
   if ((it.ge.minitefv).and.(rmax.lt.epsefvit)) exit
@@ -177,9 +201,9 @@ end do
 deallocate(w,rwork,h,o,hv,ov)
 deallocate(u,hu,ou,hs,os,work)
 call timesec(ts1)
-!$OMP CRITICAL
+!$OMP CRITICAL(eveqnit_3)
 timefv=timefv+ts1-ts0
-!$OMP END CRITICAL
+!$OMP END CRITICAL(eveqnit_3)
 return
 end subroutine
 

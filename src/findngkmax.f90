@@ -41,7 +41,7 @@ integer, intent(out) :: ngkmax
 ! local variables
 integer ispn,ik,n,ig
 real(8) v1(3),v2(3),t0,t1
-t0=gkmax**2
+t0=gkmax**2+1.d-6
 ngkmax=0
 do ispn=1,nspnfv
   do ik=1,nkpt
@@ -67,3 +67,4 @@ end do
 return
 end subroutine
 !EOC
+

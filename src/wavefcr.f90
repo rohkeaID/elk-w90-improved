@@ -31,11 +31,9 @@ if (((k.ne.l+1).and.(k.ne.l)).or.(m.lt.-k).or.(m.gt.k-1)) then
   write(*,*)
   stop
 end if
-if (l.gt.lmaxi) then
-  write(*,*)
-  write(*,'("Error(wavefcr): l > lmaxi : ",2I8)') l,lmaxi
-  write(*,*)
-  stop
+if (l.gt.lmaxo) then
+  wfcr(:,:)=0.d0
+  return
 end if
 ias=idxas(ia,is)
 ! calculate the Clebsch-Gordon coefficients
@@ -65,16 +63,18 @@ if (lrstp.eq.1) then
 else
   npc=npcmt(is)
 end if
+wfcr(1:npc,:)=0.d0
+!----------------------------------!
+!     inner part of muffin-tin     !
+!----------------------------------!
+if (l.gt.lmaxi) goto 10
 if (tsh) then
   i1=lm1
   i2=lm2
 else
   i=0
 end if
-if ((tsh).or.(lm1.eq.0)) wfcr(1:npc,1)=0.d0
-if ((tsh).or.(lm2.eq.0)) wfcr(1:npc,2)=0.d0
 irc=0
-! inner part of muffin-tin
 do ir=1,nri,lrstp
   irc=irc+1
 ! major component of radial wavefunction
@@ -100,7 +100,20 @@ do ir=1,nri,lrstp
     i=i+lmmaxi
   end if
 end do
-! outer part of muffin-tin
+!----------------------------------!
+!     outer part of muffin-tin     !
+!----------------------------------!
+10 continue
+if (lrstp.eq.1) then
+  irc=nrmti(is)
+else
+  irc=nrcmti(is)
+end if
+i=lmmaxi*irc
+if (tsh) then
+  i1=i+lm1
+  i2=i+lm2
+end if
 do ir=nri+lrstp,nr,lrstp
   irc=irc+1
   t0=rwfcr(ir,1,ist,ias)/rsp(ir,is)

@@ -24,8 +24,7 @@ allocate(w(nwplot))
 allocate(sig1(nwplot,2),sig2(nwplot,2))
 allocate(kerr(nwplot))
 ! read diagonal contribution to optical conductivity
-open(50,file='SIGMA_11.OUT',action='READ',status='OLD', &
- form='FORMATTED',iostat=iostat)
+open(50,file='SIGMA_11.OUT',status='OLD',form='FORMATTED',iostat=iostat)
 if (iostat.ne.0) then
   write(*,*)
   write(*,'("Error(moke): error opening SIGMA_11.OUT")')
@@ -41,8 +40,7 @@ do iw=1,nwplot
 end do
 close(50)
 ! read off-diagonal contribution to optical conductivity
-open(50,file='SIGMA_12.OUT',action='READ',status='OLD', &
- form='FORMATTED',iostat=iostat)
+open(50,file='SIGMA_12.OUT',status='OLD',form='FORMATTED',iostat=iostat)
 if (iostat.ne.0) then
   write(*,*)
   write(*,'("Error(moke): error opening SIGMA_12.OUT")')
@@ -72,7 +70,7 @@ do iw=1,nwplot
     kerr(iw)=0.d0
   end if
 end do
-open(50,file='KERR.OUT',action='WRITE',form='FORMATTED')
+open(50,file='KERR.OUT',form='FORMATTED')
 do iw=1,nwplot
   write(50,'(2G18.10)') w(iw),dble(kerr(iw))*180.d0/pi
 end do

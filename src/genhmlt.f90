@@ -37,8 +37,8 @@ end do
 ! calculate the wavefunctions for all states of the input k-point
 allocate(wfmt(npcmtmax,natmtot,nspinor,nstsv))
 allocate(wfir(ngkmax,nspinor,nstsv))
-call genwfsv(.false.,.true.,nstsv,idx,ngk(:,ik),igkig(:,:,ik),apwalm,evecfv, &
- evecsv,wfmt,ngkmax,wfir)
+call genwfsv(.false.,.true.,nstsv,idx,ngridg,igfft,ngk(:,ik),igkig(:,:,ik), &
+ apwalm,evecfv,evecsv,wfmt,ngkmax,wfir)
 deallocate(apwalm,evecfv,evecsv)
 ! Kohn-Sham potential and magnetic field matrix elements
 if (spinpol) then

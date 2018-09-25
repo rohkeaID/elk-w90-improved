@@ -6,14 +6,18 @@
 subroutine dpotks
 use modmain
 use modphonon
+use modomp
 implicit none
 ! local variables
-integer is,ias,nr,nri,np
+integer is,ias,nthd
+integer nr,nri,np
 ! allocatable arrays
 complex(8), allocatable :: zfmt(:)
 ! convert density derivative to spherical coordinates
+call omp_hold(natmtot,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(zfmt,is,nr,nri,np)
+!$OMP PRIVATE(zfmt,is,nr,nri,np) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ias=1,natmtot
   allocate(zfmt(npmtmax))
@@ -27,11 +31,14 @@ do ias=1,natmtot
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 ! compute the exchange-correlation potential derivative
 call dpotxc
 ! convert density derivative to spherical harmonics
+call omp_hold(natmtot,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(zfmt,is,nr,nri,np)
+!$OMP PRIVATE(zfmt,is,nr,nri,np) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ias=1,natmtot
   allocate(zfmt(npmtmax))
@@ -45,6 +52,7 @@ do ias=1,natmtot
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 ! generate the Coulomb potential derivative
 call dpotcoul
 ! add to the Kohn-Sham potential derivative

@@ -8,9 +8,10 @@ use modmain
 use modgw
 implicit none
 ! local variables
-integer ik,ist
-integer iw,jw,n
-real(8) de
+integer ik,ist,n
+integer iw,jw,it
+real(8) de,t0,t1
+t0=kboltz*tempk
 if (wmaxgw.le.0.d0) then
 ! read Fermi energy from file
   call readfermi
@@ -25,7 +26,8 @@ if (wmaxgw.le.0.d0) then
   wmaxgw=abs(wmaxgw)*de
 end if
 ! number of Matsubara frequencies
-nwgw=2*nint(wmaxgw/(pi*kboltz*tempk))
+t1=pi*t0
+nwgw=2*nint(wmaxgw/t1)
 nwgw=max(nwgw,2)
 call nfftifc(nwgw)
 ! determine integer ranges for grid
@@ -42,7 +44,7 @@ do iw=intwgw(1),intwgw(2)
     jw=nwgw+iw
   end if
   iwfft(iw)=jw+1
-  wgw(iw)=dble(iw)*pi*kboltz*tempk
+  wgw(iw)=dble(iw)*t1
 end do
 n=minval(abs(intwgw(:)))
 if (n.eq.0) then
@@ -59,7 +61,21 @@ else
   nwfm=n
   nwbs=n-1
 end if
-! generate the response function frequencies
+! store the complex fermionic frequencies
+if (allocated(wfm)) deallocate(wfm)
+allocate(wfm(0:nwfm))
+do iw=-nwfm,nwfm,2
+  jw=(iw+nwfm)/2
+  wfm(jw)=cmplx(0.d0,wgw(iw),8)
+end do
+! store the complex tau-points
+if (allocated(taugw)) deallocate(taugw)
+allocate(taugw(nwgw))
+t1=2.d0/(t0*dble(nwgw))
+do it=1,nwgw
+  taugw(it)=t1*dble(it-1)
+end do
+! store the complex response function frequencies
 nwrf=nwbs+1
 if (allocated(wrf)) deallocate(wrf)
 allocate(wrf(nwrf))

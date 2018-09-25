@@ -10,6 +10,7 @@ subroutine genw90input
 use modmain
 use modw90
 use modw90overlap
+use modomp
 ! !DESCRIPTION:
 !   Writes the Mmn and Amn matrices required for Wannier90 to file.
 !
@@ -27,18 +28,25 @@ integer ist
 integer redkfil,nstsv_,recl
 logical exists
 real(8) t1
+integer nst,nthd
+real(8) vgqc(3),gqc
 ! allocatable arrays
+real(8),    allocatable :: jlgqr(:,:)
+complex(8), allocatable :: ylmgq(:),sfacgq(:)
 complex(8), allocatable :: expmt(:,:)
 complex(8), allocatable :: mmn(:,:,:,:)
 complex(8), allocatable :: spn_x(:,:),spn_y(:,:),spn_z(:,:)
+integer,    allocatable :: igpig(:,:),igpqig(:,:)
 complex(8), allocatable :: wfmt(:,:,:,:),wfir(:,:,:)
 complex(8), allocatable :: wfmtq(:,:,:,:),wfirq(:,:,:)
 real(8),    allocatable :: evalsv_(:)
+integer,    allocatable :: ngp(:),ngpq(:)
 ! automatic arrays
 real(8)        :: bqvec(3),bqc(3),vkql(3)
 character(256)    filename
 character(10)     dat,tim
 real(8)           vkl_(3),vec_0(3)
+!integer           ngp(nspnfv),ngpq(nspnfv)
 
 reducek0=reducek ! if reducek=1 was used in ground state calculations,
                  ! need to regenerate the eigenvectors set for the full BZ.
@@ -96,10 +104,13 @@ do ikp=1,nkpt
     exit
   end if
 end do
+
 ! If kpoint not found in saved eigen-values/vectors, then need to recompute EVEC*OUT.
 if (redkfil.ne.0) then
-  write(*,*) "Info(genw90input): saved k-points do not contain all required &
-                                   &k-points. Recalculating wavefunctions..."
+        
+  write(*,*) "Info(genw90input): Saved k-points don't contain all required &
+                                   &k-points."
+  write(*,*) "Info(genw90input): Recalculating wavefunctions..."
 ! compute the overlap radial integrals
   call olprad
 ! compute the Hamiltonian radial integrals
@@ -108,6 +119,8 @@ if (redkfil.ne.0) then
   call gensocfr
 ! generate the first- and second-variational eigenvectors and eigenvalues
   call genevfsv
+! find the occupation numbers and Fermi energy
+  call occupy
   write(*,*) "Info(genw90input): Wavefunctions recalculated"
 end if
 
@@ -131,21 +144,32 @@ if(nspinor.eq.2) then
 end if
 
 ! loop over k and k+b points
+ngrf=1 ! corresponds to expmt
+call omp_hold(nst,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(ikp,n,m,inn,jk,bqvec,mmn,vkql,wfmt,wfir,wfmtq,wfirq,expmt)
+!$OMP PRIVATE(ikp,n,m,inn,jk,bqvec,bqc,mmn,vkql) &
+!$OMP PRIVATE(ngp,ngpq,igpig,igpqig) &
+!$OMP PRIVATE(wfmt,wfir,wfmtq,wfirq) &
+!$OMP PRIVATE(vgqc,gqc,jlgqr,ylmgq,sfacgq,expmt) &
+!$OMP NUM_THREADS(nthd)
 
 allocate(wfmt(npcmtmax,natmtot,nspinor,wann_nband))
 allocate(wfir(ngtot,nspinor,wann_nband))
+allocate(jlgqr(njcmax,nspecies))
+allocate(ylmgq(lmmaxo),sfacgq(natmtot))
 allocate(expmt(npcmtmax,natmtot))
 allocate(wfmtq(npcmtmax,natmtot,nspinor,wann_nband))
 allocate(wfirq(ngtot,nspinor,wann_nband))
 allocate(mmn(wann_nband,nspinor,wann_nband,nspinor))
+allocate(igpig(ngkmax,nspnfv))
+allocate(igpqig(ngkmax,nspnfv))
+allocate(ngp(nspnfv),ngpq(nspnfv))
 
 !$OMP DO
 do ikp=1,nkpt
 
-  call genwfsvp(.false.,.false.,wann_nband,wann_bands,vkl(:,ikp),wfmt,ngtot,wfir)
-
+  call genwfsvp(.false.,.false.,wann_nband,wann_bands,ngridg,igfft,vkl(:,ikp),ngp,igpig,wfmt,ngtot,wfir)
+  
   do inn=1,wann_nntot
     jk = nnlist(ikp,inn)
     bqvec=nncell(1:3,ikp,inn)+vkl(:,jk)-vkl(:,ikp)
@@ -153,17 +177,18 @@ do ikp=1,nkpt
     ! b-vector in Cartesian coordinates
     call r3mv(bvec,bqvec,bqc)
     ! generate the phase factor function exp(ib.r) in the muffin-tins
-    call genexpmt(bqc,expmt)
+    call gengqrf(bqc,vgqc,gqc,jlgqr,ylmgq,sfacgq)
+    call genexpmt(1,jlgqr,ylmgq,1,sfacgq,expmt)
 
     ! k+b-vector in lattice coordinates
     vkql = vkl(:,ikp)+bqvec
-    call genwfsvp(.false.,.false.,wann_nband,wann_bands,vkql,wfmtq,ngtot,wfirq)
-
+    call genwfsvp(.false.,.false.,wann_nband,wann_bands,ngridg,igfft,vkql,ngpq,igpqig,wfmtq,ngtot,wfirq)
+    
     ! compute Mmn
     mmn = cmplx(0.d0,0.d0,kind=8)
     call genw90overlap(wfmt,wfir,wann_nband,nspinor,wfmtq,wfirq,mmn,expmt)
 
-!$OMP CRITICAL
+  !$OMP CRITICAL
     ! write the Mmn matrix elements
     write(500,'(5I8)') ikp,nnlist(ikp,inn),nncell(:,ikp,inn)
     do n=1,wann_nband
@@ -177,7 +202,7 @@ do ikp=1,nkpt
         end if
       end do
     end do
-!$OMP END CRITICAL
+  !$OMP END CRITICAL
 
   end do ! end loop over b points
 
@@ -186,7 +211,8 @@ do ikp=1,nkpt
     vec_0(1)=0.d0
     vec_0(2)=0.d0
     vec_0(3)=0.d0
-    call genexpmt(vec_0,expmt)
+    call gengqrf(vec_0,vgqc,gqc,jlgqr,ylmgq,sfacgq)
+    call genexpmt(1,jlgqr,ylmgq,1,sfacgq,expmt)
     mmn = cmplx(0.d0,0.d0,kind=8)
     call genw90overlap(wfmt,wfir,wann_nband,nspinor,wfmt,wfir,mmn,expmt)
   !$OMP CRITICAL
@@ -213,11 +239,13 @@ end do !End loop over k points
 !$OMP END DO
 
 deallocate(wfmt,wfir)
+deallocate(jlgqr,ylmgq,sfacgq)
 deallocate(expmt)
 deallocate(wfmtq,wfirq)
 deallocate(mmn)
 
 !$OMP END PARALLEL
+call omp_free(nthd)
 
 call genw90amn
 

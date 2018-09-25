@@ -12,7 +12,7 @@ complex(8), intent(in) :: dynq(nbph,nbph,nqpt)
 complex(8), intent(out) :: dynr(nbph,nbph,nqptnr)
 ! local variables
 integer ir,iq,i,j,n
-integer isym,lspl
+integer isym,lspl,intr(2,3)
 integer i1,i2,i3,j1,j2,j3
 real(8) v1(3),v2(3),v3(3)
 real(8) s(3,3),t1
@@ -20,6 +20,8 @@ complex(8) z1
 ! allocatable arrays
 complex(8), allocatable :: dyns(:,:)
 allocate(dyns(nbph,nbph))
+intr(2,:)=ngridq(:)/2
+intr(1,:)=intr(2,:)-ngridq(:)+1
 dynr(:,:,:)=0.d0
 ! loop over q-vectors
 do j1=0,ngridq(1)-1
@@ -57,9 +59,9 @@ do j1=0,ngridq(1)-1
       dyns(:,:)=t1*dyns(:,:)
 ! loop over R-vectors
       ir=0
-      do i3=ngridq(3)/2-ngridq(3)+1,ngridq(3)/2
-        do i2=ngridq(2)/2-ngridq(2)+1,ngridq(2)/2
-          do i1=ngridq(1)/2-ngridq(1)+1,ngridq(1)/2
+      do i3=intr(1,3),intr(2,3)
+        do i2=intr(1,2),intr(2,2)
+          do i1=intr(1,1),intr(2,1)
             ir=ir+1
             t1=twopi*(v1(1)*dble(i1)+v1(2)*dble(i2)+v1(3)*dble(i3))
             z1=cmplx(cos(t1),sin(t1),8)

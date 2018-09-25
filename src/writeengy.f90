@@ -38,7 +38,7 @@ write(fnum,'(" total energy",T30,": ",G22.12)') engytot
 if (spinpol) then
   write(fnum,'(" (external B-field energy excluded from total)")')
 end if
-call flushifc(fnum)
+flush(fnum)
 return
 end subroutine
 

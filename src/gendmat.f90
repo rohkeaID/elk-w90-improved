@@ -77,7 +77,7 @@ do j=1,nstsv
         if (spinsprl.and.ssdph) z1=z1*zq(ispn)
         if (abs(dble(z1))+abs(aimag(z1)).gt.epsocc) then
           if (.not.done(ist,jspn)) then
-            call wavefmt(lradstp,ias,ngp(jspn),apwalm(:,:,:,:,jspn), &
+            call wavefmt(lradstp,ias,ngp(jspn),apwalm(:,:,:,ias,jspn), &
              evecfv(:,ist,jspn),wfmt1(:,ist,jspn))
             done(ist,jspn)=.true.
           end if
@@ -88,7 +88,7 @@ do j=1,nstsv
     end do
   else
 ! spin-unpolarised wavefunction
-    call wavefmt(lradstp,ias,ngp,apwalm,evecfv(:,j,1),wfmt2)
+    call wavefmt(lradstp,ias,ngp,apwalm(:,:,:,ias,1),evecfv(:,j,1),wfmt2)
   end if
   do ispn=1,nspinor
     do jspn=1,nspinor

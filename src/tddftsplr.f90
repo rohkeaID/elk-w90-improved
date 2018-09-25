@@ -6,20 +6,22 @@
 subroutine tddftsplr
 use modmain
 use modmpi
+use modomp
 implicit none
 ! local variables
 integer ik,isym,iq,iw
-integer igq0,ig,jg
-integer info,i,j,n
-real(8) v(3),t1,t2
+integer ig,jg,i,j,n
+integer info,nthd
+real(8) v(3)
 complex(8) a(4,4),b(4,4),z1
 character(256) fname
 ! allocatable arrays
 integer, allocatable :: ipiv(:)
-real(8), allocatable :: vgqc(:,:),gqc(:),jlgqr(:,:,:)
+integer(8), allocatable :: lock(:)
+real(8), allocatable :: vgqc(:,:),gqc(:),gclgq(:),jlgqr(:,:,:)
 complex(8), allocatable :: ylmgq(:,:),sfacgq(:,:)
 complex(8), allocatable :: chi(:,:,:,:,:),chit(:),fxc(:,:,:,:)
-complex(8), allocatable :: c(:,:,:,:),d(:,:),e(:,:,:,:),work(:)
+complex(8), allocatable :: c(:,:),d(:,:,:,:),work(:)
 if (.not.spinpol) then
   write(*,*)
   write(*,'("Error(tddftsplr): spin-unpolarised calculation")')
@@ -62,36 +64,49 @@ end do
 ! generate the G+q-vectors and related quantities
 allocate(vgqc(3,ngrf),gqc(ngrf),jlgqr(njcmax,nspecies,ngrf))
 allocate(ylmgq(lmmaxo,ngrf),sfacgq(ngrf,natmtot))
-call gengqrf(vecqc,igq0,vgqc,gqc,jlgqr,ylmgq,sfacgq)
+call gengqrf(vecqc,vgqc,gqc,jlgqr,ylmgq,sfacgq)
 deallocate(vgqc)
+! initialise the OpenMP locks
+allocate(lock(nwrf))
+do iw=1,nwrf
+  call omp_init_lock(lock(iw))
+end do
 ! compute chi0
-allocate(chi(nwrf,ngrf,4,ngrf,4))
+allocate(chi(ngrf,4,ngrf,4,nwrf))
 chi(:,:,:,:,:)=0.d0
-!$OMP PARALLEL DEFAULT(SHARED)
+call omp_hold(nkptnr/np_mpi,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ik=1,nkptnr
 ! distribute among MPI processes
   if (mod(ik-1,np_mpi).ne.lp_mpi) cycle
-!$OMP CRITICAL
+!$OMP CRITICAL(tddftsplr_)
   write(*,'("Info(tddftsplr): ",I6," of ",I6," k-points")') ik,nkptnr
-!$OMP END CRITICAL
-  call genspchi0(ik,scissor,vecql,jlgqr,ylmgq,sfacgq,chi)
+!$OMP END CRITICAL(tddftsplr_)
+  call genspchi0(ik,lock,scissor,vecql,jlgqr,ylmgq,sfacgq,chi)
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
+! destroy the OpenMP locks
+do iw=1,nwrf
+  call omp_destroy_lock(lock(iw))
+end do
+deallocate(lock)
 ! add chi0 from each process and redistribute
 if (np_mpi.gt.1) then
-  n=nwrf*ngrf*4*ngrf*4
-  call mpi_allreduce(mpi_in_place,chi,n,mpi_double_complex,mpi_sum, &
-   mpi_comm_kpt,ierror)
+  n=ngrf*4*ngrf*4*nwrf
+  call mpi_allreduce(mpi_in_place,chi,n,mpi_double_complex,mpi_sum,mpicom, &
+   ierror)
 end if
 ! transform chi0 from 2x2 to 1x3 basis
-do ig=1,ngrf
-  do jg=1,ngrf
-    do iw=1,nwrf
-      a(:,:)=chi(iw,ig,:,jg,:)
+do iw=1,nwrf
+  do ig=1,ngrf
+    do jg=1,ngrf
+      a(:,:)=chi(ig,:,jg,:,iw)
       call tfm2213(a,b)
-      chi(iw,ig,:,jg,:)=b(:,:)
+      chi(ig,:,jg,:,iw)=b(:,:)
     end do
   end do
 end do
@@ -99,7 +114,7 @@ end do
 if (.not.ncmag) then
   allocate(chit(nwrf))
   do iw=1,nwrf
-    a(:,:)=chi(iw,1,:,1,:)
+    a(:,:)=chi(1,:,1,:,iw)
     call tfm13t(a,b)
     chit(iw)=b(2,2)
   end do
@@ -110,20 +125,20 @@ if (mp_mpi) then
   do i=1,4
     do j=1,4
       write(fname,'("CHI0_",2I1,".OUT")') i-1,j-1
-      open(50,file=trim(fname),action='WRITE',form='FORMATTED')
+      open(50,file=trim(fname),form='FORMATTED')
       do iw=1,nwrf
-        write(50,'(2G18.10)') dble(wrf(iw)),dble(chi(iw,1,i,1,j))
+        write(50,'(2G18.10)') dble(wrf(iw)),dble(chi(1,i,1,j,iw))
       end do
       write(50,*)
       do iw=1,nwrf
-        write(50,'(2G18.10)') dble(wrf(iw)),aimag(chi(iw,1,i,1,j))
+        write(50,'(2G18.10)') dble(wrf(iw)),aimag(chi(1,i,1,j,iw))
       end do
       close(50)
     end do
   end do
 ! write transverse chi0 for collinear case
   if (.not.ncmag) then
-    open(50,file='CHI0_T.OUT',action='WRITE',form='FORMATTED')
+    open(50,file='CHI0_T.OUT',form='FORMATTED')
     do iw=1,nwrf
       write(50,'(2G18.10)') dble(wrf(iw)),dble(chit(iw))
     end do
@@ -137,35 +152,30 @@ end if
 ! compute f_xc in G-space
 allocate(fxc(ngrf,4,ngrf,4))
 call genspfxcg(fxc)
+! generate the Coulomb Green's function in G+q-space regularised for q=0
+allocate(gclgq(ngrf))
+call gengclgq(.true.,iq,ngrf,gqc,gclgq)
 ! add the regularised Coulomb interaction to f_xc to give f_Hxc
 do ig=1,ngrf
-  if (ig.eq.igq0) then
-! volume of small parallelepiped around q-point (see genwiq2)
-    t2=omegabz*wkptnr
-    t1=fourpi*wiq2(iq)/t2
-  else
-    t1=fourpi/gqc(ig)**2
-  end if
-  fxc(ig,1,ig,1)=fxc(ig,1,ig,1)+t1
+  fxc(ig,1,ig,1)=fxc(ig,1,ig,1)+gclgq(ig)
 end do
+deallocate(gclgq)
 ! matrix size
 n=4*ngrf
 allocate(ipiv(n),work(n))
-allocate(c(ngrf,4,ngrf,4),d(n,n),e(ngrf,4,ngrf,4))
+allocate(c(n,n),d(ngrf,4,ngrf,4))
 ! loop over frequencies
 do iw=1,nwrf
-! store chi0 for this frequency
-  c(:,:,:,:)=chi(iw,:,:,:,:)
 ! multiply f_Hxc by -chi0 from the left
   z1=-1.d0
-  call zgemm('N','N',n,n,n,z1,c,n,fxc,n,zzero,d,n)
+  call zgemm('N','N',n,n,n,z1,chi(:,:,:,:,iw),n,fxc,n,zzero,c,n)
 ! add the identity
   do i=1,n
-    d(i,i)=d(i,i)+1.d0
+    c(i,i)=c(i,i)+1.d0
   end do
 ! invert the matrix
-  call zgetrf(n,n,d,n,ipiv,info)
-  if (info.eq.0) call zgetri(n,d,n,ipiv,work,n,info)
+  call zgetrf(n,n,c,n,ipiv,info)
+  if (info.eq.0) call zgetri(n,c,n,ipiv,work,n,info)
   if (info.ne.0) then
     write(*,*)
     write(*,'("Error(tddftsplr): unable to invert matrix")')
@@ -174,14 +184,14 @@ do iw=1,nwrf
     stop
   end if
 ! multiply by chi0 on the right and store in chi
-  call zgemm('N','N',n,n,n,zone,d,n,c,n,zzero,e,n)
-  chi(iw,:,:,:,:)=e(:,:,:,:)
+  call zgemm('N','N',n,n,n,zone,c,n,chi(:,:,:,:,iw),n,zzero,d,n)
+  chi(:,:,:,:,iw)=d(:,:,:,:)
 end do
-deallocate(ipiv,work,c,d,e)
+deallocate(ipiv,work,c,d)
 ! generate transverse chi for the collinear case
 if (.not.ncmag) then
   do iw=1,nwrf
-    a(:,:)=chi(iw,1,:,1,:)
+    a(:,:)=chi(1,:,1,:,iw)
     call tfm13t(a,b)
     chit(iw)=b(2,2)
   end do
@@ -189,7 +199,7 @@ end if
 if (mp_mpi) then
 ! write the complete chi matrix if required
   if (task.eq.331) then
-    open(50,file='CHI.OUT',action='WRITE',form='UNFORMATTED')
+    open(50,file='CHI.OUT',form='UNFORMATTED')
     write(50) chi
     close(50)
   end if
@@ -197,20 +207,20 @@ if (mp_mpi) then
   do i=1,4
     do j=1,4
       write(fname,'("CHI_",2I1,".OUT")') i-1,j-1
-      open(50,file=trim(fname),action='WRITE',form='FORMATTED')
+      open(50,file=trim(fname),form='FORMATTED')
       do iw=1,nwrf
-        write(50,'(2G18.10)') dble(wrf(iw)),dble(chi(iw,1,i,1,j))
+        write(50,'(2G18.10)') dble(wrf(iw)),dble(chi(1,i,1,j,iw))
       end do
       write(50,*)
       do iw=1,nwrf
-        write(50,'(2G18.10)') dble(wrf(iw)),aimag(chi(iw,1,i,1,j))
+        write(50,'(2G18.10)') dble(wrf(iw)),aimag(chi(1,i,1,j,iw))
       end do
       close(50)
     end do
   end do
 ! write transverse chi for collinear case
   if (.not.ncmag) then
-    open(50,file='CHI_T.OUT',action='WRITE',form='FORMATTED')
+    open(50,file='CHI_T.OUT',form='FORMATTED')
     do iw=1,nwrf
       write(50,'(2G18.10)') dble(wrf(iw)),dble(chit(iw))
     end do
@@ -252,6 +262,7 @@ if (mp_mpi) then
     write(*,*)
     write(*,'(" Complete response function for all G, G'' written to binary &
      &file CHI.OUT")')
+    write(*,'(" (array index ordering changed from version 4.5.16 onwards)")')
   end if
 end if
 deallocate(gqc,ylmgq,sfacgq,chi,fxc)

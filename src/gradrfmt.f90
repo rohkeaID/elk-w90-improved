@@ -48,8 +48,11 @@ call gradzfmt(nr,nri,r,zfmt,ld,gzfmt)
 ! convert complex to real spherical harmonic expansion
 do i=1,3
   call ztorfmt(nr,nri,gzfmt(:,i),grfmt(:,i))
+! apply smoothing if required
+  call rfmtsm(msmooth,nr,nri,grfmt(:,i))
 end do
 deallocate(zfmt,gzfmt)
 return
 end subroutine
 !EOC
+

@@ -23,12 +23,11 @@ else
 end if
 ! find the record length
 inquire(iolength=recl) vkl_,nstsv_,evalsvp
-!$OMP CRITICAL
-open(70,file='EVALSV'//trim(fext),action='READ',form='UNFORMATTED', &
- access='DIRECT',recl=recl)
-read(70,rec=ik) vkl_,nstsv_,evalsvp
-close(70)
-!$OMP END CRITICAL
+!$OMP CRITICAL(u124)
+open(124,file='EVALSV'//trim(fext),form='UNFORMATTED',access='DIRECT',recl=recl)
+read(124,rec=ik) vkl_,nstsv_,evalsvp
+close(124)
+!$OMP END CRITICAL(u124)
 t1=abs(vkl(1,ik)-vkl_(1))+abs(vkl(2,ik)-vkl_(2))+abs(vkl(3,ik)-vkl_(3))
 if (t1.gt.epslat) then
   write(*,*)

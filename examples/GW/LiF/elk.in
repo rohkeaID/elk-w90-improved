@@ -5,6 +5,7 @@
 tasks
   0
   600
+  610
 
 ! G-vector cut-off of local contribution to RPA
 gmaxrf
@@ -19,7 +20,7 @@ nempty
 
 wplot
   800  100  0  : nwplot, ngrkf, nswplot
- -0.8  0.5     : wplot
+ -1.5  1.5     : wplot
 
 avec
   3.80402   3.80402   0.0

@@ -8,7 +8,7 @@ use modmain
 implicit none
 ! local variables
 integer iq
-open(50,file='QPOINTS.OUT',action='WRITE',form='FORMATTED')
+open(50,file='QPOINTS.OUT',form='FORMATTED')
 write(50,'(I6," : nqpt; q-point, vql, wqpt below")') nqpt
 do iq=1,nqpt
   write(50,'(I6,4G18.10)') iq,vql(:,iq),wqpt(iq)

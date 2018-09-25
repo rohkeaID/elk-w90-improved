@@ -10,6 +10,7 @@ subroutine eliashberg
 ! !USES:
 use modmain
 use modphonon
+use modomp
 ! !DESCRIPTION:
 !   Calculates the superconducting gap within Eliashberg theory. This
 !   implementation is isotropic and assumes a flat density of states. The
@@ -27,7 +28,7 @@ integer, parameter :: maxwf=40000
 ! maximum number of iterations
 integer, parameter :: maxit=1000
 integer nwf,nwfcl,nin,nout
-integer itemp,it,i,m,n
+integer itemp,it,i,m,n,nthd
 ! convergence tolerance
 real(8), parameter :: eps=1.d-12
 ! mixing paramter
@@ -75,11 +76,11 @@ do i=1,nout
   zout(i)=cmplx(2.d0*dble(i-1)*dw,0.d0,8)
 end do
 ! open files for writing
-open(62,file='ELIASHBERG.OUT',action='WRITE',form='FORMATTED')
-open(63,file='ELIASHBERG_IA.OUT',action='WRITE',form='FORMATTED')
-open(64,file='ELIASHBERG_GAP_T.OUT',action='WRITE',form='FORMATTED')
-open(65,file='ELIASHBERG_GAP_RA.OUT',action='WRITE',form='FORMATTED')
-open(66,file='ELIASHBERG_Z_RA.OUT',action='WRITE',form='FORMATTED')
+open(62,file='ELIASHBERG.OUT',form='FORMATTED')
+open(63,file='ELIASHBERG_IA.OUT',form='FORMATTED')
+open(64,file='ELIASHBERG_GAP_T.OUT',form='FORMATTED')
+open(65,file='ELIASHBERG_GAP_RA.OUT',form='FORMATTED')
+open(66,file='ELIASHBERG_Z_RA.OUT',form='FORMATTED')
 write(62,'("+------------------------------+")')
 write(62,'("|     Eliashberg equations     |")')
 write(62,'("+------------------------------+")')
@@ -90,7 +91,7 @@ write(62,'("Number of output frequencies : ",I8)') nout
 write(62,'("Fermionic Matsubara frequency cut-off")')
 write(62,'(" phonons : ",G18.10)') wfmax
 write(62,'(" Coulomb : ",G18.10)') 2.d0*wrms
-call flushifc(62)
+flush(62)
 d0(:)=1.d-4
 z0(:)=1.d0
 ! main loop over temperature
@@ -116,7 +117,10 @@ do itemp=1,ntemp
     wf(m)=t0*dble(2*m+1)
   end do
 ! compute lambda
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(t1,sum,i)
+  call omp_hold(2*nwf+1,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(t1,sum,i) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
   do m=-2*nwf,2*nwf
     t1=(t0*dble(2*m))**2
@@ -128,6 +132,7 @@ do itemp=1,ntemp
   end do
 !$OMP END DO
 !$OMP END PARALLEL
+  call omp_free(nthd)
 ! begin iteration loop
   do it=1,maxit
     do m=0,nwf
@@ -174,7 +179,7 @@ do itemp=1,ntemp
   write(*,'("Warning(eliashberg): failed to converge: possibly close to T_c")')
   write(62,'("Failed to converge: possibly close to T_c")')
 10 continue
-  call flushifc(62)
+  flush(62)
   do n=-nwf,nwf
     if (n.ge.0) then
       m=n
@@ -184,9 +189,9 @@ do itemp=1,ntemp
     write(63,'(3G18.10)') wf(n),d(m),z(m)
   end do
   write(63,*)
-  call flushifc(63)
+  flush(63)
   write(64,'(3G18.10)') temp,d(0),z(0)
-  call flushifc(64)
+  flush(64)
 ! analytic continuation to real axis
   do m=0,nin
     zin(m)=cmplx(0.d0,wf(m),8)
@@ -199,7 +204,7 @@ do itemp=1,ntemp
     write(65,'(3G18.10)') dble(zout(i)),a,b
   end do
   write(65,*)
-  call flushifc(65)
+  flush(65)
   do m=0,nin
     uin(m)=cmplx(z(m),0.d0,8)
   end do
@@ -210,7 +215,7 @@ do itemp=1,ntemp
     write(66,'(3G18.10)') dble(zout(i)),a,b
   end do
   write(66,*)
-  call flushifc(66)
+  flush(66)
 ! end loop over temperatures
 end do
 close(62); close(63); close(64); close(65); close(66)

@@ -10,6 +10,8 @@ implicit none
 ! arguments
 integer, intent(in) :: lrstp,ias,ngp,ngpq
 complex(8), intent(in) :: apwalmq(ngkmax,apwordmax,lmmaxapw,natmtot)
+!**** remove natmtot
+
 complex(8), intent(in) :: dapwalm(ngkmax,apwordmax,lmmaxapw)
 complex(8), intent(in) :: evecfv(nmatmax),devecfv(nmatmax)
 real(8), intent(out) :: dwfmt(2,*)

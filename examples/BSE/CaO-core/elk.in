@@ -1,0 +1,96 @@
+
+! This example demonstrates the calculation of the Ca 2p 1/2 - 2p 3/2 (L2 / L3)
+! x-ray absorption spectra in CaO. The Ca 2p states are treated as local
+! orbitals in Ca_lo.in; additional local orbitals are added to allow an accurate
+! description of the unoccupied 3d states (compare with the default version of Ca.in).
+
+! Look at the imaginary part of the spectrum (EPSILON_BSE_11.OUT) in the range 11.8 to
+! 12.5 Ha. Compare to the independent-particle calculation (EPSILON_11.OUT).
+! Try switching off the exchange and the direct term in the BSE Hamiltonian
+! individually (set hxbse/hdbse to .false.).
+
+! For a converged spectrum a lot more k-points (6 x 6 x 6 or more) are needed.
+! The numerical cut-offs are well converged, so the computation is quite time
+! and memory consuming. Run with hybrid parallelization (MPI across nodes, OpenMP
+! across cores) on a cluster for smaller memory footprint. Compare with calculations
+! and experimental data in J. Phys. Condens. Matter 23, 145501 (2011).
+
+! Example by Markus Meinert.
+
+tasks
+  0      ! ground-state calculation
+  120    ! compute momentum matrix elements
+  121    ! compute RPA dielectric function without local field contributions
+  180    ! generate RPA dielectric function with local field contributions
+  185    ! write the BSE Hamiltonian matrix to file
+  186    ! diagonalise BSE matrix
+  187    ! compute BSE dielectric function
+
+! do not include valence bands right below E_F
+nvbse
+  0
+
+! additional valence bands for the BSE calculation - these are the six 2p states
+! of Ca (check EIGVAL.OUT)
+istxbse
+  1
+  2
+  3
+  4
+  5
+  6
+
+! number of conduction band states for the BSE calculation
+ncbse
+  20
+
+! large number of empty states required
+nempty
+  20
+
+! enhanced G-vector cut-off of local contribution to RPA
+gmaxrf
+  5.0
+
+! the spectrum is very sensitive to the k-point mesh
+ngridk
+  2  2  2
+
+! use a symmetry breaking shift for more efficient use of the k-points
+vkloff
+  0.05  0.15  0.25
+
+! Broyden mixing for fast convergence
+mixtype
+  3
+
+! the energy window for the plot starts at zero by default;
+! sufficient energy points needed
+wplot
+  5000  100  0
+  0.0  14.0
+
+! include spin-orbit coupling for the 2p 1/2 - 2p 3/2 splitting
+spinorb
+  .true.
+
+! about 0.27 eV Lorentzian broadening to simulate lifetime effects
+swidth
+  0.01
+
+sppath
+  './'
+
+avec
+  4.545   4.545   0.0
+  4.545  -4.545   0.0
+  4.545   0.0     4.545
+
+atoms
+  2                                    : nspecies
+  'Ca_lo.in'                           : spfname
+  1                                    : natoms; atposl below
+  0.0  0.0  0.0
+  'O.in'
+  1
+  0.5  0.5  0.0

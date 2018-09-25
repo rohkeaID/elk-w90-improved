@@ -30,8 +30,7 @@ do iq=1,nqpt
           write(*,*)
           stop
         end if
-        open(50,file='DYN'//trim(fext),action='READ',status='OLD', &
-         form='FORMATTED')
+        open(50,file='DYN'//trim(fext),status='OLD',form='FORMATTED')
         j=0
         do js=1,nspecies
           do ja=1,natoms(js)

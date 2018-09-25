@@ -42,9 +42,9 @@ end if
 evalfv(1:nstfv)=w(1:nstfv)
 deallocate(iwork,ifail,w,rwork,work)
 call timesec(ts1)
-!$OMP CRITICAL
+!$OMP CRITICAL(eveqnfvz_)
 timefv=timefv+ts1-ts0
-!$OMP END CRITICAL
+!$OMP END CRITICAL(eveqnfvz_)
 return
 end subroutine
 

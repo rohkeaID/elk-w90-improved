@@ -12,8 +12,7 @@ tasks
 rgkmax
   8.2
 
-! large lmaxmat required for accurate forces
-lmaxmat
+lmaxapw
   8
 
 beta0

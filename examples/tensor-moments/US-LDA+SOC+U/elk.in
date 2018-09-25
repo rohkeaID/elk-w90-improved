@@ -1,0 +1,87 @@
+
+! US in FM structure with magnetic moment along easy-axis [111] with LDA+SOC+U
+! and automatic interpolation double counting (dftu=3). Values of Slater
+! parameters for Uranium are calculated through a Yukawa potential with
+! screening length automatically determined such that U=1.0 eV (0.036749 Ha).
+! In this way there is only one free parameter to be chosen.
+
+! Check the tensor moment decomposition of the density matrix and of the
+! Hartree-Fock DFT+U energy (and its convergence) in TMDFTU.OUT (see PRB 80,
+! 035121 (2009)). Observe the large 011 (spin-polarization), 110 (SOC-like term)
+! and 615 (large multipole of magnetization density) contributions to the
+! exchange-energy.
+! Example by Francesco Cricchio.
+
+tasks
+  0
+
+! DFT+U block
+! here interpolation double-counting is used (dftu=3)
+! inpdftu=5 corresponds to determine the Yukawa screening length that produces
+! U=1 eV (0.036749 Ha) through a secant algorithm
+dft+u
+  3  5                : dftu,inpdftu
+  1  3  0.0367493060  : is, l, U fixed
+
+! the tensor moments are calculated and written to file at every iteration
+tmwrite
+  .true.
+
+spinpol
+  .true.
+
+spinorb
+  .true.
+
+scale
+  10.36175041
+
+! fcc lattice vectors
+avec
+  0.0  0.5  0.5
+  0.5  0.0  0.5
+  0.5  0.5  0.0
+
+atoms
+  2                                   : nspecies
+  'U.in'                              : spfname
+  1                                   : natoms
+  0.0  0.0  0.0      0.0 0.0 0.0      : atposl, bfcmt
+  'S.in'                              : spfname
+  1                                   : natoms
+  0.5  0.5  0.5      0.0 0.0 0.0      : atposl, bfcmt
+
+! small global magnetic field along easy-axis [111]
+bfieldc
+  -0.01 -0.01 -0.01
+
+! this rgkmax is too small for an accurate calculation
+! rgkmax for actinides must usually be increased around 9.0-9.5
+rgkmax
+  8.0
+
+! convergence of magnetic moment with number of empty states
+! must be checked
+nempty
+  8
+
+sppath
+  '../../../species/'
+
+! low convergence parameters for testing
+epspot
+  1.d-4
+
+epsengy
+  1.d-2
+
+! larger betamax might help convergence
+betamax
+  1.0
+
+beta0
+  0.05
+
+! this grid is too small for accurate magnetic moment
+ngridk
+  4  4  4

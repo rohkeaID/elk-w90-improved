@@ -12,7 +12,7 @@ integer is,i,k,l
 integer is_,l_
 fdu(:,:)=0.d0
 ! read Slater integrals from FDU.OUT
-open(50,file='FDU'//trim(filext),action='READ',form='FORMATTED')
+open(50,file='FDU'//trim(filext),form='FORMATTED')
 do i=1,ndftu
   is=idftu(1,i)
   l=idftu(2,i)

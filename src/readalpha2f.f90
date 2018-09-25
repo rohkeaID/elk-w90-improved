@@ -11,8 +11,7 @@ real(8), intent(out) :: w(nwplot)
 real(8), intent(out) :: a2f(nwplot)
 ! local variables
 integer iw,iostat
-open(50,file='ALPHA2F.OUT',action='READ',form='FORMATTED',status='OLD', &
- iostat=iostat)
+open(50,file='ALPHA2F.OUT',form='FORMATTED',status='OLD',iostat=iostat)
 if (iostat.ne.0) then
   write(*,*)
   write(*,'("Error(readalpha2f): error opening ALPHA2F.OUT")')

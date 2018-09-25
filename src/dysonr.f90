@@ -3,49 +3,53 @@
 ! E. K. U. Gross. This file is distributed under the terms of the GNU General
 ! Public License. See the file COPYING for license details.
 
-subroutine dysonr(ik,swfm,sf)
+subroutine dysonr(ik,wr,swfm,sf)
 use modmain
 use modgw
+use modomp
 implicit none
 ! arguments
 integer, intent(in) :: ik
+real(8), intent(in) :: wr(nwplot)
 complex(8), intent(in) :: swfm(nstsv,nstsv,0:nwfm)
 real(8), intent(out) :: sf(nwplot)
 ! local variables
-integer ist,jst,iw,jw,info
-real(8) dw,w,e,sum,t1
+integer ist,jst,iw
+integer info,nthd
+real(8) w,e,sum,t1
 complex(8) z1
 ! allocatable arrays
 integer, allocatable :: ipiv(:)
-complex(8), allocatable :: wfm(:),ufm(:),wr(:),ur(:)
 complex(8), allocatable :: swr(:,:,:),gs(:),g(:,:),work(:)
-allocate(wfm(0:nwfm),ufm(0:nwfm),wr(nwplot),ur(nwplot))
 allocate(swr(nstsv,nstsv,nwplot))
-! complex fermionic frequencies
-do iw=-nwfm,nwfm,2
-  jw=(iw+nwfm)/2
-  wfm(jw)=cmplx(0.d0,wgw(iw),8)
-end do
-! complex array of real axis frequencies
-dw=(wplot(2)-wplot(1))/dble(nwplot)
-do iw=1,nwplot
-  w=dw*dble(iw-1)+wplot(1)
-  wr(iw)=cmplx(w,0.d0,8)
-end do
-do ist=1,nstsv
-  do jst=1,nstsv
-    ufm(:)=swfm(ist,jst,:)
-    call pade(nwfm+1,wfm,ufm,nwplot,wr,ur)
-! store the real axis Sigma
-    swr(ist,jst,:)=ur(:)
+swr(:,:,:)=0.d0
+call omp_hold(nstsv,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(ist) &
+!$OMP NUM_THREADS(nthd)
+!$OMP DO
+do jst=1,nstsv
+  do ist=1,nstsv
+    if ((gwdiag.gt.0).and.(ist.ne.jst)) cycle
+! perform analytic continuation from the imaginary to the real axis
+    call acgwse(ist,jst,swfm,wr,swr)
   end do
 end do
-deallocate(wfm,ufm,ur)
+!$OMP END DO
+!$OMP END PARALLEL
+call omp_free(nthd)
 ! solve the Dyson equation for each frequency
-allocate(gs(nstsv),g(nstsv,nstsv))
-allocate(ipiv(nstsv),work(nstsv))
+call omp_hold(nwplot,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(gs,g,ipiv,work) &
+!$OMP PRIVATE(w,ist,jst,e,t1) &
+!$OMP PRIVATE(z1,info,sum) &
+!$OMP NUM_THREADS(nthd)
+!$OMP DO
 do iw=1,nwplot
-  w=dble(wr(iw))
+  allocate(gs(nstsv),g(nstsv,nstsv))
+  allocate(ipiv(nstsv),work(nstsv))
+  w=wr(iw)
 ! compute the diagonal matrix G_s
   do ist=1,nstsv
     e=evalsv(ist,ik)-efermi
@@ -79,9 +83,12 @@ do iw=1,nwplot
     sum=sum+abs(aimag(g(ist,ist)))
   end do
   sf(iw)=sum*occmax/pi
+  deallocate(gs,g,ipiv,work)
 end do
-deallocate(ipiv,work)
-deallocate(wr,swr,gs,g)
+!$OMP END DO
+!$OMP END PARALLEL
+call omp_free(nthd)
+deallocate(swr)
 return
 end subroutine
 

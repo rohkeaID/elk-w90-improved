@@ -9,33 +9,33 @@ use modstore
 implicit none
 ! local variables
 integer nq,iq,jq
-real(8) qc
+real(8) q
 ! store original parameters
-natoms0(:)=natoms(:)
-avec0(:,:)=avec(:,:)
-atposl0(:,:,:)=atposl(:,:,:)
-bfcmt00(:,:,:)=bfcmt0(:,:,:)
-mommtfix0(:,:,:)=mommtfix(:,:,:)
-autokpt0=autokpt
-ngridk0(:)=ngridk
+natoms_(:)=natoms(:)
+avec_(:,:)=avec(:,:)
+atposl_(:,:,:)=atposl(:,:,:)
+bfcmt0_(:,:,:)=bfcmt0(:,:,:)
+mommtfix_(:,:,:)=mommtfix(:,:,:)
+autokpt_=autokpt
+ngridk_(:)=ngridk
 ! initialise universal variables
 call init0
 ! initialise q-point dependent variables
 call init2
 ! store original parameters
-atposc0(:,:,:)=atposc(:,:,:)
+atposc_(:,:,:)=atposc(:,:,:)
 10 continue
 call sstask(80,filext)
 ! if nothing more to do then restore input parameters and return
 if (iqss.eq.0) then
   filext='.OUT'
-  natoms(:)=natoms0(:)
-  avec(:,:)=avec0(:,:)
-  atposl(:,:,:)=atposl0(:,:,:)
-  bfcmt0(:,:,:)=bfcmt00(:,:,:)
-  mommtfix(:,:,:)=mommtfix0(:,:,:)
-  autokpt=autokpt0
-  ngridk(:)=ngridk0(:)
+  natoms(:)=natoms_(:)
+  avec(:,:)=avec_(:,:)
+  atposl(:,:,:)=atposl_(:,:,:)
+  bfcmt0(:,:,:)=bfcmt0_(:,:,:)
+  mommtfix(:,:,:)=mommtfix_(:,:,:)
+  autokpt=autokpt_
+  ngridk(:)=ngridk_(:)
   return
 end if
 ! spiral dry run: just generate empty SS files
@@ -59,8 +59,8 @@ write(80,*)
 write(80,'("q-point in lattice and Cartesian coordinates :")')
 write(80,'(3G18.10)') vql(:,iqss)
 write(80,'(3G18.10)') vqc(:,iqss)
-qc=sqrt(vqc(1,iqss)**2+vqc(2,iqss)**2+vqc(3,iqss)**2)
-write(80,'(G18.10,T20," : length of q-vector")') qc
+q=sqrt(vqc(1,iqss)**2+vqc(2,iqss)**2+vqc(3,iqss)**2)
+write(80,'(G18.10,T20," : length of q-vector")') q
 write(80,*)
 nq=nint(dble(nqptnr)*wqpt(iqss))
 write(80,'(I6,T20," : number of equivalent q-points")') nq

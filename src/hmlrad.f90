@@ -9,6 +9,7 @@
 subroutine hmlrad
 ! !USES:
 use modmain
+use modomp
 ! !DESCRIPTION:
 !   Calculates the radial Hamiltonian integrals of the APW and local-orbital
 !   basis functions. In other words, for atom $\alpha$, it computes integrals of
@@ -30,7 +31,7 @@ use modmain
 !BOC
 implicit none
 ! local variables
-integer is,ias
+integer is,ias,nthd
 integer nr,nri,nro
 integer iro,ir,npi,i
 integer l1,l2,l3,m2,lm2
@@ -42,10 +43,12 @@ real(8), allocatable :: fr(:)
 real(8) fintgt
 external fintgt
 ! begin loops over atoms and species
+call omp_hold(natmtot,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP PRIVATE(fr,is,nr,nri,nro,iro,npi) &
 !$OMP PRIVATE(l1,l2,l3,io,jo,ir,t1) &
-!$OMP PRIVATE(lm2,m2,i,ilo,jlo)
+!$OMP PRIVATE(lm2,m2,i,ilo,jlo) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ias=1,natmtot
   allocate(fr(nrmtmax))
@@ -58,9 +61,9 @@ do ias=1,natmtot
 !---------------------------!
 !     APW-APW integrals     !
 !---------------------------!
-  do l1=0,lmaxmat
+  do l1=0,lmaxapw
     do io=1,apword(l1,is)
-      do l3=0,lmaxmat
+      do l3=0,lmaxapw
         do jo=1,apword(l3,is)
           if (l1.eq.l3) then
             do ir=1,nr
@@ -116,7 +119,7 @@ do ias=1,natmtot
 !-------------------------------------!
   do ilo=1,nlorb(is)
     l1=lorbl(ilo,is)
-    do l3=0,lmaxmat
+    do l3=0,lmaxapw
       do io=1,apword(l3,is)
         if (l1.eq.l3) then
           do ir=1,nr
@@ -217,6 +220,7 @@ do ias=1,natmtot
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 return
 end subroutine
 !EOC

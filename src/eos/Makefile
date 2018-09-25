@@ -22,3 +22,7 @@ eos:	$(OBJ)
 
 clean:
 	rm -f *.o *.mod *~ fort.* ifc* *.gcno *.OUT gmon.out $(EXE)
+
+spaces:
+	../rmspaces $(SRC)
+

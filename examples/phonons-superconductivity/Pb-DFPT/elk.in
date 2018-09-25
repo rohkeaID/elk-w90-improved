@@ -22,7 +22,7 @@ nxlo
   2
 
 ngridk
-  8 8 8
+  12 12 12
 
 ! larger smearing width required for stable phonon dispersion
 swidth

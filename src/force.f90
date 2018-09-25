@@ -11,6 +11,7 @@ subroutine force
 use modmain
 use modtest
 use modmpi
+use modomp
 ! !DESCRIPTION:
 !   Computes the various contributions to the atomic forces. In principle, the
 !   force acting on a nucleus is simply the gradient at that site of the
@@ -80,8 +81,8 @@ use modmpi
 implicit none
 ! local variables
 integer ik,idm,is,ias
-integer nr,nri,i
-real(8) sum,t1
+integer nr,nri,i,nthd
+real(8) t1
 real(8) ts0,ts1
 ! allocatable arrays
 real(8), allocatable :: rfmt(:,:),grfmt(:,:)
@@ -90,9 +91,9 @@ real(8) rfmtinp,fintgt
 external rfmtinp,fintgt
 call timesec(ts0)
 allocate(grfmt(npmtmax,3))
-!--------------------------------!
-!     Hellmann-Feynman force     !
-!--------------------------------!
+!---------------------------------!
+!     Hellmann-Feynman forces     !
+!---------------------------------!
 do ias=1,natmtot
   is=idxis(ias)
   nr=nrmt(is)
@@ -102,15 +103,17 @@ do ias=1,natmtot
     forcehf(i,ias)=-spzn(is)*grfmt(1,i)*y00
   end do
 end do
-! symmetrise Hellmann-Feynman force
-call symvect(.false.,forcehf)
-!---------------------------------!
-!     IBS correction to force     !
-!---------------------------------!
+! symmetrise Hellmann-Feynman forces
+call symveca(forcehf)
+!----------------------------------!
+!     IBS correction to forces     !
+!----------------------------------!
 ! set the IBS forces to zero
 forceibs(:,:)=0.d0
-! compute k-point dependent contribution to the IBS force
-!$OMP PARALLEL DEFAULT(SHARED)
+! compute k-point dependent contribution to the IBS forces
+call omp_hold(nkpt/np_mpi,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ik=1,nkpt
 ! distribute among MPI processes
@@ -119,10 +122,11 @@ do ik=1,nkpt
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 ! add IBS forces from each process and redistribute
 if (np_mpi.gt.1) then
   call mpi_allreduce(mpi_in_place,forceibs,3*natmtot,mpi_double_precision, &
-   mpi_sum,mpi_comm_kpt,ierror)
+   mpi_sum,mpicom,ierror)
 end if
 ! integral of Kohn-Sham potential with gradient of density
 do ias=1,natmtot
@@ -156,23 +160,28 @@ if (spinpol) then
   end do
   deallocate(rfmt)
 end if
-! symmetrise IBS force
-call symvect(.false.,forceibs)
-! total force
+! symmetrise IBS forces
+call symveca(forceibs)
+! total force on each atom
 do ias=1,natmtot
   forcetot(:,ias)=forcehf(:,ias)+forceibs(:,ias)
 end do
-! symmetrise total force
-call symvect(.false.,forcetot)
-! remove net total force (center of mass should not move)
+! symmetrise total forces
+call symveca(forcetot)
+! compute the average force
 do i=1,3
-  sum=0.d0
+  forceav(i)=0.d0
   do ias=1,natmtot
-    sum=sum+forcetot(i,ias)
+    forceav(i)=forceav(i)+forcetot(i,ias)
   end do
-  sum=sum/dble(natmtot)
-  forcetot(i,:)=forcetot(i,:)-sum
+  forceav(i)=forceav(i)/dble(natmtot)
 end do
+! remove the average force, if required, to prevent translation of atomic basis
+if (tfav0) then
+  do ias=1,natmtot
+    forcetot(:,ias)=forcetot(:,ias)-forceav(:)
+  end do
+end if
 ! zero force on atoms with negative mass
 do ias=1,natmtot
   is=idxis(ias)

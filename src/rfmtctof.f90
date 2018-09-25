@@ -7,6 +7,9 @@
 ! !ROUTINE: rfmtctof
 ! !INTERFACE:
 subroutine rfmtctof(rfmt)
+! !USES:
+use modmain
+use modomp
 ! !INPUT/OUTPUT PARAMETERS:
 !   rfmt : real muffin-tin function (in,real(npmtmax,natmtot))
 ! !DESCRIPTION:
@@ -17,23 +20,24 @@ subroutine rfmtctof(rfmt)
 !   Created October 2003 (JKD)
 !EOP
 !BOC
-use modmain
 implicit none
 ! arguments
 real(8), intent(inout) :: rfmt(npmtmax,natmtot)
 ! local variables
-integer is,ias,lm,i
+integer is,ias,lm,nthd
 integer nr,nri,nro
-integer iro,ir,npi
+integer iro,ir,npi,i
 integer nrc,nrci,nrco
 integer irco,irc,npci
 ! allocatable arrays
 real(8), allocatable :: fi(:),fo(:),rfmt1(:)
 if (lradstp.eq.1) return
+call omp_hold(natmtot,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP PRIVATE(fi,fo,rfmt1,is,nr,nri,nro) &
 !$OMP PRIVATE(iro,npi,nrc,nrci,nrco) &
-!$OMP PRIVATE(irco,npci,lm,i,irc,ir)
+!$OMP PRIVATE(irco,npci,lm,i,irc,ir) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ias=1,natmtot
   allocate(fi(nrcmtmax),fo(nrmtmax),rfmt1(npmtmax))
@@ -89,6 +93,7 @@ do ias=1,natmtot
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 return
 end subroutine
 !EOC

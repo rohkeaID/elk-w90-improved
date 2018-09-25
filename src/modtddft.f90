@@ -38,6 +38,8 @@ integer ntimes
 integer itimes
 ! time steps
 real(8), allocatable :: times(:)
+! tafieldt is .true. if a time-dependent vector potential is applied
+logical tafieldt
 ! time-dependent A-field
 real(8), allocatable :: afieldt(:,:)
 ! number of time steps after which observables are written to file
@@ -46,9 +48,13 @@ integer ntswrite
 ! written every ntswrite time steps
 logical tdrho1d,tdrho2d,tdrho3d
 logical tdmag2d,tdmag3d
+logical tdcd2d,tdcd3d
 logical tddos
 ! magnitude of complex numbers added to initial eigenvectors
 real(8) rndevt0
+! starting time for the Fourier transform when calculating the linear response
+! dielectric function from the real-time evolved current
+real(8) t0tdlr
 
 end module
 

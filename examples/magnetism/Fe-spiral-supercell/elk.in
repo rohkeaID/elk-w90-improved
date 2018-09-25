@@ -17,11 +17,8 @@ tasks
 ngridq
   2  2  2
 
-nempty
-  8
-
-rgkmax
-  6.0
+highq
+ .true.
 
 avec
   1.0  1.0  0.0
@@ -38,11 +35,7 @@ atoms
   1                                     : nspecies
   'Fe.in'                               : spfname
   1                                     : natoms
-  0.0  0.0  0.0    -2.0  0.0  0.0       : atposl, bfcmt
-
-! reduce the external B-field at each s.c. cycle
-reducebf
-  0.85
+  0.0  0.0  0.0    -0.01  0.0  0.0      : atposl, bfcmt
 
 ! define a fixed spin direction in the muffin-tin
 fsmtype
@@ -50,3 +43,4 @@ fsmtype
 
 mommtfix
   1  1   1.0  0.0  0.0
+

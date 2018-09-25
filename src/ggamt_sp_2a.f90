@@ -55,7 +55,7 @@ implicit none
 ! arguments
 integer, intent(in) :: is
 real(8), intent(in) :: rhoup(npmtmax),rhodn(npmtmax)
-real(8), intent(in) :: g2up(npmtmax),g2dn(npmtmax)
+real(8), intent(out) :: g2up(npmtmax),g2dn(npmtmax)
 real(8), intent(out) :: gvup(npmtmax,3),gvdn(npmtmax,3)
 real(8), intent(out) :: gup2(npmtmax),gdn2(npmtmax),gupdn(npmtmax)
 ! local variables

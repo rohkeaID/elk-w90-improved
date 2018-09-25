@@ -22,7 +22,7 @@ mixtype
 xctype
   22
 
-lmaxmat
+lmaxapw
   8
 
 rgkmax
@@ -30,9 +30,6 @@ rgkmax
 
 gmaxvr
   18.0
-
-trimvg
- .true.
 
 ngridk
   10  10  10

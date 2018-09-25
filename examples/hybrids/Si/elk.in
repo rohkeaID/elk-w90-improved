@@ -1,0 +1,44 @@
+
+! Hybrid functional using the native PBE functional.
+! Example by Tyrel McQueen.
+
+tasks
+  0
+  5
+
+xctype
+  20
+
+hybrid
+  .true.
+
+! hybrid mixing parameter
+hybmix
+  0.25
+
+lmaxo
+  6
+
+gmaxvr
+  10.0
+
+ngridk
+  2  2  2
+
+nempty
+  10
+
+avec
+  5.13  5.13  0.00
+  5.13  0.00  5.13
+  0.00  5.13  5.13
+
+sppath
+ '../../../species/'
+
+atoms
+  1
+  'Si.in'
+  2
+  0.00  0.00  0.00
+  0.25  0.25  0.25

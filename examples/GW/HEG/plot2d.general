@@ -1,0 +1,12 @@
+file = GWBAND.OUT
+grid = 800 x 50
+format = ascii
+interleaving = field
+majority = column
+header = lines 1
+field = locations, field0
+structure = 2-vector, scalar
+type = float, float
+
+end
+

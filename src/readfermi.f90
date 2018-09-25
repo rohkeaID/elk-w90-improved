@@ -19,8 +19,7 @@ use modmain
 implicit none
 ! local variables
 integer iostat
-open(50,file='EFERMI'//trim(filext),action='READ',form='FORMATTED', &
- status='OLD',iostat=iostat)
+open(50,file='EFERMI'//trim(filext),form='FORMATTED',status='OLD',iostat=iostat)
 if (iostat.ne.0) then
   write(*,*)
   write(*,'("Error(readfermi): error opening ",A)') 'EFERMI'//trim(filext)

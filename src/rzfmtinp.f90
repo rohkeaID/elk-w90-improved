@@ -12,7 +12,7 @@ real(8), intent(in) :: r(nr),r2(nr)
 real(8), intent(in) :: rfmt(*)
 complex(8), intent(in) :: zfmt(*)
 ! local variables
-integer ir,i0,i1
+integer n,ir,i
 real(8) a,b,t1
 complex(8) z1
 ! automatic arrays
@@ -20,21 +20,21 @@ real(8) fr1(nr),fr2(nr)
 ! external functions
 real(8) fintgt
 external fintgt
-i1=0
+n=lmmaxi-1
+i=1
 do ir=1,nri
-  i0=i1+1
-  i1=i1+lmmaxi
-  z1=dot_product(rfmt(i0:i1),zfmt(i0:i1))*r2(ir)
+  z1=dot_product(rfmt(i:i+n),zfmt(i:i+n))*r2(ir)
   fr1(ir)=dble(z1)
   fr2(ir)=aimag(z1)
+  i=i+lmmaxi
 end do
 t1=dble(lmmaxi)/dble(lmmaxo)
+n=lmmaxo-1
 do ir=nri+1,nr
-  i0=i1+1
-  i1=i1+lmmaxo
-  z1=dot_product(rfmt(i0:i1),zfmt(i0:i1))*(t1*r2(ir))
+  z1=dot_product(rfmt(i:i+n),zfmt(i:i+n))*(t1*r2(ir))
   fr1(ir)=dble(z1)
   fr2(ir)=aimag(z1)
+  i=i+lmmaxo
 end do
 ! integrate
 a=fintgt(-1,nr,r,fr1)

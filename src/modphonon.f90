@@ -49,6 +49,8 @@ real(8), allocatable :: vkqc(:,:)
 real(8), allocatable :: vgqc(:,:)
 ! G+q-vector lengths
 real(8), allocatable :: gqc(:)
+! regularised Coulomb Green's function in G+q-space
+real(8), allocatable :: gclgq(:)
 ! spherical Bessel functions j_l(|G+q|R_mt)
 real(8), allocatable :: jlgqrmt(:,:,:)
 ! spherical harmonics for G+q-vectors

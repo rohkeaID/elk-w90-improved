@@ -127,7 +127,7 @@ do i=1,ndftu
 ! end loop over atoms and species
   end do
 end do
-call flushifc(fnum)
+flush(fnum)
 ! write test files if required
 if (test) then
   t1=sqrt(sum(tm32(:,:,:,:)**2))

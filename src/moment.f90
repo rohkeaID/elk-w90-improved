@@ -62,14 +62,14 @@ do idm=1,ndmag
   momir(idm)=t1*omega/dble(ngtot)
 end do
 momtot(:)=mommttot(:)+momir(:)
-! write total moment to test file
-call writetest(450,'total moment',nv=ndmag,tol=2.d-2,rva=momtot)
 ! total moment magnitude
 if (ncmag) then
   momtotm=sqrt(momtot(1)**2+momtot(2)**2+momtot(3)**2)
 else
   momtotm=abs(momtot(1))
 end if
+! write total moment magnitude to test file
+call writetest(450,'total moment magnitude',tol=1.d-3,rv=momtotm)
 return
 end subroutine
 !EOC

@@ -44,7 +44,7 @@ call genidxbse
 if (allocated(hmlbse)) deallocate(hmlbse)
 allocate(hmlbse(nmbse,nmbse))
 ! synchronise MPI processes
-call mpi_barrier(mpi_comm_kpt,ierror)
+call mpi_barrier(mpicom,ierror)
 if (mp_mpi) then
   write(*,*)
   write(*,'("Info(writehmlbse): setting up BSE Hamiltonian matrix")')
@@ -76,11 +76,11 @@ if (hdbse) call hmldbse
 ! add matrices from all processes and redistribute
 if (np_mpi.gt.1) then
   call mpi_allreduce(mpi_in_place,hmlbse,nmbse*nmbse,mpi_double_complex, &
-   mpi_sum,mpi_comm_kpt,ierror)
+   mpi_sum,mpicom,ierror)
 end if
 ! write the BSE matrix to HMLBSE.OUT
 if (mp_mpi) then
-  open(50,file='HMLBSE.OUT',action='WRITE',form='UNFORMATTED')
+  open(50,file='HMLBSE.OUT',form='UNFORMATTED')
   write(50) nmbse
   write(50) hmlbse
   close(50)

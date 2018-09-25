@@ -24,9 +24,9 @@ tasks
   450
   460
 
-! no symmetry operations used for the ground-state run
-nosym
-  .true.
+! no shifting of the atomic positions for the ground-state run
+tshift
+ .false.
 
 ! tight ground-state convergence
 epspot

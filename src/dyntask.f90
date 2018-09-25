@@ -24,7 +24,7 @@ do ipph=1,3
 ! determine if the DYN file with this extension exists
         inquire(file='DYN'//trim(fext),exist=exist)
         if (.not.exist) then
-          open(fnum,file='DYN'//trim(fext),action='WRITE',form='FORMATTED')
+          open(fnum,file='DYN'//trim(fext),form='FORMATTED')
           iasph=idxas(iaph,isph)
           goto 10
         end if
@@ -37,11 +37,11 @@ write(*,*)
 write(*,'("Info(dyntask): nothing more to do")')
 10 continue
 ! broadcast to all other processes
-call mpi_bcast(iqph,1,mpi_integer,0,mpi_comm_kpt,ierror)
-call mpi_bcast(isph,1,mpi_integer,0,mpi_comm_kpt,ierror)
-call mpi_bcast(iaph,1,mpi_integer,0,mpi_comm_kpt,ierror)
-call mpi_bcast(iasph,1,mpi_integer,0,mpi_comm_kpt,ierror)
-call mpi_bcast(ipph,1,mpi_integer,0,mpi_comm_kpt,ierror)
+call mpi_bcast(iqph,1,mpi_integer,0,mpicom,ierror)
+call mpi_bcast(isph,1,mpi_integer,0,mpicom,ierror)
+call mpi_bcast(iaph,1,mpi_integer,0,mpicom,ierror)
+call mpi_bcast(iasph,1,mpi_integer,0,mpicom,ierror)
+call mpi_bcast(ipph,1,mpi_integer,0,mpicom,ierror)
 if (iqph.eq.0) then
   fext='.OUT'
 else

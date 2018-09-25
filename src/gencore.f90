@@ -9,6 +9,7 @@
 subroutine gencore
 ! !USES:
 use modmain
+use modomp
 ! !DESCRIPTION:
 !   Computes the core radial wavefunctions, eigenvalues and densities. The
 !   radial Dirac equation is solved in the spherical part of the Kohn-Sham
@@ -31,7 +32,7 @@ implicit none
 ! local variables
 integer ist,ispn,idm
 integer is,ia,ja,ias,jas
-integer nr,nri,nrs,ir
+integer nr,nri,nrs,ir,nthd
 real(8) t1
 ! automatic arrays
 logical done(natmmax)
@@ -82,8 +83,10 @@ do is=1,nspecies
         vr(ir)=vrsp(ir,is)+t1
       end do
       rhocr(:,ias,ispn)=0.d0
+      call omp_hold(nstsp(is),nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(t1,ir) SHARED(is)
+!$OMP PRIVATE(t1,ir) SHARED(is) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
       do ist=1,nstsp(is)
         if (spcore(ist,is)) then
@@ -104,16 +107,17 @@ do is=1,nspecies
             t1=occcr(ist,ias)
           end if
 ! add to the core density
-!$OMP CRITICAL
+!$OMP CRITICAL(gencore_)
           do ir=1,nrs
             rhocr(ir,ias,ispn)=rhocr(ir,ias,ispn) &
              +t1*(rwfcr(ir,1,ist,ias)**2+rwfcr(ir,2,ist,ias)**2)
           end do
-!$OMP END CRITICAL
+!$OMP END CRITICAL(gencore_)
         end if
       end do
 !$OMP END DO
 !$OMP END PARALLEL
+      call omp_free(nthd)
       do ir=1,nrs
         rhocr(ir,ias,ispn)=rhocr(ir,ias,ispn)/(fourpi*r2sp(ir,is))
       end do

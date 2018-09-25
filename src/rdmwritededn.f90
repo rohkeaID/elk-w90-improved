@@ -26,7 +26,7 @@ implicit none
 real(8), intent(in) :: dedn(nstsv,nkpt)
 ! local variables
 integer ik,ist
-open(50,file='RDM_DEDN.OUT',action='WRITE',form='FORMATTED')
+open(50,file='RDM_DEDN.OUT',form='FORMATTED')
 write(50,'(I6," : nkpt")') nkpt
 write(50,'(I6," : nstsv")') nstsv
 do ik=1,nkpt
@@ -41,3 +41,4 @@ close(50)
 return
 end subroutine
 !EOC
+

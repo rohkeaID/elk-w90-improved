@@ -1,0 +1,37 @@
+
+! Effective mass tensors of GaAs using the Perdew-Burke-Ernzerhof GGA functional.
+! Try recalculating the tensors with spin-orbit coupling switched on.
+
+tasks
+  0
+  25
+
+! k-point at which the effective mass is to be calculated for all states
+vklem
+  0.5  0.0  0.0
+
+xctype
+  20
+
+avec
+  5.3435  5.3435  0.0000
+  5.3435  0.0000  5.3435
+  0.0000  5.3435  5.3435
+
+sppath
+  '../../../species/'
+
+atoms
+  2                                   : nspecies
+  'Ga.in'                             : spfname
+  1                                   : natoms; atposl below
+  0.0  0.0  0.0
+  'As.in'
+  1
+  0.25  0.25  0.25
+
+ngridk
+  4  4  4
+
+vkloff
+  0.5  0.5  0.5

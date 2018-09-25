@@ -7,8 +7,8 @@ module modmpi
 
 use mpi
 
-! MPI communicator for k-points
-integer mpi_comm_kpt
+! MPI communicator for main code
+integer mpicom
 ! number of MPI processes
 integer np_mpi
 ! local MPI process number

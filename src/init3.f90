@@ -6,6 +6,7 @@
 subroutine init3
 use modmain
 use modgw
+use modtddft
 use modvars
 implicit none
 ! local variables
@@ -17,16 +18,18 @@ real(8) w1,w2,t1,t2
 !-------------------------------------------------------------!
 ! G-vectors for response functions
 ngrf=1
-do ig=ng2gk,1,-1
-  if (gc(ig).lt.gmaxrf) then
-    ngrf=ig
+do ig=2,ngvec
+  if (gc(ig).gt.gmaxrf) then
+    ngrf=ig-1
     exit
   end if
 end do
+ngrf=min(ngrf,ngvc)
 ! frequencies for reponse functions
 nwrf=1
 if (allocated(wrf)) deallocate(wrf)
-if ((task.eq.188).or.(task.eq.320).or.(task.eq.330).or.(task.eq.331)) then
+select case(task)
+case(188,320,330,331)
   nwrf=nwplot
   allocate(wrf(nwrf))
   w1=wplot(1)
@@ -36,14 +39,18 @@ if ((task.eq.188).or.(task.eq.320).or.(task.eq.330).or.(task.eq.331)) then
     t2=w1+t1*dble(iw-1)
     wrf(iw)=cmplx(t2,swidth,8)
   end do
-else if (task.eq.600) then
+! set the first frequency to zero for the bootstrap functional
+  if ((fxctype(1).eq.210).or.(fxctype(1).eq.211)) then
+    wrf(1)=cmplx(0.d0,swidth,8)
+  end if
+case(600,610,620)
 ! GW Matsubara frequencies
   call genwgw
-else
+case default
   nwrf=1
   allocate(wrf(nwrf))
   wrf(1)=cmplx(0.d0,swidth,8)
-end if
+end select
 ! write to VARIABLES.OUT
 call writevars('gmaxrf',rv=gmaxrf)
 call writevars('ngrf',iv=ngrf)

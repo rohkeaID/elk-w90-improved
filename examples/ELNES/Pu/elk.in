@@ -1,0 +1,44 @@
+
+! Electron loss near-edge spectroscopy (ELNES) of spin-polarised fcc plutonium.
+! Take note of the modified species file, 'Pu+.in', and the requirement of
+! spin-orbit coupling.
+
+tasks
+  0
+  140
+
+spinorb
+  .true.
+
+! maximum allowed energy for the initial state in the double differential
+! cross-section formula
+emaxelnes
+ -20.0
+
+wplot
+  300  100  6    : nwplot, ngrkf, nswplot
+  28.0  32.0     : wplot
+
+nempty
+  20
+
+! q-vector in lattice coordinates
+vecql
+  0.0  0.0  0.25
+
+avec
+  0.5  0.5  0.0
+  0.5  0.0  0.5
+  0.0  0.5  0.5
+
+scale
+  9.13730
+
+atoms
+  1                                   : nspecies
+  'Pu+.in'                            : spfname
+  1                                   : natoms
+  0.0  0.0  0.0    0.0  0.0  0.01     : atposl, bfcmt
+
+ngridk
+  4  4  4

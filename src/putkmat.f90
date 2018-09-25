@@ -12,7 +12,7 @@ logical, intent(in) :: tfv,tvclcr
 integer, intent(in) :: ik
 real(8), intent(in) :: vmt(npcmtmax,natmtot),vir(ngtot)
 ! local variables
-integer ist,ispn,recl
+integer ist,ispn,recl,i
 ! automatic arrays
 integer idx(nstsv)
 ! allocatable arrays
@@ -37,8 +37,8 @@ do ist=1,nstsv
 end do
 ! calculate the wavefunctions for all states of the input k-point
 allocate(wfmt(npcmtmax,natmtot,nspinor,nstsv),wfir(ngkmax,nspinor,nstsv))
-call genwfsv(.false.,.true.,nstsv,idx,ngk(:,ik),igkig(:,:,ik),apwalm,evecfv, &
- evecsv,wfmt,ngkmax,wfir)
+call genwfsv(.false.,.true.,nstsv,idx,ngridg,igfft,ngk(:,ik),igkig(:,:,ik), &
+ apwalm,evecfv,evecsv,wfmt,ngkmax,wfir)
 deallocate(apwalm,evecfv)
 ! compute Kohn-Sham potential matrix elements
 allocate(kmat(nstsv,nstsv))
@@ -57,6 +57,14 @@ kmat(:,:)=-kmat(:,:)
 do ist=1,nstsv
   kmat(ist,ist)=kmat(ist,ist)+evalsv(ist,ik)
 end do
+! add scissor correction if required
+if (scissor.ne.0.d0) then
+  do ist=1,nstsv
+    if (evalsv(ist,ik).gt.efermi) then
+      kmat(ist,ist)=kmat(ist,ist)+scissor
+    end if
+  end do
+end if
 ! add the Coulomb core matrix elements if required
 if (tvclcr) call vclcore(wfmt,kmat)
 ! rotate kinetic matrix elements to first-variational basis if required
@@ -71,12 +79,22 @@ end if
 deallocate(evecsv,wfmt)
 ! determine the record length
 inquire(iolength=recl) vkl(:,1),nstsv,kmat
-!$OMP CRITICAL
-open(85,file='KMAT.OUT',action='WRITE',form='UNFORMATTED',access='DIRECT', &
- recl=recl)
-write(85,rec=ik) vkl(:,ik),nstsv,kmat
-close(85)
-!$OMP END CRITICAL
+!$OMP CRITICAL(u140)
+do i=1,2
+  open(140,file='KMAT.OUT',form='UNFORMATTED',access='DIRECT',recl=recl,err=10)
+  write(140,rec=ik,err=10) vkl(:,ik),nstsv,kmat
+  close(140)
+  exit
+10 continue
+  if (i.eq.2) then
+    write(*,*)
+    write(*,'("Error(putkmat): unable to write to KMAT.OUT")')
+    write(*,*)
+    stop
+  end if
+  close(140)
+end do
+!$OMP END CRITICAL(u140)
 deallocate(kmat)
 return
 end subroutine

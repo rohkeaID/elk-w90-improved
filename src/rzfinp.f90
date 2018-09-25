@@ -5,12 +5,13 @@
 
 complex(8) function rzfinp(rfmt,rfir,zfmt,zfir)
 use modmain
+use modomp
 implicit none
 ! arguments
 real(8), intent(in) :: rfmt(npcmtmax,natmtot),rfir(ngtot)
 complex(8), intent(in) :: zfmt(npcmtmax,natmtot),zfir(ngtot)
 ! local variables
-integer ias,is,ir
+integer is,ias,ir,nthd
 complex(8) zsum
 ! external functions
 complex(8) rzfmtinp
@@ -22,7 +23,10 @@ do ir=1,ngtot
 end do
 zsum=zsum*(omega/dble(ngtot))
 ! muffin-tin contribution
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(is) REDUCTION(+:zsum)
+call omp_hold(natmtot,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(is) REDUCTION(+:zsum) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ias=1,natmtot
   is=idxis(ias)
@@ -31,6 +35,7 @@ do ias=1,natmtot
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 rzfinp=zsum
 return
 end function

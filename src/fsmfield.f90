@@ -28,6 +28,8 @@ implicit none
 integer idm,is,ia,ias,ir
 real(8) v1(3),v2(3),t1
 if ((.not.spinpol).or.(fsmtype.eq.0)) return
+! fixed spin direction not valid for collinear magnetism
+if ((.not.ncmag).and.(fsmtype.lt.0)) return
 ! determine the global effective field
 if ((abs(fsmtype).eq.1).or.(abs(fsmtype).eq.3)) then
   if (ncmag) then
@@ -36,21 +38,16 @@ if ((abs(fsmtype).eq.1).or.(abs(fsmtype).eq.3)) then
     v1(:)=0.d0
     v1(3)=momtot(1)
   end if
-  if (fsmtype.gt.0) then
-! fixed spin moment
-    v2(:)=v1(:)-momfix(:)
-  else
-! fixed spin direction
-    t1=sqrt(sum(momfix(:)**2))
-    if (t1.gt.1.d-8) t1=1.d0/t1
-    v2(:)=t1*momfix(:)
-    v2(:)=v1(:)-momtotm*v2(:)
-  end if
+  v2(:)=v1(:)-momfix(:)
   if (ncmag) then
     bfsmc(:)=bfsmc(:)+taufsm*v2(:)
   else
     bfsmc(1)=bfsmc(1)+taufsm*v2(3)
   end if
+! make sure that the constraining field is perpendicular to the fixed moment
+! for fixed direction calculations (Y. Kvashnin and LN)
+  if (fsmtype.lt.0) call r3vo(momfix,bfsmc)
+! add to the Kohn-Sham field
   do idm=1,ndmag
     t1=bfsmc(idm)
     do ias=1,natmtot
@@ -76,22 +73,15 @@ if ((abs(fsmtype).eq.2).or.(abs(fsmtype).eq.3)) then
         v1(:)=0.d0
         v1(3)=mommt(1,ias)
       end if
-      if (fsmtype.gt.0) then
-! fixed spin moment
-        v2(:)=v1(:)-mommtfix(:,ia,is)
-      else
-! fixed spin direction
-        t1=sqrt(sum(mommtfix(:,ia,is)**2))
-        if (t1.gt.1.d-8) t1=1.d0/t1
-        v2(:)=t1*mommtfix(:,ia,is)
-        t1=sqrt(v1(1)**2+v1(2)**2+v1(3)**2)
-        v2(:)=v1(:)-t1*v2(:)
-      end if
+      v2(:)=v1(:)-mommtfix(:,ia,is)
       if (ncmag) then
         bfsmcmt(:,ias)=bfsmcmt(:,ias)+taufsm*v2(:)
       else
         bfsmcmt(1,ias)=bfsmcmt(1,ias)+taufsm*v2(3)
       end if
+! fixed spin direction
+      if (fsmtype.lt.0) call r3vo(mommtfix(:,ia,is),bfsmcmt(:,ias))
+! add to the Kohn-Sham muffin-tin field
       do idm=1,ndmag
         t1=bfsmcmt(idm,ias)
         bsmt(1:npcmt(is),ias,idm)=bsmt(1:npcmt(is),ias,idm)+t1

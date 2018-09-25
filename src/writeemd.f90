@@ -7,10 +7,11 @@ subroutine writeemd
 use modmain
 use modpw
 use modmpi
+use modomp
 implicit none
 ! local variables
 integer ik,ihk,recl
-integer ist,ispn
+integer ist,ispn,nthd
 real(8) sum,t1
 complex(8) z1
 ! allocatable arrays
@@ -43,28 +44,29 @@ do ik=1,nkpt
 end do
 ! delete existing EMD.OUT
 if (mp_mpi) then
-  open(85,file='EMD.OUT')
-  close(85,status='DELETE')
+  open(160,file='EMD.OUT')
+  close(160,status='DELETE')
 end if
 ! synchronise MPI processes
-call mpi_barrier(mpi_comm_kpt,ierror)
+call mpi_barrier(mpicom,ierror)
 allocate(emd(nhkmax))
 inquire(iolength=recl) vkl(:,1),nhkmax,emd
 deallocate(emd)
-open(85,file='EMD.OUT',action='WRITE',form='UNFORMATTED',access='DIRECT', &
- recl=recl)
+open(160,file='EMD.OUT',form='UNFORMATTED',access='DIRECT',recl=recl)
 ! loop over k-points
+call omp_hold(nkpt/np_mpi,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP PRIVATE(emd,wfpw,ihk,sum) &
-!$OMP PRIVATE(ist,ispn,z1,t1)
+!$OMP PRIVATE(ist,ispn,z1,t1) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ik=1,nkpt
 ! distribute among MPI processes
   if (mod(ik-1,np_mpi).ne.lp_mpi) cycle
   allocate(emd(nhkmax),wfpw(nhkmax,nspinor,nstsv))
-!$OMP CRITICAL
+!$OMP CRITICAL(writeemd_)
   write(*,'("Info(writeemd): ",I6," of ",I6," k-points")') ik,nkpt
-!$OMP END CRITICAL
+!$OMP END CRITICAL(writeemd_)
 ! Fourier transform the wavefunctions
   call genwfpw(vkl(:,ik),ngk(1,ik),igkig(:,1,ik),vgkl(:,:,1,ik), &
    vgkc(:,:,1,ik),gkc(:,1,ik),tpgkc(:,:,1,ik),sfacgk(:,:,1,ik),nhk(1,ik), &
@@ -82,16 +84,17 @@ do ik=1,nkpt
     end do
     emd(ihk)=sum
   end do
-!$OMP CRITICAL
-  write(85,rec=ik) vkl(:,ik),nhk(1,ik),emd
-!$OMP END CRITICAL
+!$OMP CRITICAL(u160)
+  write(160,rec=ik) vkl(:,ik),nhk(1,ik),emd
+!$OMP END CRITICAL(u160)
   deallocate(emd,wfpw)
 end do
 !$OMP END DO
 !$OMP END PARALLEL
-close(85)
+call omp_free(nthd)
+close(160)
 ! synchronise MPI processes
-call mpi_barrier(mpi_comm_kpt,ierror)
+call mpi_barrier(mpicom,ierror)
 if (mp_mpi) then
   write(*,*)
   write(*,'("Info(writeemd): electron momentum density written to EMD.OUT")')

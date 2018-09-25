@@ -12,8 +12,7 @@ integer, intent(out) :: itimes0
 ! local variables
 integer iostat
 real(8) times_,t1
-open(50,file='TIMESTEP.OUT',action='READ',form='FORMATTED',status='OLD', &
- iostat=iostat)
+open(50,file='TIMESTEP.OUT',form='FORMATTED',status='OLD',iostat=iostat)
 if (iostat.ne.0) then
   write(*,*)
   write(*,'("Error(readtimes): error opening TIMESTEP.OUT")')
@@ -42,6 +41,7 @@ if (t1.gt.1.d-8) then
   write(*,*)
   stop
 end if
+close(50)
 return
 end subroutine
 

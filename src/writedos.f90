@@ -8,8 +8,6 @@ use modmain
 implicit none
 ! local variables
 integer ik
-! always use the second-variational states (avoids confusion for RDMFT)
-tevecsv=.true.
 ! initialise universal variables
 call init0
 call init1

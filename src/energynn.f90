@@ -10,7 +10,6 @@ implicit none
 integer is,ia,ias
 integer nr,nri,ir,np,i
 real(8) t1
-complex(8) zg0
 ! automatic arrays
 real(8) vn(nrmtmax),vn0(nspecies)
 ! allocatable arrays
@@ -42,8 +41,8 @@ end do
 allocate(zrhoir(ngtot))
 zrhoir(:)=0.d0
 ! solve the complex Poisson's equation
-call zpotcoul(nrmt,nrmti,npmt,npmti,nrspmax,rsp,ngvec,1,gc,ngvec,jlgrmt,ylmg, &
- sfacg,zrhoir,npmtmax,zvclmt,zvclir,zg0)
+call zpotcoul(nrmt,nrmti,npmt,npmti,nrspmax,rsp,ngridg,igfft,ngvec,gc,gclg, &
+ ngvec,jlgrmt,ylmg,sfacg,zrhoir,npmtmax,zvclmt,zvclir)
 ! compute the nuclear-nuclear energy
 engynn=0.d0
 do ias=1,natmtot

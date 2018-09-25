@@ -5,10 +5,12 @@
 
 subroutine effmass
 use modmain
+use modomp
+use modtest
 implicit none
 ! local variables
 integer ik,ik0,ist,info
-integer i,j,k,l,m,n
+integer i,j,k,l,m,n,nthd
 integer i1,i2,i3,j1,j2,j3
 real(8) d(3,3),em(3,3)
 real(8) v1(3),v2(3)
@@ -28,6 +30,8 @@ allocate(b(0:n-1,0:n-1,0:n-1,nstsv))
 allocate(c(0:n-1,0:n-1,0:n-1))
 ! read density and potentials from file
 call readstate
+! Fourier transform Kohn-Sham potential to G-space
+call genvsig
 ! read Fermi energy from file
 call readfermi
 ! find the new linearisation energies
@@ -44,9 +48,11 @@ call hmlrad
 call gensocfr
 ik0=0
 ! begin parallel loop over k-points
+call omp_hold(nkpt,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP PRIVATE(evalfv,evecfv,evecsv) &
-!$OMP PRIVATE(i1,i2,i3,j1,j2,j3,ist)
+!$OMP PRIVATE(i1,i2,i3,j1,j2,j3,ist) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ik=1,nkpt
   allocate(evalfv(nstfv,nspnfv))
@@ -65,6 +71,7 @@ do ik=1,nkpt
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 ! set up polynomial matrix
 i=0
 do i3=-ndspem,ndspem
@@ -100,7 +107,7 @@ if (info.ne.0) then
   write(*,*)
   stop
 end if
-open(50,file='EFFMASS.OUT',action='WRITE',form='FORMATTED')
+open(50,file='EFFMASS.OUT',form='FORMATTED')
 write(50,*)
 write(50,'("(effective mass matrices are in Cartesian coordinates)")')
 write(50,*)
@@ -171,6 +178,8 @@ write(*,*)
 write(*,'("Info(effmass):")')
 write(*,'(" Effective mass tensor for each state written to EFFMASS.OUT")')
 write(*,'("  for k-point (lattice) ",3G18.10)') vklem
+! write the effective mass eigenvalues of the last state to test file
+call writetest(25,'effective mass',nv=3,tol=1.d-6,rva=w)
 deallocate(ipiv,a,b,c)
 return
 end subroutine

@@ -38,18 +38,16 @@ do it=1,maxitc
   call rdmdkdc
 ! write the Coulomb matrix elements to file
   call writevclijjk
-! synchronise MPI processes
-  call mpi_barrier(mpi_comm_kpt,ierror)
 ! update evecsv, orthogonalise and write to file (MPI master process only)
   if (mp_mpi) call rdmvaryc
 ! synchronise MPI processes
-  call mpi_barrier(mpi_comm_kpt,ierror)
+  call mpi_barrier(mpicom,ierror)
 ! calculate the energy
   call rdmenergy
 ! write energy to file
   if (mp_mpi) then
     write(62,'(I6,G18.10)') it,engytot
-    call flushifc(62)
+    flush(62)
   end if
 ! end iteration loop
 end do
@@ -62,3 +60,4 @@ end if
 return
 end subroutine
 !EOC
+

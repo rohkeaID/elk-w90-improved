@@ -76,14 +76,13 @@ do is=1,nspecies
 ! rotate into equivalent atoms
     do isym=1,nsymcrys
       ja=ieqatom(ia,is,isym)
-      if (.not.done(ja)) then
-        jas=idxas(ja,is)
+      if (done(ja)) cycle
+      jas=idxas(ja,is)
 ! inverse symmetry (which rotates atom ia into atom ja)
-        lspl=isymlat(lsplsymc(isym))
+      lspl=isymlat(lsplsymc(isym))
 ! rotate symmetrised function into equivalent muffin-tin
-        call rotrfmt(symlatc(:,:,lspl),nr(is),nri(is),rfmt(:,ias),rfmt(:,jas))
-        done(ja)=.true.
-      end if
+      call rotrfmt(symlatc(:,:,lspl),nr(is),nri(is),rfmt(:,ias),rfmt(:,jas))
+      done(ja)=.true.
     end do
   end do
 end do

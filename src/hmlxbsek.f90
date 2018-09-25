@@ -13,10 +13,11 @@ integer ik1,ist1,ist2,jst1,jst2
 integer i1,i2,j1,j2,a1,a2,b1,b2
 integer is,ias,l
 real(8) t0
-complex(8) zgq0,z1
+complex(8) z1
 ! automatic arrays
-integer idx(nstsv)
+integer idx(nstsv),ngp(nspnfv)
 ! allocatable arrays
+integer, allocatable :: igpig(:,:)
 complex(8), allocatable :: wfmt1(:,:,:,:),wfir1(:,:,:)
 complex(8), allocatable :: wfmt2(:,:,:,:),wfir2(:,:,:)
 complex(8), allocatable :: zrhomt(:,:),zrhoir(:)
@@ -26,17 +27,19 @@ complex(8), allocatable :: zfmt(:)
 complex(8) zfinp
 external zfinp
 ! allocate local arrays
-allocate(wfmt1(npcmtmax,natmtot,nspinor,nstsv),wfir1(ngtot,nspinor,nstsv))
-allocate(wfmt2(npcmtmax,natmtot,nspinor,nstsv),wfir2(ngtot,nspinor,nstsv))
-allocate(zrhomt(npcmtmax,natmtot),zrhoir(ngtot))
-allocate(zvclmt(npcmtmax,natmtot,nvcbse),zvclir(ngtot,nvcbse))
+allocate(igpig(ngkmax,nspnfv))
+allocate(wfmt1(npcmtmax,natmtot,nspinor,nstsv),wfir1(ngtc,nspinor,nstsv))
+allocate(wfmt2(npcmtmax,natmtot,nspinor,nstsv),wfir2(ngtc,nspinor,nstsv))
+allocate(zrhomt(npcmtmax,natmtot),zrhoir(ngtc))
+allocate(zvclmt(npcmtmax,natmtot,nvcbse),zvclir(ngtc,nvcbse))
 allocate(zfmt(npcmtmax))
 ! index to all states
 do ist1=1,nstsv
   idx(ist1)=ist1
 end do
 ! calculate the wavefunctions for all states of k-point ik2
-call genwfsvp(.false.,.false.,nstsv,idx,vkl(:,ik2),wfmt2,ngtot,wfir2)
+call genwfsvp(.false.,.false.,nstsv,idx,ngdc,igfc,vkl(:,ik2),ngp,igpig,wfmt2, &
+ ngtc,wfir2)
 l=0
 do i2=1,nvbse
   ist2=istbse(i2,ik2)
@@ -45,12 +48,12 @@ do i2=1,nvbse
     a2=ijkbse(i2,j2,ik2)
     l=l+1
 ! calculate the complex overlap density
-    call genzrho(.true.,.true.,wfmt2(:,:,:,ist2),wfir2(:,:,ist2), &
+    call genzrho(.true.,.true.,ngtc,wfmt2(:,:,:,ist2),wfir2(:,:,ist2), &
      wfmt2(:,:,:,jst2),wfir2(:,:,jst2),zrhomt,zrhoir)
 ! compute the Coulomb potential
     call genzvclmt(nrcmt,nrcmti,nrcmtmax,rcmt,npcmtmax,zrhomt,zvclmt(:,:,l))
-    call zpotcoul(nrcmt,nrcmti,npcmt,npcmti,nrcmtmax,rcmt,ng2gk,1,gc,ngvec, &
-     jlgrmt,ylmg,sfacg,zrhoir,npcmtmax,zvclmt(:,:,l),zvclir(:,l),zgq0)
+    call zpotcoul(nrcmt,nrcmti,npcmt,npcmti,nrcmtmax,rcmt,ngdc,igfc,ngvc,gc, &
+     gclg,ngvec,jlgrmt,ylmg,sfacg,zrhoir,npcmtmax,zvclmt(:,:,l),zvclir(:,l))
   end do
 end do
 t0=occmax*wkptnr
@@ -60,7 +63,8 @@ do ik1=1,nkptnr
     wfmt1(:,:,:,:)=wfmt2(:,:,:,:)
     wfir1(:,:,:)=wfir2(:,:,:)
   else
-    call genwfsvp(.false.,.false.,nstsv,idx,vkl(:,ik1),wfmt1,ngtot,wfir1)
+    call genwfsvp(.false.,.false.,nstsv,idx,ngdc,igfc,vkl(:,ik1),ngp,igpig, &
+     wfmt1,ngtc,wfir1)
   end if
   do i1=1,nvbse
     ist1=istbse(i1,ik1)
@@ -68,7 +72,7 @@ do ik1=1,nkptnr
       jst1=jstbse(j1,ik1)
       a1=ijkbse(i1,j1,ik1)
 ! calculate the complex overlap density
-      call genzrho(.true.,.true.,wfmt1(:,:,:,ist1),wfir1(:,:,ist1), &
+      call genzrho(.true.,.true.,ngtc,wfmt1(:,:,:,ist1),wfir1(:,:,ist1), &
        wfmt1(:,:,:,jst1),wfir1(:,:,jst1),zrhomt,zrhoir)
       l=0
       do i2=1,nvbse
@@ -100,7 +104,8 @@ do ik1=1,nkptnr
     end do
   end do
 end do
-deallocate(wfmt1,wfmt2,wfir1,wfir2)
+deallocate(igpig,wfmt1,wfmt2,wfir1,wfir2)
 deallocate(zrhomt,zrhoir,zvclmt,zvclir,zfmt)
 return
 end subroutine
+

@@ -27,12 +27,11 @@ call findkpt(vpl,isym,ik)
 lspl=lsplsymc(isym)
 ! find the record length
 inquire(iolength=recl) vkl_,nhkmax_,nspinor_,nstsv_,wfpw
-!$OMP CRITICAL
-open(105,file='WFPW.OUT',action='READ',form='UNFORMATTED',access='DIRECT', &
- recl=recl)
-read(105,rec=ik) vkl_,nhkmax_,nspinor_,nstsv_,wfpw
-close(105)
-!$OMP END CRITICAL
+!$OMP CRITICAL(u170)
+open(170,file='WFPW.OUT',form='UNFORMATTED',access='DIRECT',recl=recl)
+read(170,rec=ik) vkl_,nhkmax_,nspinor_,nstsv_,wfpw
+close(170)
+!$OMP END CRITICAL(u170)
 t1=abs(vkl(1,ik)-vkl_(1))+abs(vkl(2,ik)-vkl_(2))+abs(vkl(3,ik)-vkl_(3))
 if (t1.gt.epslat) then
   write(*,*)
@@ -85,7 +84,7 @@ do jspn=1,nspnfv
     ispn0=1; ispn1=nspinor
   end if
 ! apply translation operation if required
-  if (tvzsymc(isym)) then
+  if (tv0symc(isym)) then
 ! translation vector is zero
     do ihk=1,nhk(jspn,ik)
       wfpw_(ihk,ispn0:ispn1,:)=wfpw(ihk,ispn0:ispn1,:)

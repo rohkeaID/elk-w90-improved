@@ -40,13 +40,14 @@ else
     end if
   end do
 end if
-! OEP, Hartree-Fock, RPA epsilon, TDDFT, BSE, RDMFT or GW
-if ((xctype(1).lt.0).or.(task.eq.5).or.(task.eq.105).or.(task.eq.180).or. &
- (task.eq.185).or.(task.eq.188).or.(task.eq.300).or.(task.eq.320).or. &
- (task.eq.330).or.(task.eq.331)) then
+if ((task.eq.105).or.(task.eq.180).or.(task.eq.185).or. &
+ (task.eq.320).or.(task.eq.330).or.(task.eq.331)) then
+! equal k- and q-point grids for nesting function, BSE and linear-reposnse TDDFT
   ngridq(:)=ngridk(:)
-else if (task.eq.600) then
-! GW: allow for the k-point grid to be smaller than the q-point grid
+else if ((xctype(1).lt.0).or.(task.eq.5).or.(task.eq.300).or.(task.eq.600).or. &
+ (task.eq.620)) then
+! allow the q-point grid to be smaller than the k-point grid for OEP,
+! Hartree-Fock, GW and RDMFT
   if ((ngridq(1).le.0).or.(ngridq(2).le.0).or.(ngridq(3).le.0)) then
     ngridq(:)=ngridk(:)
   end if
@@ -54,7 +55,8 @@ else
   ngridq(:)=abs(ngridq(:))
 end if
 ! check that the q-point and k-point grids are commensurate for some tasks
-if ((task.eq.205).or.(task.eq.240).or.(task.eq.600)) then
+if ((xctype(1).lt.0).or.(task.eq.5).or.(task.eq.205).or.(task.eq.240).or. &
+ (task.eq.300).or.(task.eq.600).or.(task.eq.620)) then
   iv(:)=mod(ngridk(:),ngridq(:))
   if ((iv(1).ne.0).or.(iv(2).ne.0).or.(iv(3).ne.0)) then
     write(*,*)
@@ -118,12 +120,13 @@ call writevars('wqpt',nv=nqpt,rva=wqpt)
 !--------------------------------------------------------!
 !     OEP, Hartree-Fock, RDMFT, BSE and GW variables     !
 !--------------------------------------------------------!
-if ((xctype(1).lt.0).or.(task.eq.5).or.(task.eq.185).or.(task.eq.300).or. &
- (task.eq.330).or.(task.eq.331).or.(task.eq.600)) then
-! determine the 1/q^2 integral weights if required
-  call genwiq2
-! output the 1/q^2 integrals to WIQ2.OUT
-  call writewiq2
+if ((xctype(1).lt.0).or.(task.eq.5).or.(task.eq.180).or.(task.eq.185).or. &
+ (task.eq.188).or.(task.eq.205).or.(task.eq.300).or.(task.eq.320).or. &
+ (task.eq.330).or.(task.eq.331).or.(task.eq.600).or.(task.eq.620)) then
+! determine the regularised Coulomb Green's function for small q
+  call gengclq
+! output the Coulomb Green's function to GCLQ.OUT
+  call writegclq
 end if
 if (xctype(1).lt.0) then
 ! initialise OEP residual magnitude
@@ -165,6 +168,14 @@ if (task.eq.300) then
   if (allocated(dkdc)) deallocate(dkdc)
   allocate(dkdc(nstsv,nstsv,nkpt))
 end if
+
+!----------------------------------------------------------!
+!     G-vector variables for coarse grid (G < 2*gkmax)     !
+!----------------------------------------------------------!
+! generate the G-vectors
+call gengvc
+! generate the characteristic function
+call gencfrc
 
 call timesec(ts1)
 timeinit=timeinit+ts1-ts0

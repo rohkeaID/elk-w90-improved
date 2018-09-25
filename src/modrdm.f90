@@ -27,11 +27,10 @@ integer maxitn
 integer maxitc
 ! exponent for the power and hybrid functional
 real(8) rdmalpha
-! mixing for the hybrid functional
-real(8) rdmbeta
 ! temperature
 real(8) rdmtemp
 ! entropy
 real(8) rdmentrpy
 
 end module
+

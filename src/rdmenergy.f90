@@ -94,3 +94,4 @@ call writetest(300,'RDMFT total energy',tol=1.d-6,rv=engytot)
 return
 end subroutine
 !EOC
+

@@ -5,7 +5,6 @@
 
 subroutine genstress
 use modmain
-use modultra
 use modmpi
 use modstore
 implicit none
@@ -13,9 +12,8 @@ implicit none
 integer i
 real(8) et0,t1
 ! store original parameters
-avec0(:,:)=avec(:,:)
-avecu0(:,:)=avecu(:,:)
-tforce0=tforce
+avec_(:,:)=avec(:,:)
+tforce_=tforce
 tforce=.false.
 ! restore original symmetries
 call symmetry
@@ -36,6 +34,8 @@ do istrain=1,nstrain
   if (mp_mpi) then
     write(*,'("Info(genstress): strain tensor ",I1," of ",I1)') istrain,nstrain
   end if
+! restore the lattice vectors
+  avec(:,:)=avec_(:,:)
 ! run the ground-state calculation
   call gndstate
 ! check for stop signal
@@ -52,9 +52,8 @@ do i=1,nstrain
   if (t1.gt.stressmax) stressmax=t1
 end do
 ! restore original parameters
-avec(:,:)=avec0(:,:)
-avecu(:,:)=avecu0(:,:)
-tforce=tforce0
+avec(:,:)=avec_(:,:)
+tforce=tforce_
 return
 end subroutine
 

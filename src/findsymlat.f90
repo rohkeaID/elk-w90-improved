@@ -9,6 +9,7 @@
 subroutine findsymlat
 ! !USES:
 use modmain
+use modtddft
 ! !DESCRIPTION:
 !   Finds the point group symmetries which leave the Bravais lattice invariant.
 !   Let $A$ be the matrix consisting of the lattice vectors in columns, then
@@ -25,10 +26,10 @@ use modmain
 !BOC
 implicit none
 ! local variables
-integer i,j,md,sym(3,3)
+integer md,sym(3,3),its,i,j
 integer i11,i12,i13,i21,i22,i23,i31,i32,i33
 real(8) s(3,3),g(3,3),sgs(3,3)
-real(8) c(3,3),v(3),t1
+real(8) sc(3,3),c(3,3),v(3),t1
 ! external functions
 integer i3mdet
 external i3mdet
@@ -62,10 +63,28 @@ do i31=-1,1; do i32=-1,1; do i33=-1,1
     if (t1.gt.epslat) goto 10
   end if
 ! check invariance of electric field if required
-  if (efieldpol) then
+  if (tefield) then
     call r3mv(s,efieldl,v)
     t1=abs(efieldl(1)-v(1))+abs(efieldl(2)-v(2))+abs(efieldl(3)-v(3))
     if (t1.gt.epslat) goto 10
+  end if
+! check invariance of A-field if required
+  if (tafield) then
+    call r3mv(s,afieldl,v)
+    t1=abs(afieldl(1)-v(1))+abs(afieldl(2)-v(2))+abs(afieldl(3)-v(3))
+    if (t1.gt.epslat) goto 10
+  end if
+! check invariance of time-dependent A-field if required
+  if (tafieldt) then
+    call r3mm(s,ainv,c)
+    call r3mm(avec,c,sc)
+    do its=1,ntimes
+      call r3mv(sc,afieldt(:,its),v)
+      t1=abs(afieldt(1,its)-v(1)) &
+        +abs(afieldt(2,its)-v(2)) &
+        +abs(afieldt(3,its)-v(3))
+      if (t1.gt.epslat) goto 10
+    end do
   end if
   nsymlat=nsymlat+1
   if (nsymlat.gt.48) then

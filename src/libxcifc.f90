@@ -7,14 +7,18 @@ module libxcifc
 
 use xc_f90_lib_m
 
+! libxc version number
+integer libxcv(3)
+
 contains
 
 !BOP
 ! !ROUTINE: xcifc_libxc
 ! !INTERFACE:
 subroutine xcifc_libxc(xctype,n,c_tb09,rho,rhoup,rhodn,g2rho,g2up,g2dn,grho2, &
- gup2,gdn2,gupdn,tau,tauup,taudn,ex,ec,vx,vc,vxup,vxdn,vcup,vcdn,dxdg2,dxdgu2, &
- dxdgd2,dxdgud,dcdg2,dcdgu2,dcdgd2,dcdgud)
+ gup2,gdn2,gupdn,tau,tauup,taudn,ex,ec,vx,vc,vxup,vxdn,vcup,vcdn,dxdgr2, &
+ dxdgu2,dxdgd2,dxdgud,dcdgr2,dcdgu2,dcdgd2,dcdgud,dxdg2r,dxdg2u,dxdg2d,dcdg2r, &
+ dcdg2u,dcdg2d,wx,wxup,wxdn,wc,wcup,wcdn)
 ! !INPUT/OUTPUT PARAMETERS:
 !   xctype : type of exchange-correlation functional (in,integer(3))
 !   n      : number of density points (in,integer)
@@ -40,14 +44,26 @@ subroutine xcifc_libxc(xctype,n,c_tb09,rho,rhoup,rhodn,g2rho,g2up,g2dn,grho2, &
 !   vxdn   : spin-down exchange potential (out,real(n),optional)
 !   vcup   : spin-up correlation potential (out,real(n),optional)
 !   vcdn   : spin-down correlation potential (out,real(n),optional)
-!   dxdg2  : de_x/d(|grad rho|^2) (out,real(n),optional)
+!   dxdgr2 : de_x/d(|grad rho|^2) (out,real(n),optional)
 !   dxdgu2 : de_x/d(|grad rhoup|^2) (out,real(n),optional)
 !   dxdgd2 : de_x/d(|grad rhodn|^2) (out,real(n),optional)
 !   dxdgud : de_x/d((grad rhoup).(grad rhodn)) (out,real(n),optional)
-!   dcdg2  : de_c/d(|grad rho|^2) (out,real(n),optional)
+!   dcdgr2 : de_c/d(|grad rho|^2) (out,real(n),optional)
 !   dcdgu2 : de_c/d(|grad rhoup|^2) (out,real(n),optional)
 !   dcdgd2 : de_c/d(|grad rhodn|^2) (out,real(n),optional)
 !   dcdgud : de_c/d((grad rhoup).(grad rhodn)) (out,real(n),optional)
+!   dxdg2r : de_x/d(grad^2 rho) (out,real(n),optional)
+!   dxdg2u : de_x/d(grad^2 rhoup) (out,real(n),optional)
+!   dxdg2d : de_x/d(grad^2 rhodn) (out,real(n),optional)
+!   dcdg2r : de_c/d(grad^2 rho) (out,real(n),optional)
+!   dcdg2u : de_c/d(grad^2 rhoup) (out,real(n),optional)
+!   dcdg2d : de_c/d(grad^2 rhodn) (out,real(n),optional)
+!   wx     : de_x/dtau (out,real(n),optional)
+!   wxup   : de_x/dtauup (out,real(n),optional)
+!   wxdn   : de_x/dtaudn (out,real(n),optional)
+!   wc     : de_c/dtau (out,real(n),optional)
+!   wcup   : de_c/dtauup (out,real(n),optional)
+!   wcdn   : de_c/dtaudn (out,real(n),optional)
 ! !DESCRIPTION:
 !   Interface to the ETSF {\tt libxc} exchange-correlation functional library:
 !   \newline{\tt http://www.tddft.org/programs/octopus/wiki/index.php/Libxc}.
@@ -57,7 +73,8 @@ subroutine xcifc_libxc(xctype,n,c_tb09,rho,rhoup,rhodn,g2rho,g2up,g2dn,grho2, &
 ! !REVISION HISTORY:
 !   Created April 2009 (Tyrel McQueen)
 !   Modified September 2009 (JKD and TMQ)
-!   Updated for the libxc 1.0 interface, July 2010 (JKD)
+!   Updated for Libxc 1, July 2010 (JKD)
+!   Updated for Libxc 4, March 2018 (JKD)
 !EOP
 !BOC
 implicit none
@@ -71,8 +88,12 @@ real(8), optional, intent(in) :: grho2(n),gup2(n),gdn2(n),gupdn(n)
 real(8), optional, intent(in) :: tau(n),tauup(n),taudn(n)
 real(8), optional, intent(out) :: ex(n),ec(n),vx(n),vc(n)
 real(8), optional, intent(out) :: vxup(n),vxdn(n),vcup(n),vcdn(n)
-real(8), optional, intent(out) :: dxdg2(n),dxdgu2(n),dxdgd2(n),dxdgud(n)
-real(8), optional, intent(out) :: dcdg2(n),dcdgu2(n),dcdgd2(n),dcdgud(n)
+real(8), optional, intent(out) :: dxdgr2(n),dxdgu2(n),dxdgd2(n),dxdgud(n)
+real(8), optional, intent(out) :: dxdg2r(n),dxdg2u(n),dxdg2d(n)
+real(8), optional, intent(out) :: wx(n),wxup(n),wxdn(n)
+real(8), optional, intent(out) :: dcdgr2(n),dcdgu2(n),dcdgd2(n),dcdgud(n)
+real(8), optional, intent(out) :: dcdg2r(n),dcdg2u(n),dcdg2d(n)
+real(8), optional, intent(out) :: wc(n),wcup(n),wcdn(n)
 ! local variables
 integer nspin,xcf,id,k
 type(xc_f90_pointer_t) p,info
@@ -92,7 +113,7 @@ end if
 if (xctype(2).ne.0) then
   if (xctype(2).eq.xctype(3)) then
     write(*,*)
-    write(*,'("Error(xcifc_libxc): libxc exchange and correlation &
+    write(*,'("Error(xcifc_libxc): Libxc exchange and correlation &
      &functionals")')
     write(*,'(" are the same : ",2I8)') xctype(2:3)
     write(*,*)
@@ -141,7 +162,7 @@ do k=2,3
       if (k.eq.2) then
 ! exchange
         if (present(rho)) then
-          call xc_f90_gga_exc_vxc(p,n,rho(1),grho2(1),ex(1),vx(1),dxdg2(1))
+          call xc_f90_gga_exc_vxc(p,n,rho(1),grho2(1),ex(1),vx(1),dxdgr2(1))
         else
           allocate(r(2,n),sigma(3,n),vrho(2,n),vsigma(3,n))
           r(1,:)=rhoup(:); r(2,:)=rhodn(:)
@@ -155,7 +176,7 @@ do k=2,3
       else
 ! correlation
         if (present(rho)) then
-          call xc_f90_gga_exc_vxc(p,n,rho(1),grho2(1),ec(1),vc(1),dcdg2(1))
+          call xc_f90_gga_exc_vxc(p,n,rho(1),grho2(1),ec(1),vc(1),dcdgr2(1))
         else
           allocate(r(2,n),sigma(3,n),vrho(2,n),vsigma(3,n))
           r(1,:)=rhoup(:); r(2,:)=rhodn(:)
@@ -173,15 +194,22 @@ do k=2,3
 !------------------------------!
 ! set Tran-Blaha '09 constant if required
       if (id.eq.XC_MGGA_X_TB09) then
-        if (present(c_tb09)) call xc_f90_mgga_x_tb09_set_par(p,c_tb09)
+        if (present(c_tb09)) call xc_f90_func_set_ext_params(p,c_tb09)
       end if
       if (k.eq.2) then
 ! exchange
         if (present(rho)) then
-          allocate(vsigma(1,n),vlapl(1,n),vtau(1,n))
-          call xc_f90_mgga_vxc(p,n,rho(1),grho2(1),g2rho(1),tau(1),vx(1), &
-           vsigma(1,1),vlapl(1,1),vtau(1,1))
-          deallocate(vsigma,vlapl,vtau)
+          if (present(ex)) then
+! spin-unpolarised energy functional
+            call xc_f90_mgga_exc_vxc(p,n,rho(1),grho2(1),g2rho(1),tau(1), &
+             ex(1),vx(1),dxdgr2(1),dxdg2r(1),wx(1))
+          else
+! spin-unpolarised potential-only functional
+            allocate(vsigma(1,n),vlapl(1,n),vtau(1,n))
+            call xc_f90_mgga_vxc(p,n,rho(1),grho2(1),g2rho(1),tau(1),vx(1), &
+             vsigma(1,1),vlapl(1,1),vtau(1,1))
+            deallocate(vsigma,vlapl,vtau)
+          end if
         else
           allocate(r(2,n),sigma(3,n),lapl(2,n),t(2,n))
           allocate(vrho(2,n),vsigma(3,n),vlapl(2,n),vtau(2,n))
@@ -189,8 +217,18 @@ do k=2,3
           sigma(1,:)=gup2(:); sigma(2,:)=gupdn(:); sigma(3,:)=gdn2(:)
           lapl(1,:)=g2up(:); lapl(2,:)=g2dn(:)
           t(1,:)=tauup(:); t(2,:)=taudn(:)
-          call xc_f90_mgga_vxc(p,n,r(1,1),sigma(1,1),lapl(1,1),t(1,1), &
-           vrho(1,1),vsigma(1,1),vlapl(1,1),vtau(1,1))
+          if (present(ex)) then
+! spin-polarised energy functional
+            call xc_f90_mgga_exc_vxc(p,n,r(1,1),sigma(1,1),lapl(1,1),t(1,1), &
+             ex(1),vrho(1,1),vsigma(1,1),vlapl(1,1),vtau(1,1))
+            dxdgu2(:)=vsigma(1,:); dxdgud(:)=vsigma(2,:); dxdgd2(:)=vsigma(3,:)
+            dxdg2u(:)=vlapl(1,:); dxdg2d(:)=vlapl(2,:)
+            wxup(:)=vtau(1,:); wxdn(:)=vtau(2,:)
+          else
+! spin-polarised potential-only functional
+            call xc_f90_mgga_vxc(p,n,r(1,1),sigma(1,1),lapl(1,1),t(1,1), &
+             vrho(1,1),vsigma(1,1),vlapl(1,1),vtau(1,1))
+          end if
           vxup(:)=vrho(1,:); vxdn(:)=vrho(2,:)
           deallocate(r,sigma,lapl,t)
           deallocate(vrho,vsigma,vlapl,vtau)
@@ -198,10 +236,15 @@ do k=2,3
       else
 ! correlation
         if (present(rho)) then
-          allocate(vsigma(1,n),vlapl(1,n),vtau(1,n))
-          call xc_f90_mgga_vxc(p,n,rho(1),grho2(1),g2rho(1),tau(1),vc(1), &
-           vsigma(1,1),vlapl(1,1),vtau(1,1))
-          deallocate(vsigma,vlapl,vtau)
+          if (present(ec)) then
+            call xc_f90_mgga_exc_vxc(p,n,rho(1),grho2(1),g2rho(1),tau(1), &
+             ec(1),vc(1),dcdgr2(1),dcdg2r(1),wc(1))
+          else
+            allocate(vsigma(1,n),vlapl(1,n),vtau(1,n))
+            call xc_f90_mgga_vxc(p,n,rho(1),grho2(1),g2rho(1),tau(1),vc(1), &
+             vsigma(1,1),vlapl(1,1),vtau(1,1))
+            deallocate(vsigma,vlapl,vtau)
+          end if
         else
           allocate(r(2,n),sigma(3,n),lapl(2,n),t(2,n))
           allocate(vrho(2,n),vsigma(3,n),vlapl(2,n),vtau(2,n))
@@ -209,8 +252,16 @@ do k=2,3
           sigma(1,:)=gup2(:); sigma(2,:)=gupdn(:); sigma(3,:)=gdn2(:)
           lapl(1,:)=g2up(:); lapl(2,:)=g2dn(:)
           t(1,:)=tauup(:); t(2,:)=taudn(:)
-          call xc_f90_mgga_vxc(p,n,r(1,1),sigma(1,1),lapl(1,1),t(1,1), &
-           vrho(1,1),vsigma(1,1),vlapl(1,1),vtau(1,1))
+          if (present(ec)) then
+            call xc_f90_mgga_exc_vxc(p,n,r(1,1),sigma(1,1),lapl(1,1),t(1,1), &
+             ec(1),vrho(1,1),vsigma(1,1),vlapl(1,1),vtau(1,1))
+            dcdgu2(:)=vsigma(1,:); dcdgud(:)=vsigma(2,:); dcdgd2(:)=vsigma(3,:)
+            dcdg2u(:)=vlapl(1,:); dcdg2d(:)=vlapl(2,:)
+            wcup(:)=vtau(1,:); wcdn(:)=vtau(2,:)
+          else
+            call xc_f90_mgga_vxc(p,n,r(1,1),sigma(1,1),lapl(1,1),t(1,1), &
+             vrho(1,1),vsigma(1,1),vlapl(1,1),vtau(1,1))
+          end if
           vcup(:)=vrho(1,:); vcdn(:)=vrho(2,:)
           deallocate(r,sigma,lapl,t)
           deallocate(vrho,vsigma,vlapl,vtau)
@@ -218,7 +269,7 @@ do k=2,3
       end if
     case default
       write(*,*)
-      write(*,'("Error(xcifc_libxc): unsupported libxc functional family : ",&
+      write(*,'("Error(xcifc_libxc): unsupported Libxc functional family : ",&
        &I8)') xcf
       write(*,*)
       stop
@@ -232,7 +283,7 @@ do k=2,3
       if (present(vx)) vx(:)=0.d0
       if (present(vxup)) vxup(:)=0.d0
       if (present(vxdn)) vxdn(:)=0.d0
-      if (present(dxdg2)) dxdg2(:)=0.d0
+      if (present(dxdgr2)) dxdgr2(:)=0.d0
       if (present(dxdgu2)) dxdgu2(:)=0.d0
       if (present(dxdgd2)) dxdgd2(:)=0.d0
       if (present(dxdgud)) dxdgud(:)=0.d0
@@ -241,7 +292,7 @@ do k=2,3
       if (present(vc)) vc(:)=0.d0
       if (present(vcup)) vcup(:)=0.d0
       if (present(vcdn)) vcdn(:)=0.d0
-      if (present(dcdg2)) dcdg2(:)=0.d0
+      if (present(dcdgr2)) dcdgr2(:)=0.d0
       if (present(dcdgu2)) dcdgu2(:)=0.d0
       if (present(dcdgd2)) dcdgd2(:)=0.d0
       if (present(dcdgud)) dcdgud(:)=0.d0
@@ -306,7 +357,7 @@ do k=2,3
     end if
   case default
     write(*,*)
-    write(*,'("Error(fxcifc_libxc): unsupported libxc functional family : ",&
+    write(*,'("Error(fxcifc_libxc): unsupported Libxc functional family : ",&
      &I8)') xcf
     write(*,*)
     stop
@@ -329,12 +380,12 @@ integer j,k,id
 integer fmly,flg
 character(256) name
 type(xc_f90_pointer_t) p,info
-! check version is compatible (2.x)
-call xc_f90_version(j,k)
-if (j.ne.2) then
+! check version is compatible
+call xc_f90_version(libxcv(1),libxcv(2),libxcv(3))
+if (libxcv(1).ne.4) then
   write(*,*)
-  write(*,'("Error(xcdata_libxc): incompatible libxc version : ",I2.2,".",&
-   &I3.3)') j,k
+  write(*,'("Error(xcdata_libxc): incompatible Libxc version : ",I2.2,".",&
+   &I3.3,".",I3.3)') libxcv(:)
   write(*,*)
   stop
 end if
@@ -359,7 +410,7 @@ do k=2,3
     if ((fmly.eq.XC_FAMILY_HYB_GGA).and.(k.eq.2)) then
       write(*,*)
       write(*,'("Error(xcdata_libxc): set only correlation part of xctype for &
-       &libxc hybrids")')
+       &Libxc hybrids")')
       write(*,*)
       stop
     end if
@@ -367,7 +418,7 @@ do k=2,3
     if ((fmly.ne.XC_FAMILY_LDA).and.(fmly.ne.XC_FAMILY_GGA).and. &
      (fmly.ne.XC_FAMILY_HYB_GGA).and.(fmly.ne.XC_FAMILY_MGGA)) then
       write(*,*)
-      write(*,'("Error(xcdata_libxc): unsupported libxc family : ",I8)') fmly
+      write(*,'("Error(xcdata_libxc): unsupported Libxc family : ",I8)') fmly
       write(*,*)
       stop
     end if
@@ -375,14 +426,25 @@ do k=2,3
     if (fmly.eq.XC_FAMILY_GGA.or.fmly.eq.XC_FAMILY_HYB_GGA) xcgrad=2
 ! kinetic energy density required for meta-GGA functionals
     if (fmly.eq.XC_FAMILY_MGGA) then
-! potential-only functional
       flg=xc_f90_info_flags(info)
       if ((iand(flg,XC_FLAGS_HAVE_VXC).ne.0).and. &
        (iand(flg,XC_FLAGS_HAVE_EXC).eq.0)) then
+! potential-only functional
         xcgrad=3
+      else if (iand(flg,XC_FLAGS_HAVE_EXC).ne.0) then
+! energy functional
+        xcgrad=4
       else
         write(*,*)
-        write(*,'("Error(xcdata_libxc): unsupported libxc meta-GGA type")')
+        write(*,'("Error(xcdata_libxc): unsupported Libxc meta-GGA type")')
+        write(*,*)
+        stop
+      end if
+! check if the density laplacian is required
+      if ((xcgrad.eq.4).and.(iand(flg,XC_FLAGS_NEEDS_LAPLACIAN).ne.0)) then
+        write(*,*)
+        write(*,'("Error(xcdata_libxc): energy meta-GGAs requiring the density &
+         &laplacian are not supported")')
         write(*,*)
         stop
       end if
@@ -391,12 +453,11 @@ do k=2,3
     name='none'
   end if
   if (k.eq.2) then
-    xcdescr='libxc; exchange: '//trim(name)
+    xcdescr='exchange: '//trim(name)
   else
     xcdescr=trim(xcdescr)//'; correlation: '//trim(name)
   end if
 end do
-xcdescr=trim(xcdescr)//' (see libxc for references)'
 return
 end subroutine
 !EOC

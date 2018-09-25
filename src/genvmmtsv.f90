@@ -6,16 +6,16 @@
 subroutine genvmmtsv(wfmt,vmat)
 use modmain
 use moddftu
+use modomp
 implicit none
 ! arguments
 complex(8), intent(in) :: wfmt(npcmtmax,natmtot,nspinor,nstsv)
 complex(8), intent(inout) :: vmat(nstsv,nstsv)
 ! local variables
 integer ist,jst,ispn,jspn
-integer is,ias,ld
-integer nrc,nrci,nrco
-integer nm,l,lm
-integer npc,npci,i
+integer is,ias,ld,nthd
+integer nrc,nrci,nrco,i
+integer nm,l,lm,npc,npci
 ! allocatable arrays
 complex(8), allocatable :: wfmt1(:,:,:),wfmt2(:)
 ! external functions
@@ -59,7 +59,9 @@ do ias=1,natmtot
         end do
       end do
 ! compute the matrix elements
-!$OMP PARALLEL DEFAULT(SHARED)
+      call omp_hold(nstsv,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
       do ist=1,nstsv
         vmat(ist,jst)=vmat(ist,jst)+zfmtinp(nrc,nrci,rcmt(:,is),r2cmt(:,is), &
@@ -67,6 +69,7 @@ do ias=1,natmtot
       end do
 !$OMP END DO
 !$OMP END PARALLEL
+      call omp_free(nthd)
     end do
   end do
 end do

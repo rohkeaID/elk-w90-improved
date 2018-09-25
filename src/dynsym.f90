@@ -22,7 +22,7 @@ n=0
 dyns(:,:)=0.d0
 ! use the symmetries which leave vpl invariant
 do isym=1,nsymcrys
-  if (.not.tvzsymc(isym)) cycle
+  if (.not.tv0symc(isym)) cycle
   lspl=lsplsymc(isym)
   s(:,:)=dble(symlat(:,:,lspl))
   call r3mtv(s,v1,v2)

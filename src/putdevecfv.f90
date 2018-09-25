@@ -17,12 +17,12 @@ character(256) fext
 inquire(iolength=recl) vkl(:,ik),nmatmax,nstfv,nspnfv,devecfv
 ! construct the phonon file extension
 call phfext(iqph,isph,iaph,ipph,fext)
-!$OMP CRITICAL
-open(70,file=trim(scrpath)//'DEVECFV'//trim(fext),action='WRITE', &
- form='UNFORMATTED',access='DIRECT',recl=recl)
-write(70,rec=ik) vkl(:,ik),nmatmax,nstfv,nspnfv,devecfv
-close(70)
-!$OMP END CRITICAL
+!$OMP CRITICAL(u222)
+open(222,file=trim(scrpath)//'DEVECFV'//trim(fext),form='UNFORMATTED', &
+ access='DIRECT',recl=recl)
+write(222,rec=ik) vkl(:,ik),nmatmax,nstfv,nspnfv,devecfv
+close(222)
+!$OMP END CRITICAL(u222)
 return
 end subroutine
 

@@ -12,6 +12,7 @@ real(8), intent(out) :: grfmt(npmtmax,natmtot,3),grfir(ngtot,3)
 ! local variables
 integer is,ias,np
 integer ig,ifg,i
+complex(8) z1
 ! allocatable arrays
 real(8), allocatable :: grfmt1(:,:)
 complex(8), allocatable :: zfft1(:),zfft2(:)
@@ -34,7 +35,8 @@ do i=1,3
   zfft2(:)=0.d0
   do ig=1,ngvec
     ifg=igfft(ig)
-    zfft2(ifg)=vgc(i,ig)*cmplx(-aimag(zfft1(ifg)),dble(zfft1(ifg)),8)
+    z1=zfft1(ifg)
+    zfft2(ifg)=vgc(i,ig)*cmplx(-aimag(z1),dble(z1),8)
   end do
   call zfftifc(3,ngridg,1,zfft2)
   grfir(:,i)=dble(zfft2(:))

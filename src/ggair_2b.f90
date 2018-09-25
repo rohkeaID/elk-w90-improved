@@ -6,7 +6,7 @@
 !BOP
 ! !ROUTINE: ggair_2b
 ! !INTERFACE:
-subroutine ggair_2b(g2rho,gvrho,vx,vc,dxdg2,dcdg2)
+subroutine ggair_2b(g2rho,gvrho,vx,vc,dxdgr2,dcdgr2)
 ! !USES:
 use modmain
 ! !DESCRIPTION:
@@ -18,12 +18,9 @@ use modmain
 !BOC
 implicit none
 ! arguments
-real(8), intent(in) :: g2rho(ngtot)
-real(8), intent(in) :: gvrho(ngtot,3)
-real(8), intent(inout) :: vx(ngtot)
-real(8), intent(inout) :: vc(ngtot)
-real(8), intent(in) :: dxdg2(ngtot)
-real(8), intent(in) :: dcdg2(ngtot)
+real(8), intent(in) :: g2rho(ngtot),gvrho(ngtot,3)
+real(8), intent(inout) :: vx(ngtot),vc(ngtot)
+real(8), intent(in) :: dxdgr2(ngtot),dcdgr2(ngtot)
 ! local variables
 integer ig,ifg,i
 ! allocatable arrays
@@ -34,10 +31,10 @@ allocate(zfft1(ngtot),zfft2(ngtot))
 !------------------!
 !     exchange     !
 !------------------!
-! compute grad dxdg2
-zfft1(:)=dxdg2(:)
+! compute grad dxdgr2
+zfft1(:)=dxdgr2(:)
 call zfftifc(3,ngridg,-1,zfft1)
-! (grad dxdg2).(grad rho)
+! (grad dxdgr2).(grad rho)
 rfir(:)=0.d0
 do i=1,3
   zfft2(:)=0.d0
@@ -48,14 +45,14 @@ do i=1,3
   call zfftifc(3,ngridg,1,zfft2)
   rfir(:)=rfir(:)+dble(zfft2(:))*gvrho(:,i)
 end do
-vx(:)=vx(:)-2.d0*(rfir(:)+dxdg2(:)*g2rho(:))
+vx(:)=vx(:)-2.d0*(rfir(:)+dxdgr2(:)*g2rho(:))
 !---------------------!
 !     correlation     !
 !---------------------!
-! compute grad dcdg2
-zfft1(:)=dcdg2(:)
+! compute grad dcdgr2
+zfft1(:)=dcdgr2(:)
 call zfftifc(3,ngridg,-1,zfft1)
-! (grad dcdg2).(grad rho)
+! (grad dcdgr2).(grad rho)
 rfir(:)=0.d0
 do i=1,3
   zfft2(:)=0.d0
@@ -66,7 +63,7 @@ do i=1,3
   call zfftifc(3,ngridg,1,zfft2)
   rfir(:)=rfir(:)+dble(zfft2(:))*gvrho(:,i)
 end do
-vc(:)=vc(:)-2.d0*(rfir(:)+dcdg2(:)*g2rho(:))
+vc(:)=vc(:)-2.d0*(rfir(:)+dcdgr2(:)*g2rho(:))
 deallocate(rfir,zfft1,zfft2)
 return
 end subroutine

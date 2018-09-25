@@ -26,7 +26,7 @@ do ilo=1,nlorb(is)
   do m1=-l1,l1
     lm1=idxlm(l1,m1)
     lm3=0
-    do l3=0,lmaxmat
+    do l3=0,lmaxapw
       do m3=-l3,l3
         lm3=lm3+1
         do io=1,apword(l3,is)
@@ -54,7 +54,7 @@ do ilo=1,nlorb(is)
     end do
     if (ias.eq.iasph) then
       lm3=0
-      do l3=0,lmaxmat
+      do l3=0,lmaxapw
         do m3=-l3,l3
           lm3=lm3+1
           do io=1,apword(l3,is)

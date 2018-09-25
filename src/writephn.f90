@@ -27,7 +27,7 @@ call readdyn(dynq)
 call sumrule(dynq)
 ! Fourier transform the dynamical matrices to real-space
 call dynqtor(dynq,dynr)
-open(50,file='PHONON.OUT',action='WRITE',form='FORMATTED')
+open(50,file='PHONON.OUT',form='FORMATTED')
 do iq=1,nphwrt
   call dynrtoq(vqlwrt(:,iq),dynr,dynp)
   call dynev(dynp,w,ev)

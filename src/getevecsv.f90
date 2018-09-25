@@ -16,6 +16,7 @@ integer isym,lspn,ik,ist,i
 integer recl,nstsv_
 real(8) vkl_(3),det,v(3),th,t1
 complex(8) su2(2,2),z1,z2
+character(256) fname
 if (ikp.gt.0) then
   ik=ikp
 else
@@ -24,12 +25,22 @@ else
 end if
 ! find the record length
 inquire(iolength=recl) vkl_,nstsv_,evecsv
-!$OMP CRITICAL
-open(70,file=trim(scrpath)//'EVECSV'//trim(fext),action='READ', &
- form='UNFORMATTED',access='DIRECT',recl=recl)
-read(70,rec=ik) vkl_,nstsv_,evecsv
-close(70)
-!$OMP END CRITICAL
+fname=trim(scrpath)//'EVECSV'//trim(fext)
+!$OMP CRITICAL(u126)
+do i=1,2
+  open(126,file=trim(fname),form='UNFORMATTED',access='DIRECT',recl=recl,err=10)
+  read(126,rec=ik,err=10) vkl_,nstsv_,evecsv
+  exit
+10 continue
+  if (i.eq.2) then
+    write(*,*)
+    write(*,'("Error(getevecsv): unable to read from ",A)') trim(fname)
+    write(*,*)
+    stop
+  end if
+  close(126)
+end do
+!$OMP END CRITICAL(u126)
 t1=abs(vkl(1,ik)-vkl_(1))+abs(vkl(2,ik)-vkl_(2))+abs(vkl(3,ik)-vkl_(3))
 if (t1.gt.epslat) then
   write(*,*)

@@ -10,6 +10,8 @@ subroutine init1
 ! !USES:
 use modmain
 use moddftu
+use modulr
+use modtddft
 use modtest
 use modvars
 use modstore
@@ -74,7 +76,7 @@ else
   end do
 end if
 if ((task.eq.20).or.(task.eq.21)) then
-! generate k-points along a line for band structure plots
+! generate k-points along a path for band structure plots
   call plotpt1d(bvec,nvp1d,npp1d,vvlp1d,vplp1d,dvp1d,dpp1d)
   nkpt=npp1d
   if (allocated(vkl)) deallocate(vkl)
@@ -160,8 +162,12 @@ else
   call writevars('vkl',nv=3*nkptnr,rva=vkl)
   call writevars('wkpt',nv=nkpt,rva=wkpt)
 end if
+if (task.eq.700) then
+! generate ultracell reciprocal lattice vectors if required
+  call reciplat(avecu,bvecu,omegau,omegabzu)
 ! generate the kappa, k+kappa and Q-points if required
-call genkpakq
+  call genkpakq
+end if
 ! write the k-points to test file
 call writetest(910,'k-points (Cartesian)',nv=3*nkpt,tol=1.d-8,rva=vkc)
 
@@ -169,7 +175,7 @@ call writetest(910,'k-points (Cartesian)',nv=3*nkpt,tol=1.d-8,rva=vkc)
 !     G+k-vectors     !
 !---------------------!
 if ((xctype(1).lt.0).or.(task.eq.5).or.(task.eq.10).or.(task.eq.205).or. &
- (task.eq.300).or.(task.eq.600)) then
+ (task.eq.300).or.(task.eq.600).or.(task.eq.620).or.tddos) then
   nppt=nkptnr
 else
   nppt=nkpt
@@ -326,21 +332,21 @@ allocate(oalo(apwordmax,nlomax,natmtot))
 if (allocated(ololo)) deallocate(ololo)
 allocate(ololo(nlomax,nlomax,natmtot))
 if (allocated(haa)) deallocate(haa)
-allocate(haa(lmmaxo,apwordmax,0:lmaxmat,apwordmax,0:lmaxmat,natmtot))
+allocate(haa(lmmaxo,apwordmax,0:lmaxapw,apwordmax,0:lmaxapw,natmtot))
 if (allocated(hloa)) deallocate(hloa)
-allocate(hloa(lmmaxo,apwordmax,0:lmaxmat,nlomax,natmtot))
+allocate(hloa(lmmaxo,apwordmax,0:lmaxapw,nlomax,natmtot))
 if (allocated(hlolo)) deallocate(hlolo)
 allocate(hlolo(lmmaxo,nlomax,nlomax,natmtot))
 ! allocate and generate complex Gaunt coefficient array
 if (allocated(gntyry)) deallocate(gntyry)
-allocate(gntyry(lmmaxmat,lmmaxo,lmmaxmat))
-do l1=0,lmaxmat
+allocate(gntyry(lmmaxapw,lmmaxo,lmmaxapw))
+do l1=0,lmaxapw
   do m1=-l1,l1
     lm1=idxlm(l1,m1)
     do l2=0,lmaxo
       do m2=-l2,l2
         lm2=idxlm(l2,m2)
-        do l3=0,lmaxmat
+        do l3=0,lmaxapw
           do m3=-l3,l3
             lm3=idxlm(l3,m3)
             gntyry(lm1,lm2,lm3)=gauntyry(l1,l2,l3,m1,m2,m3)
@@ -350,6 +356,15 @@ do l1=0,lmaxmat
     end do
   end do
 end do
+! ultra long-range variables
+if (task.eq.700) then
+! number of long-range states
+  nstulr=nstsv*nkpa
+  if (allocated(occulr)) deallocate(occulr)
+  allocate(occulr(nstulr,nkpt0))
+end if
+!******** remove
+
 ! write to VARIABLES.OUT
 call writevars('nempty',iv=nempty)
 call writevars('nstfv',iv=nstfv)

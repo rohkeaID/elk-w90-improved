@@ -14,6 +14,7 @@ integer nro,iro,ir
 integer lm,npi,i
 ! automatic arrays
 real(8) fr(nr)
+if (m.le.0) return
 nro=nr-nri
 iro=nri+1
 npi=lmmaxi*nri

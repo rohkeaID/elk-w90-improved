@@ -14,8 +14,8 @@ real(8) dw,w,x
 ! external functions
 real(8) sdelta,stheta
 external sdelta,stheta
-open(50,file='SDELTA.OUT',action='WRITE',form='FORMATTED')
-open(51,file='STHETA.OUT',action='WRITE',form='FORMATTED')
+open(50,file='SDELTA.OUT',form='FORMATTED')
+open(51,file='STHETA.OUT',form='FORMATTED')
 dw=(2.d0*swf*swidth)/dble(nwplot-1)
 do iw=1,nwplot
   w=-swf*swidth+dw*dble(iw-1)

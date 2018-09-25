@@ -10,6 +10,7 @@ subroutine genkmat(tfv,tvclcr)
 ! !USES:
 use modmain
 use modmpi
+use modomp
 ! !INPUT/OUTPUT PARAMETERS:
 !   tfv    : .true. if the matrix elements are to be expressed in the
 !            first-variational basis; second-variational otherwise (in,logical)
@@ -27,14 +28,16 @@ implicit none
 ! arguments
 logical, intent(in) :: tfv,tvclcr
 ! local variables
-integer ik,is,ias
+integer ik,is,ias,nthd
 ! allocatable arrays
 real(8), allocatable :: vmt(:,:),vir(:),rfmt(:)
 allocate(vmt(npcmtmax,natmtot),vir(ngtot))
 ! convert muffin-tin Kohn-Sham potential to spherical coordinates on a coarse
 ! radial mesh
+call omp_hold(natmtot,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(rfmt,is)
+!$OMP PRIVATE(rfmt,is) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ias=1,natmtot
   allocate(rfmt(npcmtmax))
@@ -45,25 +48,31 @@ do ias=1,natmtot
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 ! multiply Kohn-Sham interstitial potential by characteristic function
 vir(:)=vsir(:)*cfunir(:)
 if (mp_mpi) write(*,*)
+! synchronise MPI processes
+call mpi_barrier(mpicom,ierror)
 ! loop over k-points
-!$OMP PARALLEL DEFAULT(SHARED)
+call omp_hold(nkpt/np_mpi,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ik=1,nkpt
 ! distribute among MPI processes
   if (mod(ik-1,np_mpi).ne.lp_mpi) cycle
-!$OMP CRITICAL
+!$OMP CRITICAL(genkmat_)
   write(*,'("Info(genkmat): ",I6," of ",I6," k-points")') ik,nkpt
-!$OMP END CRITICAL
+!$OMP END CRITICAL(genkmat_)
   call putkmat(tfv,tvclcr,ik,vmt,vir)
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 deallocate(vmt,vir)
 ! synchronise MPI processes
-call mpi_barrier(mpi_comm_kpt,ierror)
+call mpi_barrier(mpicom,ierror)
 return
 end subroutine
 !EOC

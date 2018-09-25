@@ -21,7 +21,7 @@ use moddftu
 implicit none
 ! local variables
 integer is,ia,ias,i,l
-open(50,file='ENGYFDU'//trim(filext),action='WRITE',form='FORMATTED')
+open(50,file='ENGYFDU'//trim(filext),form='FORMATTED')
 do i=1,ndftu
   is=idftu(1,i)
   l=idftu(2,i)

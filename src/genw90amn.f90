@@ -11,6 +11,7 @@ subroutine genw90amn
 use modmain
 use modw90
 use modw90overlap
+use modomp
 ! !DESCRIPTION:
 !   Calculates the Amn overlap matrices between Bloch states and
 !   trial orbitals required for Wannier90.
@@ -19,17 +20,23 @@ use modw90overlap
 implicit none
 ! local variables
 integer is,ia,ikp,n,m
-! local variables
-
+integer nst,nthd
+integer redkfil,nstsv_,recl
+logical exists
+real(8) t1
 ! automatic arrays
 character(256)    filename
 character(10)     dat,tim
+integer           ngp(nspnfv)
+real(8)           vkl_(3)
 ! external functions
 
 ! allocatable arrays
+integer,    allocatable :: igpig(:,:)
 complex(8), allocatable :: wfmt(:,:,:,:),wfir(:,:,:)
 complex(8), allocatable :: twfmt(:,:,:,:),twfir(:,:,:)
 complex(8), allocatable :: amn(:,:,:,:)
+real(8),    allocatable :: evalsv_(:)
 
 reducek0=reducek ! if reducek=1 was used in ground state calculations,
                  ! need to regenerate the eigenvectors set for the full BZ.
@@ -61,22 +68,61 @@ call linengy
 call genapwfr
 ! generate the local-orbital radial functions
 call genlofr
+
+! check that EVECSV.OUT has all necessary k-points
+allocate(evalsv_(nstsv))
+redkfil=0
+inquire(iolength=recl) vkl_,nstsv_,evalsv_
+do ikp=1,nkpt
+  exists=.false.
+  t1=9.d99
+  inquire(file='EVALSV'//trim(filext),exist=exists)
+  if(exists) then
+    open(70,file='EVALSV'//trim(filext),action='READ',form='UNFORMATTED', &
+        access='DIRECT',recl=recl,err=101)
+    read(70,rec=ikp,err=101) vkl_,nstsv_,evalsv_
+    close(70)
+    t1=abs(vkl(1,ikp)-vkl_(1))+abs(vkl(2,ikp)-vkl_(2))+abs(vkl(3,ikp)-vkl_(3))
+  end if
+101 continue
+  if (.not.exists.or.t1.gt.epslat.or.nstsv.ne.nstsv_) then
+    redkfil=1
+    exit
+  end if
+end do
+! If kpoint not found in saved eigen-values/vectors, then need to recompute
+! EVEC*OUT.
+if (redkfil.ne.0) then
+! compute the overlap radial integrals
+  call olprad
+! compute the Hamiltonian radial integrals
+  call hmlrad
+! generate the spin-orbit coupling radial functions
+  call gensocfr
+! generate the first- and second-variational eigenvectors and eigenvalues
+  call genevfsv
+! find the occupation numbers and Fermi energy
+  call occupy
+end if
+
 ! generates the trial wavefunctions from the projection definitions read in
 allocate(twfmt(npcmtmax,natmtot,nspinor,wann_nproj))
 allocate(twfir(ngtot,nspinor,wann_nproj))
 call genw90twf(twfmt,twfir)
 
 ! loop over k and k+b points
+call omp_hold(nst,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(ikp,n,m,amn,wfmt,wfir)
+!$OMP PRIVATE(ikp,n,m,ngp,igpig,amn,wfmt,wfir)
 
 allocate(wfmt(npcmtmax,natmtot,nspinor,wann_nband))
 allocate(wfir(ngtot,nspinor,wann_nband))
 allocate(amn(wann_nband,nspinor,wann_nproj,1))
+allocate(igpig(ngkmax,nspnfv))
 
 !$OMP DO
 do ikp=1,nkpt
-  call genwfsvp(.false.,.false.,wann_nband,wann_bands,vkl(:,ikp),wfmt,ngtot,wfir)
+  call genwfsvp(.false.,.false.,wann_nband,wann_bands,ngridg,igfft,vkl(:,ikp),ngp,igpig,wfmt,ngtot,wfir)
  
   ! calculate the overlap integrals Amn(k)
   amn = cmplx(0.d0,0.d0,kind=8)
@@ -101,10 +147,12 @@ do ikp=1,nkpt
 end do !End loop over k points
 !$OMP END DO
 
+deallocate(igpig)
 deallocate(wfmt,wfir)
 deallocate(amn)
 
 !$OMP END PARALLEL
+call omp_free(nthd)
 
 deallocate(twfmt,twfir)
 

@@ -13,11 +13,11 @@ real(8) vc(3),cs,sn,t1
 ! automatic arrays
 real(8) vsc(3,nqptnr)
 ! find the smallest supercell which contains q-vector
-call findscq(iqss,avec0,nscss,vsc)
+call findscq(iqss,avec_,nscss,vsc)
 ! construct supercell atomic positions and magnetic fields
 do is=1,nspecies
   na=0
-  do ia=1,natoms0(is)
+  do ia=1,natoms_(is)
     do i=1,nscss
       na=na+1
       if (na.gt.maxatoms) then
@@ -28,18 +28,18 @@ do is=1,nspecies
         write(*,*)
         stop
       end if
-      vc(:)=vsc(:,i)+atposc0(:,ia,is)
+      vc(:)=vsc(:,i)+atposc_(:,ia,is)
 ! new atomic position in lattice coordinates
       call r3mv(ainv,vc,atposl(:,na,is))
 ! rotate external B-field and fixed spin moment vector by angle q.r
       t1=dot_product(vqc(:,iqss),vc(:))
       cs=cos(t1); sn=sin(t1)
-      bfcmt0(1,na,is)=cs*bfcmt00(1,ia,is)-sn*bfcmt00(2,ia,is)
-      bfcmt0(2,na,is)=sn*bfcmt00(1,ia,is)+cs*bfcmt00(2,ia,is)
-      bfcmt0(3,na,is)=bfcmt00(3,ia,is)
-      mommtfix(1,na,is)=cs*mommtfix0(1,ia,is)-sn*mommtfix0(2,ia,is)
-      mommtfix(2,na,is)=sn*mommtfix0(1,ia,is)+cs*mommtfix0(2,ia,is)
-      mommtfix(3,na,is)=mommtfix0(3,ia,is)
+      bfcmt0(1,na,is)=cs*bfcmt0_(1,ia,is)-sn*bfcmt0_(2,ia,is)
+      bfcmt0(2,na,is)=sn*bfcmt0_(1,ia,is)+cs*bfcmt0_(2,ia,is)
+      bfcmt0(3,na,is)=bfcmt0_(3,ia,is)
+      mommtfix(1,na,is)=cs*mommtfix_(1,ia,is)-sn*mommtfix_(2,ia,is)
+      mommtfix(2,na,is)=sn*mommtfix_(1,ia,is)+cs*mommtfix_(2,ia,is)
+      mommtfix(3,na,is)=mommtfix_(3,ia,is)
     end do
   end do
   natoms(is)=na

@@ -41,7 +41,7 @@ do ik=1,nkpt
     if (e.gt.e1) e1=e
   end do
 end do
-if (e0.lt.e0min-1.d0) then
+if (e0.lt.e0min) then
   write(*,*)
   write(*,'("Warning(occupy): minimum eigenvalue less than minimum &
    &linearisation energy : ",2G18.10)') e0,e0min
@@ -54,9 +54,14 @@ do it=1,maxit
   chg=0.d0
   do ik=1,nkpt
     do ist=1,nstsv
-      x=(efermi-evalsv(ist,ik))*t1
-      occsv(ist,ik)=occmax*stheta(stype,x)
-      chg=chg+wkpt(ik)*occsv(ist,ik)
+      e=evalsv(ist,ik)
+      if (e.lt.e0min) then
+        occsv(ist,ik)=0.d0
+      else
+        x=(efermi-e)*t1
+        occsv(ist,ik)=occmax*stheta(stype,x)
+        chg=chg+wkpt(ik)*occsv(ist,ik)
+      end if
     end do
   end do
   if (chg.lt.chgval) then
@@ -91,8 +96,10 @@ e0=-1.d8
 e1=1.d8
 ikgap(1)=1
 ikgap(2)=1
-do ik=1,nkpt
-  do ist=1,nstsv
+! these loops are incorrectly ordered to fix a bu in versions 17 and 18 of the
+! Intel compiler
+do ist=1,nstsv
+  do ik=1,nkpt
     e=evalsv(ist,ik)
     if (e.lt.efermi) then
       if (e.gt.e0) then

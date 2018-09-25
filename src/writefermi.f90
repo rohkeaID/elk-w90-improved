@@ -17,7 +17,7 @@ use modmain
 !EOP
 !BOC
 implicit none
-open(50,file='EFERMI'//trim(filext),action='WRITE',form='FORMATTED')
+open(50,file='EFERMI'//trim(filext),form='FORMATTED')
 write(50,'(G18.10)') efermi
 close(50)
 return

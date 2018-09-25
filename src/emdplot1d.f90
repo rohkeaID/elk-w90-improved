@@ -6,11 +6,12 @@
 subroutine emdplot1d(emds)
 use modmain
 use modpw
+use modomp
 implicit none
 ! arguments
 real(4), intent(in) :: emds(nhkmax,nkpt)
 ! local variables
-integer nh(3),ip,n,i,j
+integer nh(3),ip,n,i,j,nthd
 real(8) vl1(3),vl2(3),vl3(3)
 real(8) vc1(3),vc2(3),vc3(3),t1
 ! allocatable arrays
@@ -54,11 +55,13 @@ do i=1,n
   t1=2.d0*dble(i-1)/dble(n-1)-1.d0
   x(i)=t1*hkmax
 end do
-open(50,file='EMD1D.OUT',action='WRITE',form='FORMATTED')
+open(50,file='EMD1D.OUT',form='FORMATTED')
 write(*,*)
 ! loop over plotting points along 1D line
+call omp_hold(npp1d,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(f1,f2,g,i,j,vl1)
+!$OMP PRIVATE(f1,f2,g,i,j,vl1) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO ORDERED
 do ip=1,npp1d
   allocate(f1(n),f2(n),g(n))
@@ -74,12 +77,13 @@ do ip=1,npp1d
 !$OMP ORDERED
   write(*,'("Info(emdplot1d): done ",I6," of ",I6," points")') ip,npp1d
   write(50,'(2G18.10)') dpp1d(ip),g(n)
-  call flushifc(50)
+  flush(50)
 !$OMP END ORDERED
   deallocate(f1,f2,g)
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 close(50)
 deallocate(x)
 return

@@ -1,0 +1,60 @@
+
+! Hartree-Fock ground state of the homogenous electron gas. The Wigner radius
+! (r_s) is written to INFO.OUT. Note that the exact exchange energy is only
+! computed during the last iteration.
+
+tasks
+  0
+  20
+  620
+
+actype
+  10
+
+plot1d
+  2 50                                 : nvp1d, npp1d
+  0.0   0.0   1.0                       : vlvp1d
+  0.5   0.5   1.0
+
+! use the diagonal approximation to the self-energy
+gwdiag
+  1
+
+! Matsubara frequency cut-off
+wmaxgw
+  5.0
+
+! response function G-vector cut-off
+gmaxrf
+  3.0
+
+! temperature of many-body system (determines Matsubara frequency spacing)
+tempk
+  2000.0
+
+wplot
+  800 100 0
+  -1.5 2.0
+
+nempty
+  40
+
+chgexs
+ 10.0
+
+! use the unit cell of aluminium
+avec
+  1.0  1.0  0.0
+  1.0  0.0  1.0
+  0.0  1.0  1.0
+
+scale
+  3.75
+
+! note that low density gases require denser k-point grids!
+ngridk
+  8  8  8
+
+ngridq
+  4  4  4
+

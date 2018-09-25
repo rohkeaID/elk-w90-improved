@@ -14,18 +14,19 @@ integer ik,ist,jst
 real(8) sum,t1
 complex(8) z1
 ! allocatable arrays
-real(8), allocatable :: occsvt(:,:)
+real(8), allocatable :: occsvp(:,:)
 complex(8), allocatable :: evecsv(:,:),evecsvt(:,:)
 ! external functions
 complex(8) zdotc
 external zdotc
-allocate(occsvt(nstsv,nkpt))
+allocate(occsvp(nstsv,nkpt))
 do ik=1,nkpt
   allocate(evecsv(nstsv,nstsv),evecsvt(nstsv,nstsv))
 ! read in ground-state eigenvectors
   call getevecsv('.OUT',ik,vkl(:,ik),evecsv)
 ! read in the time evolving eigenvectors
   call getevecsv('_TD.OUT',ik,vkl(:,ik),evecsvt)
+! determine the time-dependent projected occupancies
   do ist=1,nstsv
     sum=0.d0
     do jst=1,nstsv
@@ -34,15 +35,17 @@ do ik=1,nkpt
       z1=zdotc(nstsv,evecsv(:,ist),1,evecsvt(:,jst),1)
       sum=sum+t1*(dble(z1)**2+aimag(z1)**2)
     end do
-    occsvt(ist,ik)=occmax*sum
+    occsvp(ist,ik)=sum
   end do
+! write projected occupancies to file
+  call putoccsv('P'//trim(fext),ik,occsvp(:,ik))
   deallocate(evecsv,evecsvt)
 end do
 ! compute the effective electronic temperature
-call tdtemp(occsvt)
+call tdtemp(occsvp)
 ! write the DOS to file
-call dos(fext,.true.,occsvt)
-deallocate(occsvt)
+call dos(fext,.true.,occsvp)
+deallocate(occsvp)
 return
 end subroutine
 

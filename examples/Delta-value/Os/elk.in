@@ -1,0 +1,68 @@
+
+! Input file for a very well convered hcp osmium calculation. This is the result
+! of very careful comparisons with Wien2k to determine the true GGA equilibrium
+! volume and bulk modulus. With thanks to Maric Dulak.
+
+! See: https://sourceforge.net/p/elk/discussion/897820/thread/aecdbcf1/#cb4d
+
+! This is also part of the effort to systematically compare solid state codes,
+! basis sets and potentials and encapsulate the results in a single number, the
+! Delta-value. See https://molmod.ugent.be/deltacodesdft .
+
+tasks
+  0
+
+mixtype
+  3
+
+xctype
+  20
+
+! set very high quality options
+vhighq
+  .true.
+
+! parameters from Delta-value dataset
+avec
+  5.21365989   0.0          0.0
+  2.60682995   4.51516191   0.0
+  0.0          0.0          8.23342334
+
+atoms
+  1
+  'Os.in'
+  2
+  0.0                0.0                0.0
+  0.33333333333333   0.33333333333333   0.5
+
+ecvcut
+ -3.5
+
+species
+  76
+  'Os' 'osmium'
+  190.23
+  2.4
+  22
+  1  0  1  2
+  2  0  1  2
+  2  1  1  2
+  2  1  2  4
+  3  0  1  2
+  3  1  1  2
+  3  1  2  4
+  3  2  2  4
+  3  2  3  6
+  4  0  1  2
+  4  1  1  2
+  4  1  2  4
+  4  2  2  4
+  4  2  3  6
+  4  3  3  6
+  4  3  4  8
+  5  0  1  2
+  5  1  1  2
+  5  1  2  4
+  5  2  2  4
+  5  2  3  2
+  6  0  1  2

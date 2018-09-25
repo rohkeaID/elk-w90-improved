@@ -8,12 +8,12 @@ use modmain
 use modphonon
 use modpw
 use modmpi
+use modomp
 implicit none
 ! local variables
-integer ik,jk,iv(3)
-integer jspn,idm
+integer ik,jk,iv(3),jspn,idm
 integer is,ia,ias,ip
-integer nwork,n,lp
+integer nwork,n,lp,nthd
 ! use Broyden mixing only
 integer, parameter :: mtype=3
 real(8) ddv,a,b
@@ -58,6 +58,8 @@ end if
 if (natmtot.eq.0) return
 ! read in the density and potentials
 call readstate
+! Fourier transform Kohn-Sham potential to G-space
+call genvsig
 ! read Fermi energy from file
 call readfermi
 ! find the new linearisation energies
@@ -96,7 +98,7 @@ if (iqph.eq.0) return
 if (mp_mpi) then
   write(*,'("Info(phonon): working on ",A)') 'DYN'//trim(fext)
 ! open RMSDDVS.OUT
-  open(65,file='RMSDDVS'//trim(fext),action='WRITE',form='FORMATTED')
+  open(65,file='RMSDDVS'//trim(fext),form='FORMATTED')
 end if
 ! zero the dynamical matrix row
 dyn(:,:)=0.d0
@@ -106,6 +108,8 @@ if (spmass(isph).le.0.d0) goto 20
 call gengkqvec(iqph)
 ! generate the G+q-vectors and related quantities
 call gengqvec(iqph)
+! generate the regularised Coulomb Green's function in G+q-space
+call gengclgq(.false.,iqph,ngvec,gqc,gclgq)
 ! generate the characteristic function derivative
 call gendcfun
 ! generate the gradient of the Kohn-Sham potential
@@ -138,9 +142,11 @@ do iscl=1,maxscl
     dmagir(:,:)=0.d0
   end if
 ! parallel loop over k-points
+  call omp_hold(nkptnr/np_mpi,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP PRIVATE(evalfv,apwalm,apwalmq,dapwalm,dapwalmq) &
-!$OMP PRIVATE(evecfv,devecfv,evecsv,devecsv,jk,jspn)
+!$OMP PRIVATE(evecfv,devecfv,evecsv,devecsv,jk,jspn) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
   do ik=1,nkptnr
 ! distribute among MPI processes
@@ -204,14 +210,13 @@ devalsv(:,ik)=devalfv(:,1,ik)
   end do
 !$OMP END DO
 !$OMP END PARALLEL
+  call omp_free(nthd)
 ! broadcast eigenvalue derivative arrays to every process
   n=nstfv*nspnfv
   do ik=1,nkptnr
     lp=mod(ik-1,np_mpi)
-    call mpi_bcast(devalfv(:,:,ik),n,mpi_double_precision,lp,mpi_comm_kpt, &
-     ierror)
-    call mpi_bcast(devalsv(:,ik),nstsv,mpi_double_precision,lp,mpi_comm_kpt, &
-     ierror)
+    call mpi_bcast(devalfv(:,:,ik),n,mpi_double_precision,lp,mpicom,ierror)
+    call mpi_bcast(devalsv(:,ik),nstsv,mpi_double_precision,lp,mpicom,ierror)
   end do
 ! convert to spherical harmonic representation
   call drhomagsh
@@ -224,20 +229,20 @@ devalsv(:,ik)=devalfv(:,1,ik)
   if (np_mpi.gt.1) then
     n=npmtmax*natmtot
     call mpi_allreduce(mpi_in_place,drhomt,n,mpi_double_complex,mpi_sum, &
-     mpi_comm_kpt,ierror)
+     mpicom,ierror)
     call mpi_allreduce(mpi_in_place,drhoir,ngtot,mpi_double_complex,mpi_sum, &
-     mpi_comm_kpt,ierror)
+     mpicom,ierror)
     if (spinpol) then
       n=npmtmax*natmtot*ndmag
       call mpi_allreduce(mpi_in_place,dmagmt,n,mpi_double_complex,mpi_sum, &
-       mpi_comm_kpt,ierror)
+       mpicom,ierror)
       n=ngtot*ndmag
       call mpi_allreduce(mpi_in_place,dmagir,n,mpi_double_complex,mpi_sum, &
-       mpi_comm_kpt,ierror)
+       mpicom,ierror)
     end if
   end if
 ! synchronise MPI processes
-  call mpi_barrier(mpi_comm_kpt,ierror)
+  call mpi_barrier(mpicom,ierror)
 ! add gradient contribution to density derivative
   call gradrhomt
 ! compute the Kohn-Sham potential derivative
@@ -248,14 +253,14 @@ devalsv(:,ik)=devalfv(:,1,ik)
   call mixerifc(mtype,n,v,ddv,nwork,work)
 ! make sure every MPI process has a numerically identical potential
   if (np_mpi.gt.1) then
-    call mpi_bcast(v,n,mpi_double_precision,0,mpi_comm_kpt,ierror)
-    call mpi_bcast(ddv,1,mpi_double_precision,0,mpi_comm_kpt,ierror)
+    call mpi_bcast(v,n,mpi_double_precision,0,mpicom,ierror)
+    call mpi_bcast(ddv,1,mpi_double_precision,0,mpicom,ierror)
   end if
 ! unpack potential and field
   call phmixpack(.false.,n,v)
   if (mp_mpi) then
     write(65,'(G18.10)') ddv
-    call flushifc(65)
+    flush(65)
   end if
 ! check for convergence
   if (iscl.ge.2) then
@@ -274,11 +279,11 @@ write(*,'("Warning(phonon): failed to reach self-consistency after ",I4,&
 ! close the RMSDDVS.OUT file
 if (mp_mpi) close(65)
 ! synchronise MPI processes
-call mpi_barrier(mpi_comm_kpt,ierror)
+call mpi_barrier(mpicom,ierror)
 ! generate the dynamical matrix row from force derivatives
 call dforce(dyn)
 ! synchronise MPI processes
-call mpi_barrier(mpi_comm_kpt,ierror)
+call mpi_barrier(mpicom,ierror)
 ! write dynamical matrix row to file
 if (mp_mpi) then
   do ias=1,natmtot
@@ -299,7 +304,7 @@ if (mp_mpi) then
   call phdelete
 end if
 ! synchronise MPI processes
-call mpi_barrier(mpi_comm_kpt,ierror)
+call mpi_barrier(mpicom,ierror)
 goto 10
 end subroutine
 

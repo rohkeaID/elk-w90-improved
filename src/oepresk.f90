@@ -44,8 +44,8 @@ end do
 ! calculate the wavefunctions for all states
 allocate(wfmt(npcmtmax,natmtot,nspinor,nstsv))
 allocate(wfir(ngtot,nspinor,nstsv))
-call genwfsv(.false.,.false.,nstsv,idx,ngk(1,ik),igkig(:,1,ik),apwalm,evecfv, &
- evecsv,wfmt,ngtot,wfir)
+call genwfsv(.false.,.false.,nstsv,idx,ngridg,igfft,ngk(1,ik),igkig(:,1,ik), &
+ apwalm,evecfv,evecsv,wfmt,ngtot,wfir)
 deallocate(apwalm,evecfv,evecsv)
 !-----------------------------------------------------------!
 !     core-conduction overlap density and magnetisation     !
@@ -86,13 +86,12 @@ do is=1,nspecies
               de=evalcr(ist,ias)-evalsv(jst,ik)
               z1=z1*occmax*wkpt(ik)/(de+zi*swidth)
 ! residuals for exchange potential and field
-!$OMP CRITICAL
-              dvxmt(1:npc,ias)=dvxmt(1:npc,ias)+dble(z1*zfmt1(1:npc))
+!$OMP CRITICAL(oepresk_)
+              call rzadd(npc,z1,zfmt1,dvxmt(:,ias))
               do idm=1,ndmag
-                dbxmt(1:npc,ias,idm)=dbxmt(1:npc,ias,idm) &
-                 +dble(z1*zvfmt1(1:npc,idm))
+                call rzadd(npc,z1,zvfmt1(:,idm),dbxmt(:,ias,idm))
               end do
-!$OMP END CRITICAL
+!$OMP END CRITICAL(oepresk_)
 ! end loop over jst
             end if
           end do
@@ -123,7 +122,7 @@ do ist=1,nstsv
            wfir(:,2,jst),zfmt2,zfir2,zvfmt2,zvfir2)
         else
 ! compute the complex density
-          call genzrho(.false.,.true.,wfmt(:,:,:,ist),wfir(:,:,ist), &
+          call genzrho(.false.,.true.,ngtot,wfmt(:,:,:,ist),wfir(:,:,ist), &
            wfmt(:,:,:,jst),wfir(:,:,jst),zfmt2,zfir2)
         end if
         z1=conjg(vclvv(ist,jst,ik))
@@ -135,14 +134,14 @@ do ist=1,nstsv
         end do
         de=evalsv(ist,ik)-evalsv(jst,ik)
         z1=z1*occmax*wkpt(ik)/(de+zi*swidth)
-! residuals for exchange potential and field
-!$OMP CRITICAL
+! add to residuals for exchange potential and field
+!$OMP CRITICAL(oepresk_)
         call rzfadd(z1,zfmt2,zfir2,dvxmt,dvxir)
         do idm=1,ndmag
           call rzfadd(z1,zvfmt2(:,:,idm),zvfir2(:,idm),dbxmt(:,:,idm), &
            dbxir(:,idm))
         end do
-!$OMP END CRITICAL
+!$OMP END CRITICAL(oepresk_)
 ! end loop over jst
       end if
     end do
@@ -151,6 +150,39 @@ do ist=1,nstsv
 end do
 deallocate(wfmt,wfir,zfmt2,zfir2)
 if (spinpol) deallocate(zvfmt2,zvfir2)
+return
+end subroutine
+
+subroutine rzadd(n,za,zv,rv)
+implicit none
+! arguments
+integer, intent(in) :: n
+complex(8), intent(in) :: za
+real(8), intent(in) :: zv(2*n)
+real(8), intent(out) :: rv(n)
+! local variables
+real(8) t1
+t1=dble(za)
+if (abs(t1).gt.1.d-12) call daxpy(n,t1,zv,2,rv,1)
+t1=-aimag(za)
+if (abs(t1).gt.1.d-12) call daxpy(n,t1,zv(2),2,rv,1)
+return
+end subroutine
+
+subroutine rzfadd(za,zfmt,zfir,rfmt,rfir)
+use modmain
+implicit none
+! arguments
+complex(8), intent(in) :: za
+complex(8), intent(in) :: zfmt(npcmtmax,natmtot),zfir(ngtot)
+real(8), intent(inout) :: rfmt(npcmtmax,natmtot),rfir(ngtot)
+! local variables
+integer is,ias
+do ias=1,natmtot
+  is=idxis(ias)
+  call rzadd(npcmt(is),za,zfmt(:,ias),rfmt(:,ias))
+end do
+call rzadd(ngtot,za,zfir,rfir)
 return
 end subroutine
 

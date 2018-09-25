@@ -1,5 +1,5 @@
 
-! Antiferromagnetic bcc iron example with  fixed spin moment in muffin-tin.
+! Antiferromagnetic bcc iron example with fixed spin moment in muffin-tin.
 ! Rememeber to put a small magnetic fields on atoms with same symmetry as
 ! fixed moment. This in order to correctly symmetrize the magnetization.
 ! Run by Fredrik Bultmark, Francesco Cricchio, Lars Nordstrom.

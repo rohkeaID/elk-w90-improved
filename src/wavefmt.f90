@@ -13,8 +13,7 @@ use modmain
 !   lrstp  : radial step length (in,integer)
 !   ias    : joint atom and species number (in,integer)
 !   ngp    : number of G+p-vectors (in,integer)
-!   apwalm : APW matching coefficients
-!            (in,complex(ngkmax,apwordmax,lmmaxapw,natmtot))
+!   apwalm : APW matching coefficients (in,complex(ngkmax,apwordmax,lmmaxapw))
 !   evecfv : first-variational eigenvector (in,complex(nmatmax))
 !   wfmt   : complex muffin-tin wavefunction passed in as real array
 !            (out,real(2,*))
@@ -45,7 +44,7 @@ use modmain
 implicit none
 ! arguments
 integer, intent(in) :: lrstp,ias,ngp
-complex(8), intent(in) :: apwalm(ngkmax,apwordmax,lmmaxapw,natmtot)
+complex(8), intent(in) :: apwalm(ngkmax,apwordmax,lmmaxapw)
 complex(8), intent(in) :: evecfv(nmatmax)
 real(8), intent(out) :: wfmt(2,*)
 ! local variables
@@ -88,7 +87,7 @@ do l=0,lmaxo
     lm=lm+1
     i=npci+lm
     do io=1,apword(l,is)
-      z1=zdotu(ngp,evecfv,1,apwalm(:,io,lm,ias),1)
+      z1=zdotu(ngp,evecfv,1,apwalm(:,io,lm),1)
       if (abs(dble(z1)).gt.1.d-14) then
         if (l.le.lmaxi) then
           call daxpy(nrci,dble(z1),apwfr(1,1,io,l,ias),lrstp,wfmt(1,lm),ldi)

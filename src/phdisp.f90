@@ -44,7 +44,7 @@ end do
 wmax=wmax+(wmax-wmin)*0.5d0
 wmin=wmin-(wmax-wmin)*0.5d0
 ! output the vertex location lines
-open(50,file='PHDLINES.OUT',action='WRITE',form='FORMATTED')
+open(50,file='PHDLINES.OUT',form='FORMATTED')
 do iv=1,nvp1d
   write(50,'(2G18.10)') dvp1d(iv),wmin
   write(50,'(2G18.10)') dvp1d(iv),wmax
@@ -52,7 +52,7 @@ do iv=1,nvp1d
 end do
 close(50)
 ! output the phonon dispersion
-open(50,file='PHDISP.OUT',action='WRITE',form='FORMATTED')
+open(50,file='PHDISP.OUT',form='FORMATTED')
 do i=1,nbph
   do iq=1,npp1d
     write(50,'(2G18.10)') dpp1d(iq),wp(i,iq)

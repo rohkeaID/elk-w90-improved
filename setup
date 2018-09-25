@@ -11,6 +11,7 @@ AR="ar"
 LIB_SYS=""
 LIB_LPK="lapack.a blas.a"
 LIB_FFT="fftlib.a"
+SRC_OMP=""
 
 # get system type from user
 GETSYS ()
@@ -45,7 +46,7 @@ GETSYS ()
     read F77_OPTS
   elif [ "$SYS" = 1 ] ; then
     F90="ifort"
-    F90_OPTS="-O3 -ip -unroll -no-prec-div -openmp"
+    F90_OPTS="-O3 -ip -unroll -no-prec-div -qopenmp"
     F77=$F90
     F77_OPTS="$F90_OPTS -assume protect_parens"
   elif [ "$SYS" = 2 ] ; then
@@ -63,9 +64,10 @@ GETSYS ()
     F90_OPTS="-O3 -fno-second-underscore"
     F77=$F90
     F77_OPTS=$F90_OPTS
+    SRC_OMP="omp_stub.f90"
   elif [ "$SYS" = 5 ] ; then
     F90="nagfor"
-    F90_OPTS="-O4 -kind=byte -dusty -dcfuns"
+    F90_OPTS="-O4 −openmp -kind=byte -dusty -dcfuns"
     F77=$F90
     F77_OPTS=$F90_OPTS
   elif [ "$SYS" = 6 ] ; then
@@ -77,17 +79,20 @@ GETSYS ()
     F90="ifort"
     F90_OPTS="-O3 -ip -unroll -no-prec-div -g -p"
     F77=$F90
-    F77_OPTS=$F90_OPTS
+    F77_OPTS="$F90_OPTS -assume protect_parens"
+    SRC_OMP="omp_stub.f90"
   elif [ "$SYS" = 21 ] ; then
     F90="gfortran"
-    F90_OPTS="-O3 -fopenmp -fcheck=all -finit-real=snan -Wextra -Wall"
+    F90_OPTS="-O3 -fcheck=all -finit-real=snan -Wextra -Wall"
     F77=$F90
     F77_OPTS=$F90_OPTS
+    SRC_OMP="omp_stub.f90"
   elif [ "$SYS" = 22 ] ; then
     F90="g95"
     F90_OPTS="-O3 -Wall -std=f95 -pedantic -fbounds-check -fno-second-underscore -ftrace=full"
     F77=$F90
     F77_OPTS="-O3 -fno-second-underscore"
+    SRC_OMP="omp_stub.f90"
   else
     GETSYS
   fi
@@ -107,6 +112,7 @@ echo "LIB_SYS = $LIB_SYS" >> make.inc
 echo "# LAPACK and BLAS libraries" >> make.inc
 echo "LIB_LPK = $LIB_LPK" >> make.inc
 echo "LIB_FFT = $LIB_FFT" >> make.inc
+echo "SRC_OMP = $SRC_OMP" >> make.inc
 cat make.def >> make.inc
 
 echo

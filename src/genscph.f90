@@ -21,11 +21,11 @@ if ((p.ne.0).and.(p.ne.1)) then
   stop
 end if
 ! find the smallest supercell which contains the q-vector
-call findscq(iqph,avec0,nscph,vscph)
+call findscq(iqph,avec_,nscph,vscph)
 ! construct supercell atomic positions and magnetic fields
 do is=1,nspecies
   na=0
-  do ia=1,natoms0(is)
+  do ia=1,natoms_(is)
     do i=1,nscph
       na=na+1
       if (na.gt.maxatoms) then
@@ -36,7 +36,7 @@ do is=1,nspecies
         write(*,*)
         stop
       end if
-      vc(:)=vscph(:,i)+atposc0(:,ia,is)
+      vc(:)=vscph(:,i)+atposc_(:,ia,is)
 ! add small periodic displacement
       if ((isph.eq.is).and.(iaph.eq.ia)) then
         t1=dot_product(vqc(:,iqph),vscph(:,i))
@@ -51,8 +51,8 @@ do is=1,nspecies
       call r3frac(epslat,atposl(:,na,is))
 ! set muffin-tin fields and fixed spin moments if required
       if (spinpol) then
-        bfcmt0(:,na,is)=bfcmt00(:,ia,is)
-        mommtfix(:,na,is)=mommtfix0(:,ia,is)
+        bfcmt0(:,na,is)=bfcmt0_(:,ia,is)
+        mommtfix(:,na,is)=mommtfix_(:,ia,is)
       end if
     end do
   end do

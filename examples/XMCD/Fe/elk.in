@@ -1,0 +1,69 @@
+
+! Soft x-ray absorption spectroscopy example for bcc Fe, including XAS, XMCD,
+! and XMLD. Species file Fe_lo.in has an additional local orbital at the 2p
+! energy. Spin-orbit coupling has to be included for 2p 1/2 - 2p 3/2 splitting.
+! XAS, XMCD, and XMLD are computed via first order optical response. Fe is
+! cubic, hence the following relations hold for B || z:
+!
+! XAS = 1/3 * Im[ 2*eps_xx + eps_zz ] = 1/3 * Tr(Im[eps])
+! XMCD = Im[ sigma_xy ] = -2*Re[ eps_xy ]
+! XMLD = Im[ eps_xx - eps_zz ]
+!
+! Similarly, the real parts of the epsilon and sigma tensor are related to the
+! Faraday effect. A much larger number of k-points is necessary for a well
+! converged spectrum.
+
+! Example by Markus Meinert.
+
+tasks
+  0
+  120
+  121
+
+wplot
+  400  200  0
+  25.0  26.5
+
+! compute the xx, xy, and zz components
+optcomp
+  1  1
+  1  2
+  3  3
+
+spinpol
+  .true.
+
+spinorb
+  .true.
+
+! use GGA
+xctype
+  20
+
+ngridk
+  8  8  8
+
+bfieldc
+  0.0  0.0  0.01
+
+! large number of empty states necessary for "continuum" absorption
+nempty
+  20
+
+! a Lorentzian broadening is applied to the spectrum
+swidth
+  0.01
+
+avec
+  1.0  1.0 -1.0
+  1.0 -1.0  1.0
+ -1.0  1.0  1.0
+
+scale
+  2.708
+
+atoms
+  1                                   : nspecies
+  'Fe_lo.in'                          : spfname
+  1                                   : natoms
+  0.0  0.0  0.0    0.0  0.0  0.0      : atposl, bfcmt

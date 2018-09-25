@@ -14,26 +14,23 @@ test
  .true.
 
 mixtype
- 1
-
-maxscl
- 8
+ 3
 
 wplot
  50 100 2
  0.0 1.0
 
 ngridq
- 2  1  1
+ 2  2  2
+
+radkpt
+ 20.0
 
 ngridk
  4  4  4
 
-radkpt
- 4.5
-
 rgkmax
- 5.0
+ 6.0
 
 avec
   1.0  1.0  0.0

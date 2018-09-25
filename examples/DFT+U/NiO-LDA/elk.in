@@ -21,17 +21,12 @@ atoms
   2                                    : nspecies
   'Ni.in'                              : spfname
   2                                    : natoms; atpos, bfcmt below
-  0.0   0.0   0.0    0.0  0.0 -2.0
-  0.5   0.5   0.5    0.0  0.0  2.0
+  0.0   0.0   0.0    0.0  0.0 -0.01
+  0.5   0.5   0.5    0.0  0.0  0.01
   'O.in'                               : spfname
   2                                    : natoms; atpos, bfcmt below
   0.25  0.25  0.25   0.0  0.0  0.0
   0.75  0.75  0.75   0.0  0.0  0.0
-
-! the large magnetic local field on Ni is halved at every iteration
-! this speeds up the convergence of magnetic calculations
-reducebf
-  0.5
 
 ! fairly high number of empty states
 nempty

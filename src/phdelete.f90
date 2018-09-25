@@ -10,12 +10,12 @@ character(256) fext
 ! construct the phonon file extension
 call phfext(iqph,isph,iaph,ipph,fext)
 ! delete the eigenvalue/vector files
-open(70,file='DEVALFV'//trim(fext))
-close(70,status='DELETE')
-open(70,file='DEVECFV'//trim(fext))
-close(70,status='DELETE')
-open(70,file='DEVECSV'//trim(fext))
-close(70,status='DELETE')
+open(220,file='DEVALFV'//trim(fext))
+close(220,status='DELETE')
+open(222,file=trim(scrpath)//'DEVECFV'//trim(fext))
+close(222,status='DELETE')
+open(226,file=trim(scrpath)//'DEVECSV'//trim(fext))
+close(226,status='DELETE')
 return
 end subroutine
 

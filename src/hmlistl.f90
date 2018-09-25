@@ -9,6 +9,7 @@
 subroutine hmlistl(ngp,igpig,vgpc,ld,h)
 ! !USES:
 use modmain
+use modomp
 ! !INPUT/OUTPUT PARAMETERS:
 !   ngp   : number of G+p-vectors (in,integer)
 !   igpig : index from G+p-vectors to G-vectors (in,integer(ngkmax))
@@ -34,10 +35,13 @@ real(8), intent(in) :: vgpc(3,ngkmax)
 integer, intent(in) :: ld
 complex(8), intent(inout) :: h(*)
 ! local variables
-integer iv(3),jv(3),ig,i,j,k
+integer iv(3),jv(3),ig
+integer i,j,k,nthd
 real(8) vj(3),t1
+call omp_hold(ngp,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(k,jv,vj,i,iv,ig,t1)
+!$OMP PRIVATE(k,jv,vj,i,iv,ig,t1) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do j=1,ngp
   k=(j-1)*ld
@@ -53,6 +57,7 @@ do j=1,ngp
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 return
 end subroutine
 !EOC

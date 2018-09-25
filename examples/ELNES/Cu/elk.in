@@ -1,0 +1,56 @@
+
+! Electron loss near-edge spectroscopy for fcc Cu. Note that a special species
+! file has been constructed to simulate dynamical core-hole effects by removing
+! half an electron from the 1s core state (even though we are interested in the
+! 2s and 2p transitions). This is a publication-quality calculation and may take
+! some time to complete.
+
+! No supercell is required because of the strong metallic screening of copper.
+! Compare with Eur. Phys. J. B21, 363 (2001).
+
+tasks
+  0
+  140
+
+! spin-orbit coupling required for accurate description of deep valence states
+spinorb
+  .true.
+
+! maximum allowed energy for the initial state in the double differential
+! cross-section formula
+emaxelnes
+ -30.0
+
+! energy range for ELNES plot
+wplot
+  500  200  1  : nwplot, ngrkf, nswplot
+  33.0  37.5   : wplot (suitable for the Cu L3 edge)
+
+vecql
+  0.0  0.0  0.1
+
+rgkmax
+  8.0
+
+gmaxvr
+  14.0
+
+nempty
+  20
+
+ngridk
+  10  10  10
+
+avec
+  0.5  0.5  0.0
+  0.5  0.0  0.5
+  0.0  0.5  0.5
+
+scale
+  6.83117
+
+atoms
+  1                                   : nspecies
+  'Cu+.in'                            : spfname
+  1                                   : natoms
+  0.0  0.0  0.0    0.0  0.0  0.0      : atposl, bfcmt

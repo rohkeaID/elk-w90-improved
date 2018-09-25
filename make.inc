@@ -1,17 +1,30 @@
-
 MAKE = make
-F90 = gfortran
-F90_OPTS = -O3 -ffast-math -funroll-loops -fopenmp -g -Wall -Wextra -Warray-temporaries -Wconversion -fimplicit-none -fbacktrace -ffree-line-length-0 -fcheck=all -ffpe-trap=zero,overflow,underflow -finit-real=nan
-F77 = gfortran
-F77_OPTS = -O3 -ffast-math -funroll-loops -fopenmp -g -Wall -Wextra -Warray-temporaries -Wconversion -fimplicit-none -fbacktrace -ffree-line-length-0 -fcheck=all -ffpe-trap=zero,overflow,underflow -finit-real=nan
+F90 = mpif90
+F90_OPTS = -O3 -ip -qopenmp -I${MKL_ROOT}/include
+F77 = mpif90
+F77_OPTS = -O3 -ip -qopenmp
 AR = ar
 LIB_SYS =
-# LAPACK and BLAS libraries
-LIB_LPK = /usr/local/lapack_gcc_new/lib64/liblapack.a /usr/local/lapack_gcc_new/lib64/libblas.a
+LIB_LPK = -Wl,--start-group ${MKL_ROOT}/lib/intel64/libmkl_intel_lp64.a ${MKL_ROOT}/lib/intel64/libmkl_core.a ${MKL_ROOT}/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm -qopenmp -liomp5 -lfftw3_threads -lfftw3
+SRC_MPI =
 LIB_FFT = fftlib.a
+#LIB_libxc = libxcf90.a libxc.a
+#SRC_libxc = libxc_funcs.f90 libxc.f90 libxcifc.f90
+#SRC_FFT = zfftifc_fftw.f90
+
+#MAKE = make
+#F90 = gfortran
+#F90_OPTS = -O3 -ffast-math -funroll-loops -fopenmp -g -Wall -Wextra -Warray-temporaries -Wconversion -fimplicit-none -fbacktrace -ffree-line-length-0 -fcheck=all -ffpe-trap=zero,overflow,underflow -finit-real=nan
+#F77 = gfortran
+#F77_OPTS = -O3 -ffast-math -funroll-loops -fopenmp -g -Wall -Wextra -Warray-temporaries -Wconversion -fimplicit-none -fbacktrace -ffree-line-length-0 -fcheck=all -ffpe-trap=zero,overflow,underflow -finit-real=nan
+#AR = ar
+#LIB_SYS =
+## LAPACK and BLAS libraries
+#LIB_LPK = /usr/local/lapack_gcc_new/lib64/liblapack.a /usr/local/lapack_gcc_new/lib64/libblas.a
+#LIB_FFT = fftlib.a
 
 # WANNIER90 library
-LIB_W90 = /home/gerasimov/src/elk-w90-improved/libwannier.a
+LIB_W90 = /home/gerasimov/src/wannier90-2.1.0-oleg/libwannier.a
 
 #-------------------------------------------------------------------------------
 SRC_MPI = mpi_stub.f90

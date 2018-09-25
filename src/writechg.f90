@@ -10,7 +10,7 @@ implicit none
 integer, intent(in) :: fnum
 ! local variables
 integer is,ia,ias
-! output charges
+! write charges
 write(fnum,*)
 write(fnum,'("Charges :")')
 write(fnum,'(" core",T30,": ",G18.10)') chgcrtot
@@ -32,7 +32,7 @@ end if
 write(fnum,'(" total calculated charge",T30,": ",G18.10)') chgcalc
 write(fnum,'(" total charge",T30,": ",G18.10)') chgtot
 write(fnum,'(" error",T30,": ",G18.10)') abs(chgtot-chgcalc)
-! output moments
+! write moments
 if (spinpol) then
   write(fnum,*)
   write(fnum,'("Moments :")')
@@ -48,7 +48,7 @@ if (spinpol) then
   write(fnum,'(" total in muffin-tins",T30,": ",3G18.10)') mommttot(1:ndmag)
   write(fnum,'(" total moment",T30,": ",3G18.10)') momtot(1:ndmag)
 end if
-call flushifc(fnum)
+flush(fnum)
 return
 end subroutine
 

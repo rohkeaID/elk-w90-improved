@@ -1,0 +1,64 @@
+
+! BSE optical spectrum of silicon. Note that the non-zero vkloff is needed to
+! make the system non-metallic, i.e. all occupancies in EIGVAL.OUT should be
+! either 0 or 1. If this is not the case, then the response function will be
+! too large. This is quite a time-consuming calculation and should be run on
+! a multi-processor system.
+
+! Silicon is surprisingly difficult for a BSE calculation: it requires quite a
+! large k-point set for good convergence, unlike the excitonic peak in LiF.
+
+tasks
+  0         ! ground-state calculation
+  120       ! compute momentum matrix elements
+  121       ! compute RPA dielectric function with no local field contributions
+  180       ! generate RPA dielectric function with local field contributions
+  185       ! write the BSE Hamiltonian matrix to file
+  186       ! diagonalise the BSE matrix
+  187       ! compute BSE dielectric function
+
+! this should be small (but not so small that it affects the results!) for a
+! fast calculation because the wavefunctions used in the construction of the BSE
+! matrix elements are expanded to this angular momentum cut-off
+lmaxo
+  4
+
+! number of valence states to use in BSE Hamiltonian
+nvbse
+  3
+
+! number of conduction states
+ncbse
+  4
+
+! a scissor correction is required to match the gap to experiment
+scissor
+  0.0331
+
+swidth
+  0.005
+
+wplot
+  800  100  0  : nwplot, ngrkf, nswplot
+  0.0  1.0     : wplot
+
+avec
+  5.13  5.13  0.00
+  5.13  0.00  5.13
+  0.00  5.13  5.13
+
+sppath
+  '../../../species/'
+
+atoms
+  1                                 : nspecies
+  'Si.in'                           : spfname
+  2                                 : natoms; atposl below
+  0.0   0.0   0.0
+  0.25  0.25  0.25
+
+ngridk
+  5  5  5
+
+vkloff
+  0.25  0.5  0.625

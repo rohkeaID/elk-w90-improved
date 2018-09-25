@@ -1,3 +1,51 @@
+elk-5.2.14
+-fixed meta-GGA atomic forces; thanks to Michael Porer for pointing out the
+ problem
+-Eike Schwier discovered a conflicting MPI variable name and also reported that
+ the code crashes when generating species files; both problems are now fixed
+-linear-response TDDFT off-diagonal components for q=0 now available
+ (experimental)
+
+elk-5.2.10
+-GW code is much improved and also faster; the Pade analytic continuation of the
+ self-energy is more stable and reliable
+-OpenMP parallelism greatly improved; nesting is now permanently switched on and
+ the number of threads is controlled by Elk itself; this should improve scaling
+ on hundreds of CPU cores; please report any problems you have with parallelism
+ on the forum
+-GW spectral function band-structures are now possible; this feature is still
+ experimental
+-Yaroslav Kvashnin and Lars Nordström found and fixed a bug in the fixed spin
+ moment direction code
+-fully variational meta-GGA (in the generalised Kohn-Sham sense) is now running
+ in conjunction with Libxc (experimental)
+-variational meta-GGA works only with collinear magnetism; let us know if you
+ have an idea on how to extend it to the non-collinear case
+-Elk now interfaces to Libxc version 4 -- please update your library from
+ version 2
+-gauge invariant current density plots in 2D and 3D now available (tasks 372 and
+ 373)
+-the entire code is much faster, particularly advanced methods like
+ Hartree-Fock, RDMFT, BSE and GW; this is in part due to a 'coarse' Fourier grid
+ for the wavefunctions
+-the lmaxi has been changed from 3 to 1 and several optimisations based on this
+ have been hard-coded into Elk
+-Broyden mixing (mixtype=3) is now the default; magnetic calculations will now
+ converge using a small bfieldc or bfcmt thanks to an improved magnetisation
+ initialisation scheme
+-real-time TDDFT calculations no longer require 'nosym=.true.' but rather
+ 'tshift=.false.' and are much faster as a consequence
+-2D and 3D current density plotting now available with tasks 272 and 273,
+ respectively
+-task 480 generates a linear-response dielectric function calculation from a
+ time-evolution run
+-lots of optimisations everywhere in the code, including additional OpenMP
+ directives
+-lots of minor improvements and bug fixes
+-cleaned up and improved examples
+-several direct access files are not closed after reading which speeds up file
+ I/O; please report any problems with this on the forum
+
 elk-4.3.6
 -GW approximation now available thanks to Arkadiy Davydov; this is a finite
  temperature Matsubara implementation; currently it only calculates the k-point

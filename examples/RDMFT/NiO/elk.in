@@ -1,0 +1,69 @@
+
+! Reduced density matrix functional theory (RDMFT) example for NiO.
+
+tasks
+ 0
+ 300
+ 10
+
+swidth
+ 0.001
+
+dosocc
+ .false.
+
+dos
+  500  100  0
+ -0.6  0.6
+
+! maximum number of RDMFT self-consistent loops
+rdmmaxscl
+ 2
+
+! maximum number of iterations per self-consistent loop for determining the
+! natural orbitals via steepest-descent
+maxitc
+ 10
+
+! maximum number of iterations per self-consistent loop for determining the
+! occupation numbers via steepest-descent
+maxitn
+ 100
+
+! RDMFT exchange-correlation functional, in this case the 'power functional'
+rdmxctype
+ 2
+
+! coefficient of the power functional
+rdmalpha
+ 0.65
+
+nempty
+ 10
+
+ngridk
+ 4  4  4
+
+vkloff
+ 0.25 0.5 0.625
+
+avec
+  1.00 1.00 0.00
+  1.00 0.00 1.00
+  0.00 1.00 1.00
+
+scale
+ 3.9468
+
+sppath
+ '../../../species/'
+
+atoms
+  2
+ 'Ni.in'
+  1
+  0.0 0.0 0.0
+ 'O.in'
+  1
+  0.5 0.5 0.5
+

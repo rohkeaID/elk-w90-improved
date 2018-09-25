@@ -20,7 +20,7 @@ use modmain
 implicit none
 ! local variables
 integer ik
-open(50,file='KPOINTS'//trim(filext),action='WRITE',form='FORMATTED')
+open(50,file='KPOINTS'//trim(filext),form='FORMATTED')
 write(50,'(I6," : nkpt; k-point, vkl, wkpt, nmat below")') nkpt
 do ik=1,nkpt
   write(50,'(I6,4G18.10,2I8)') ik,vkl(:,ik),wkpt(ik),nmat(:,ik)

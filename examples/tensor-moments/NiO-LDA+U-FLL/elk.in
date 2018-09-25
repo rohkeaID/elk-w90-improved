@@ -1,0 +1,54 @@
+
+! NiO in AFMII structure with LDA+U and fully-localised-limit (FLL) double
+! counting (dftu=1). Values of Slater parameters for Ni are taken from
+! literature. Calculate the tensor moment decomposition of the density
+! matrix and of the Hartree-Fock LDA+U energy in TMDFTU.OUT with task=400
+! (see PRB 80, 035121 (2009)).
+! Observe the large 011 (spin-polarization), 404 (high multipole of charge) and
+! the almost degenerate 413, 414, 415 (high multipoles of magnetization)
+! contributions to the exchange energy.
+! Compare the case with and without spin-orbit coupling (spinorb).
+! Example by Francesco Cricchio.
+
+tasks
+  0
+  400
+
+! DFT+U block
+! here FLL double counting is used (dftu=1) with Slater parameters as specified
+dft+u
+  1  2                               : dftu, inpdftu
+  1  2  0.29399  0.30078  0.18799    : is, l, f0, f2, f4
+
+spinpol
+  .true.
+
+scale
+  7.893389
+
+avec
+  1.0  0.5  0.5
+  0.5  1.0  0.5
+  0.5  0.5  1.0
+
+atoms
+  2                                    : nspecies
+  'Ni.in'                              : spfname
+  2                                    : natoms; atpos, bfcmt below
+  0.0   0.0   0.0    0.0  0.0 -0.01
+  0.5   0.5   0.5    0.0  0.0  0.01
+  'O.in'                               : spfname
+  2                                    : natoms; atpos, bfcmt below
+  0.25  0.25  0.25   0.0  0.0  0.0
+  0.75  0.75  0.75   0.0  0.0  0.0
+
+! fairly high number of empty states
+nempty
+  8
+
+sppath
+  '../../../species/'
+
+! this grid is too small for accurate magnetic moment
+ngridk
+  4  4  4

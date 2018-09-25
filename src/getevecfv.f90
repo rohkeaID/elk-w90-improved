@@ -41,6 +41,7 @@ integer recl,nmatmax_,nstfv_,nspnfv_
 real(8) vkl_(3),v(3)
 real(8) si(3,3),t1
 complex(8) z1
+character(256) fname
 ! allocatable arrays
 complex(8), allocatable :: evecfv_(:,:)
 if (ikp.gt.0) then
@@ -51,12 +52,22 @@ else
 end if
 ! find the record length
 inquire(iolength=recl) vkl_,nmatmax_,nstfv_,nspnfv_,evecfv
-!$OMP CRITICAL
-open(70,file=trim(scrpath)//'EVECFV'//trim(fext),action='READ', &
- form='UNFORMATTED',access='DIRECT',recl=recl)
-read(70,rec=ik) vkl_,nmatmax_,nstfv_,nspnfv_,evecfv
-close(70)
-!$OMP END CRITICAL
+fname=trim(scrpath)//'EVECFV'//trim(fext)
+!$OMP CRITICAL(u122)
+do i=1,2
+  open(122,file=trim(fname),form='UNFORMATTED',access='DIRECT',recl=recl,err=10)
+  read(122,rec=ik,err=10) vkl_,nmatmax_,nstfv_,nspnfv_,evecfv
+  exit
+10 continue
+  if (i.eq.2) then
+    write(*,*)
+    write(*,'("Error(getevecfv): unable to read from ",A)') trim(fname)
+    write(*,*)
+    stop
+  end if
+  close(122)
+end do
+!$OMP END CRITICAL(u122)
 t1=abs(vkl(1,ik)-vkl_(1))+abs(vkl(2,ik)-vkl_(2))+abs(vkl(3,ik)-vkl_(3))
 if (t1.gt.epslat) then
   write(*,*)
@@ -106,7 +117,7 @@ si(:,:)=dble(symlat(:,:,ilspl))
 !-----------------------------------------------!
 ! loop over the first-variational spins
 do jspn=1,nspnfv
-  if (tvzsymc(isym)) then
+  if (tv0symc(isym)) then
 ! translation vector is zero
     do igk=1,ngk(jspn,ik)
       evecfv_(igk,:)=evecfv(igk,:,jspn)

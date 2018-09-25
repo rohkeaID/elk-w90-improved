@@ -60,7 +60,7 @@ if ((present(rv)).or.(present(rva)).or.(present(zv)).or.(present(zva))) then
   end if
 end if
 write(fname,'("TEST",I3.3,".OUT")') id
-open(90,file=trim(fname),action='WRITE',form='FORMATTED')
+open(90,file=trim(fname),form='FORMATTED')
 write(90,'("''",A,"''")') trim(descr)
 if (present(iv)) then
   write(90,'(2I8)') 1,1

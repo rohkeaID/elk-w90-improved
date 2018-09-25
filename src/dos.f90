@@ -9,6 +9,7 @@
 subroutine dos(fext,tocc,occsvp)
 ! !USES:
 use modmain
+use modomp
 use modtest
 ! !INPUT/OUTPUT PARAMETERS:
 !   fext   : filename extension (in,character(*))
@@ -45,9 +46,9 @@ logical, intent(in) :: tocc
 real(8), intent(in) :: occsvp(nstsv,nkpt)
 ! local variables
 logical tsqaz
-integer nsk(3),ik,jk,ist,iw
+integer nsk(3),ik,jk,ist,iw,ld
 integer nsd,ispn,jspn,is,ia,ias
-integer lmmax,l0,l1,l,m,lm,ld
+integer lmmax,l0,l1,l,m,lm,nthd
 real(8) dw,th,sps(2),vl(3),vc(3)
 real(8) v1(3),v2(3),v3(3),t1
 complex(8) su2(2,2),b(2,2),c(2,2)
@@ -106,10 +107,12 @@ else
   call axangsu2(v3,th,su2)
 end if
 ! begin parallel loop over k-points
+call omp_hold(nkptnr,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP PRIVATE(apwalm,evecfv,evecsv,dmat,sdmat,a) &
 !$OMP PRIVATE(jk,ispn,jspn,vl,vc) &
-!$OMP PRIVATE(is,ia,ias,ist,lm,b,c,t1)
+!$OMP PRIVATE(is,ia,ias,ist,lm,b,c,t1) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ik=1,nkptnr
   allocate(apwalm(ngkmax,apwordmax,lmmaxapw,natmtot,nspnfv))
@@ -199,10 +202,9 @@ do ik=1,nkptnr
 end do
 !$OMP END DO
 !$OMP END PARALLEL
-allocate(w(nwplot))
-allocate(e(nstsv,nkptnr,nspinor))
-allocate(dt(nwplot,nsd))
-allocate(dp(nwplot,l0:l1,nsd))
+call omp_free(nthd)
+allocate(w(nwplot),e(nstsv,nkptnr,nspinor))
+allocate(dt(nwplot,nsd),dp(nwplot,l0:l1,nsd))
 ! generate frequency grid
 dw=(wplot(2)-wplot(1))/dble(nwplot)
 do iw=1,nwplot
@@ -244,7 +246,7 @@ do ispn=1,nspinor
 end do
 deallocate(f,g)
 ! output to file
-open(50,file='TDOS'//trim(fext),action='WRITE',form='FORMATTED')
+open(50,file='TDOS'//trim(fext),form='FORMATTED')
 do ispn=1,nsd
   do iw=1,nwplot
     write(50,'(2G18.10)') w(iw),dt(iw,ispn)*sps(ispn)
@@ -260,8 +262,10 @@ do is=1,nspecies
     ias=idxas(ia,is)
     dp(:,:,:)=0.d0
     do ispn=1,nspinor
+      call omp_hold(lmmax,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(f,g,l,ik,jk,ist)
+!$OMP PRIVATE(f,g,l,ik,jk,ist) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
       do lm=1,lmmax
         allocate(f(nstsv,nkptnr),g(nwplot))
@@ -293,21 +297,22 @@ do is=1,nspecies
           end if
         end if
 ! subtract from interstitial DOS
-!$OMP CRITICAL
+!$OMP CRITICAL(dos_)
         if (dosssum) then
           dt(:,1)=dt(:,1)-g(:)
         else
           dt(:,ispn)=dt(:,ispn)-g(:)
         end if
-!$OMP END CRITICAL
+!$OMP END CRITICAL(dos_)
         deallocate(f,g)
       end do
 !$OMP END DO
 !$OMP END PARALLEL
+      call omp_free(nthd)
     end do
 ! output to file
     write(fname,'("PDOS_S",I2.2,"_A",I4.4)') is,ia
-    open(50,file=trim(fname)//trim(fext),action='WRITE',form='FORMATTED')
+    open(50,file=trim(fname)//trim(fext),form='FORMATTED')
     do ispn=1,nsd
       do l=l0,l1
         do iw=1,nwplot
@@ -323,7 +328,7 @@ end do
 !     irreducible representations file     !
 !------------------------------------------!
 if (lmirep) then
-  open(50,file='ELMIREP'//trim(fext),action='WRITE',form='FORMATTED')
+  open(50,file='ELMIREP'//trim(fext),form='FORMATTED')
   do is=1,nspecies
     do ia=1,natoms(is)
       ias=idxas(ia,is)
@@ -344,7 +349,7 @@ end if
 !--------------------------!
 !     interstitial DOS     !
 !--------------------------!
-open(50,file='IDOS'//trim(fext),action='WRITE',form='FORMATTED')
+open(50,file='IDOS'//trim(fext),form='FORMATTED')
 do ispn=1,nsd
   do iw=1,nwplot
     write(50,'(2G18.10)') w(iw),dt(iw,ispn)*sps(ispn)
@@ -359,3 +364,4 @@ if (lmirep) deallocate(elm,ulm)
 return
 end subroutine
 !EOC
+

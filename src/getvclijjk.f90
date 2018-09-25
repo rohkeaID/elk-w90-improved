@@ -28,18 +28,18 @@ complex(8), intent(out) :: vclijjk(nstsv,nstsv,nstsv,nkpt)
 integer recl,iostat
 ! determine record length
 inquire(iolength=recl) vclijjk
-!$OMP CRITICAL
-open(95,file='VCLIJJK.OUT',action='READ',form='UNFORMATTED',access='DIRECT', &
- recl=recl,iostat=iostat)
+!$OMP CRITICAL(u262)
+open(262,file='VCLIJJK.OUT',form='UNFORMATTED',access='DIRECT',recl=recl, &
+ iostat=iostat)
 if (iostat.ne.0) then
   write(*,*)
   write(*,'("Error(getvclijjk): error opening file VCLIJJK.OUT")')
   write(*,*)
   stop
 end if
-read(95,rec=ikp) vclijjk
-close(95)
-!$OMP END CRITICAL
+read(262,rec=ikp) vclijjk
+close(262)
+!$OMP END CRITICAL(u262)
 return
 end subroutine
 !EOC

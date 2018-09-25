@@ -16,14 +16,14 @@ real(8) a(3,3),b(3,3)
 ! initialise global variables
 call init0
 ! store original parameters
-avec0(:,:)=avec(:,:)
-spinpol0=spinpol
-spinorb0=spinorb
-cmagz0=cmagz
-bfieldc00(:)=bfieldc0(:)
-reducebf0=reducebf
-fsmtype0=fsmtype
-vkloff0(:)=vkloff(:)
+avec_(:,:)=avec(:,:)
+spinpol_=spinpol
+spinorb_=spinorb
+cmagz_=cmagz
+bfieldc0_(:)=bfieldc0(:)
+reducebf_=reducebf
+fsmtype_=fsmtype
+vkloff_(:)=vkloff(:)
 ! enable spin-orbit coupling
 spinorb=.true.
 ! enforce collinear magnetism in the z-direction
@@ -47,7 +47,7 @@ reducebf=0.75d0
 call gentpmae
 ! open MAE_INFO.OUT
 if (mp_mpi) then
-  open(71,file='MAE_INFO.OUT',action='WRITE',form='FORMATTED')
+  open(71,file='MAE_INFO.OUT',form='FORMATTED')
   write(71,*)
   write(71,'("Scale factor of spin-orbit coupling term : ",G18.10)') socscf
 end if
@@ -72,7 +72,7 @@ do i=1,npmae
   th=-tpmae(1,i)
   call axangrot(v1,th,b)
   call r3mm(b,a,rotsht)
-  call r3mm(rotsht,avec0,avec)
+  call r3mm(rotsht,avec_,avec)
 ! find the corresponding moment direction vector
   call r3minv(rotsht,a)
   v1(:)=0.d0
@@ -96,7 +96,7 @@ do i=1,npmae
     write(71,'("Direction vector (Cartesian coordinates) : ",3G18.10)') v2
     write(71,'("Calculated total moment magnitude : ",G18.10)') momtotm
     write(71,'("Total energy : ",G22.12)') engytot
-    call flushifc(71)
+    flush(71)
   end if
 ! check for minimum and maximum total energy
   if (engytot.lt.em(1)) then
@@ -110,7 +110,7 @@ do i=1,npmae
 ! delete the eigenvector files
   if (mp_mpi) call delevec
 ! synchronise MPI processes
-  call mpi_barrier(mpi_comm_kpt,ierror)
+  call mpi_barrier(mpicom,ierror)
 end do
 ! magnetic anisotropy energy
 de=em(2)-em(1)
@@ -123,10 +123,10 @@ if (mp_mpi) then
   write(71,*)
   write(71,'("MAE per unit volume : ",G18.10)') de/omega
   close(71)
-  open(50,file='MAE.OUT',action='WRITE',form='FORMATTED')
+  open(50,file='MAE.OUT',form='FORMATTED')
   write(50,'(G18.10)') de
   close(50)
-  open(50,file='MAEPUV.OUT',action='WRITE',form='FORMATTED')
+  open(50,file='MAEPUV.OUT',form='FORMATTED')
   write(50,'(G18.10)') de/omega
   close(50)
   write(*,*)
@@ -139,14 +139,14 @@ if (mp_mpi) then
   write(*,'(" Additional information written to MAE_INFO.OUT")')
 end if
 ! restore original input parameters
-avec(:,:)=avec0(:,:)
-spinpol=spinpol0
-spinorb=spinorb0
-cmagz=cmagz0
-fsmtype=fsmtype0
-bfieldc0(:)=bfieldc00(:)
-reducebf=reducebf0
-vkloff(:)=vkloff0(:)
+avec(:,:)=avec_(:,:)
+spinpol=spinpol_
+spinorb=spinorb_
+cmagz=cmagz_
+fsmtype=fsmtype_
+bfieldc0(:)=bfieldc0_(:)
+reducebf=reducebf_
+vkloff(:)=vkloff_(:)
 trotsht=.false.
 return
 end subroutine

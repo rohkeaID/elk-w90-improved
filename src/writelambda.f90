@@ -12,7 +12,7 @@ real(8), intent(in) :: wq(nbph,nqpt),gq(nbph,nqpt)
 ! local variables
 integer iq,i
 real(8) t1,t2
-open(50,file='LAMBDAQ.OUT',action='WRITE',form='FORMATTED')
+open(50,file='LAMBDAQ.OUT',form='FORMATTED')
 write(50,*)
 write(50,'(I4," : total number of atoms")') natmtot
 write(50,'(I6," : number of q-points")') nqpt

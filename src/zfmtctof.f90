@@ -5,24 +5,28 @@
 
 subroutine zfmtctof(zfmt)
 use modmain
+use modomp
 implicit none
 ! arguments
 complex(8), intent(inout) :: zfmt(npmtmax,natmtot)
 ! local variables
-integer is,ias,lm,i
+integer is,ias,lm
 integer nr,nri,nro
 integer iro,ir,npi
 integer nrc,nrci,nrco
 integer irco,irc,npci
+integer i,nthd
 ! allocatable arrays
 real(8), allocatable :: fi1(:),fi2(:),fo1(:),fo2(:)
 complex(8), allocatable :: zfmt1(:)
 if (lradstp.eq.1) return
+call omp_hold(natmtot,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP PRIVATE(fi1,fi2,fo1,fo2,zfmt1) &
 !$OMP PRIVATE(is,nr,nri,nro,iro,npi) &
 !$OMP PRIVATE(nrc,nrci,nrco,irco,npci) &
-!$OMP PRIVATE(lm,i,irc,ir)
+!$OMP PRIVATE(lm,i,irc,ir) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ias=1,natmtot
   allocate(fi1(nrcmtmax),fi2(nrcmtmax))
@@ -85,6 +89,7 @@ do ias=1,natmtot
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 return
 end subroutine
 

@@ -33,8 +33,7 @@ subroutine rdirac(sol,n,l,k,nr,r,vr,eval,g0,f0)
 implicit none
 ! arguments
 real(8), intent(in) :: sol
-integer, intent(in) :: n,l,k
-integer, intent(in) :: nr
+integer, intent(in) :: n,l,k,nr
 real(8), intent(in) :: r(nr),vr(nr)
 real(8), intent(inout) :: eval
 real(8), intent(out) :: g0(nr),f0(nr)
@@ -137,3 +136,4 @@ call dscal(nr,t1,f0,1)
 return
 end subroutine
 !EOC
+

@@ -9,9 +9,10 @@
 subroutine gndstate
 ! !USES:
 use modmain
-use modmpi
 use moddftu
-use modultra
+use modulr
+use modmpi
+use modomp
 ! !DESCRIPTION:
 !   Computes the self-consistent Kohn-Sham ground-state. General information is
 !   written to the file {\tt INFO.OUT}. First- and second-variational
@@ -39,8 +40,6 @@ call init1
 if (xctype(1).lt.0) call init2
 ! apply strain to the G, k, G+k and q-vectors if required
 call straingkq
-! set the stop signal to .false.
-tstop=.false.
 if (task.eq.0) trdstate=.false.
 if (task.eq.1) trdstate=.true.
 ! only the MPI master process should write files
@@ -52,39 +51,36 @@ if (mp_mpi) then
 ! output the k-point set to file
   call writekpts
 ! write lattice vectors and atomic positions to file
-  open(50,file='GEOMETRY'//trim(filext),action='WRITE',form='FORMATTED')
+  open(50,file='GEOMETRY'//trim(filext),form='FORMATTED')
   call writegeom(50)
   close(50)
 ! write interatomic distances to file
-  open(50,file='IADIST'//trim(filext),action='WRITE',form='FORMATTED')
+  open(50,file='IADIST'//trim(filext),form='FORMATTED')
   call writeiad(50)
   close(50)
 ! open INFO.OUT file
-  open(60,file='INFO'//trim(filext),action='WRITE',form='FORMATTED')
+  open(60,file='INFO'//trim(filext),form='FORMATTED')
 ! open TOTENERGY.OUT
-  open(61,file='TOTENERGY'//trim(filext),action='WRITE',form='FORMATTED')
+  open(61,file='TOTENERGY'//trim(filext),form='FORMATTED')
 ! open FERMIDOS.OUT
-  open(62,file='FERMIDOS'//trim(filext),action='WRITE',form='FORMATTED')
+  open(62,file='FERMIDOS'//trim(filext),form='FORMATTED')
 ! open MOMENT.OUT if required
-  if (spinpol) open(63,file='MOMENT'//trim(filext),action='WRITE', &
-   form='FORMATTED')
+  if (spinpol) open(63,file='MOMENT'//trim(filext),form='FORMATTED')
 ! open GAP.OUT
-  open(64,file='GAP'//trim(filext),action='WRITE',form='FORMATTED')
+  open(64,file='GAP'//trim(filext),form='FORMATTED')
 ! open RMSDVS.OUT
-  open(65,file='RMSDVS'//trim(filext),action='WRITE',form='FORMATTED')
+  open(65,file='RMSDVS'//trim(filext),form='FORMATTED')
 ! open DTOTENERGY.OUT
-  open(66,file='DTOTENERGY'//trim(filext),action='WRITE',form='FORMATTED')
+  open(66,file='DTOTENERGY'//trim(filext),form='FORMATTED')
 ! open TMDFTU.OUT
-  if (tmwrite) open(67,file='TMDFTU'//trim(filext),action='WRITE', &
-   form='FORMATTED')
+  if (tmwrite) open(67,file='TMDFTU'//trim(filext),form='FORMATTED')
 ! open MOMENTM.OUT
-  if (spinpol) open(68,file='MOMENTM'//trim(filext),action='WRITE', &
-   form='FORMATTED')
+  if (spinpol) open(68,file='MOMENTM'//trim(filext),form='FORMATTED')
 ! write out general information to INFO.OUT
   call writeinfo(60)
   write(60,*)
 end if
-! initialise or read the charge density and potentials from file
+! initialise or read the charge density and magnetisation from file
 iscl=0
 if (trdstate) then
   call readstate
@@ -93,12 +89,16 @@ if (trdstate) then
   end if
   if (autolinengy) call readfermi
 else
+  iscl=0
   call rhoinit
+  call maginit
+  if (mp_mpi) then
+    write(60,'("Density and potential initialised from atomic data")')
+  end if
   call potks
-  call genvsig
-  if (mp_mpi) write(60,'("Density and potential initialised from atomic data")')
 end if
-if (mp_mpi) call flushifc(60)
+if (mp_mpi) flush(60)
+call genvsig
 ! size of mixing vector
 n=npmtmax*natmtot+ngtot
 if (spinpol) n=n+ndmag*(npcmtmax*natmtot+ngtot)
@@ -113,6 +113,8 @@ allocate(work(nwork))
 iscl=0
 call mixpack(.true.,n,v)
 call mixerifc(mixtype,n,v,dv,nwork,work)
+! set the stop signal to .false.
+tstop=.false.
 ! set last self-consistent loop flag
 tlast=.false.
 etp=0.d0
@@ -140,7 +142,9 @@ do iscl=1,maxscl
      &" loops")') iscl
     tlast=.true.
   end if
-  if (mp_mpi) call flushifc(60)
+  if (mp_mpi) flush(60)
+! reset the OpenMP thread variables
+  call omp_reset
 ! generate the core wavefunctions and densities
   call gencore
 ! find the new linearisation energies
@@ -159,8 +163,6 @@ do iscl=1,maxscl
   call gensocfr
 ! generate the first- and second-variational eigenvectors and eigenvalues
   call genevfsv
-! generate the ultracell eigenvectors and eigenvalues if required
-  call genevu
 ! find the occupation numbers and Fermi energy
   call occupy
   if (autoswidth.and.mp_mpi) then
@@ -178,7 +180,7 @@ do iscl=1,maxscl
     call writefermi
   end if
 ! synchronise MPI processes
-  call mpi_barrier(mpi_comm_kpt,ierror)
+  call mpi_barrier(mpicom,ierror)
 ! generate the density and magnetisation
   call rhomag
 ! DFT+U or fixed tensor moment calculation
@@ -218,7 +220,7 @@ do iscl=1,maxscl
   call mixerifc(mixtype,n,v,dv,nwork,work)
 ! make sure every MPI process has a numerically identical potential
   if (np_mpi.gt.1) then
-    call mpi_bcast(v,n,mpi_double_precision,0,mpi_comm_kpt,ierror)
+    call mpi_bcast(v,n,mpi_double_precision,0,mpicom,ierror)
   end if
 ! unpack potential and field
   call mixpack(.false.,n,v)
@@ -246,23 +248,23 @@ do iscl=1,maxscl
     write(60,'(" at k-point ",I6)') ikgap(3)
 ! write total energy to TOTENERGY.OUT
     write(61,'(G22.12)') engytot
-    call flushifc(61)
+    flush(61)
 ! write DOS at Fermi energy to FERMIDOS.OUT
     write(62,'(G18.10)') fermidos
-    call flushifc(62)
+    flush(62)
 ! output charges and moments
     call writechg(60)
     if (spinpol) then
 ! write total moment to MOMENT.OUT
       write(63,'(3G18.10)') momtot(1:ndmag)
-      call flushifc(63)
+      flush(63)
 ! write total moment magnitude to MOMENTM.OUT
       write(68,'(G18.10)') momtotm
-      call flushifc(68)
+      flush(68)
     end if
 ! write estimated Kohn-Sham indirect band gap
     write(64,'(G22.12)') bandgap(1)
-    call flushifc(64)
+    flush(64)
 ! output effective fields for fixed spin moment calculations
     if (fsmtype.ne.0) call writefsm(60)
 ! check for WRITE file
@@ -292,14 +294,14 @@ do iscl=1,maxscl
       write(60,'("RMS change in Kohn-Sham potential (target) : ",G18.10," (",&
        &G18.10,")")') dv,epspot
       write(65,'(G18.10)') dv
-      call flushifc(65)
+      flush(65)
     end if
     de=abs(engytot-etp)
     if (mp_mpi) then
       write(60,'("Absolute change in total energy (target)   : ",G18.10," (",&
        &G18.10,")")') de,epsengy
       write(66,'(G18.10)') de
-      call flushifc(66)
+      flush(66)
     end if
     if ((dv.lt.epspot).and.(de.lt.epsengy)) then
       if (mp_mpi) then
@@ -332,8 +334,8 @@ do iscl=1,maxscl
     end if
   end if
 ! broadcast tlast and tstop from master process to all other processes
-  call mpi_bcast(tlast,1,mpi_logical,0,mpi_comm_kpt,ierror)
-  call mpi_bcast(tstop,1,mpi_logical,0,mpi_comm_kpt,ierror)
+  call mpi_bcast(tlast,1,mpi_logical,0,mpicom,ierror)
+  call mpi_bcast(tstop,1,mpi_logical,0,mpicom,ierror)
 ! output the current total CPU time
   timetot=timeinit+timemat+timefv+timesv+timerho+timepot+timefor
   if (mp_mpi) then
@@ -344,7 +346,7 @@ do iscl=1,maxscl
 end do
 10 continue
 ! synchronise MPI processes
-call mpi_barrier(mpi_comm_kpt,ierror)
+call mpi_barrier(mpicom,ierror)
 if (mp_mpi) then
   write(60,*)
   write(60,'("+------------------------------+")')
@@ -362,6 +364,16 @@ if (tforce) then
   call force
 ! output forces to INFO.OUT
   if (mp_mpi) call writeforces(60)
+end if
+! compute the current density and total current if required
+if (tcden) then
+  call curden(afieldc)
+  if (mp_mpi) then
+    write(60,*)
+    write(60,'("Total current per unit cell")')
+    write(60,'(3G18.10)') curtot
+    write(60,'(" magnitude : ",G18.10)') curtotm
+  end if
 end if
 ! total time used
 timetot=timeinit+timemat+timefv+timesv+timerho+timepot+timefor
@@ -406,7 +418,8 @@ if (mp_mpi) then
 end if
 deallocate(v,work)
 ! synchronise MPI processes
-call mpi_barrier(mpi_comm_kpt,ierror)
+call mpi_barrier(mpicom,ierror)
 return
 end subroutine
 !EOC
+

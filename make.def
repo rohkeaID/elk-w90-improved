@@ -11,7 +11,7 @@ SRC_MPI = mpi_stub.f90
 
 #-------------------------------------------------------------------------------
 SRC_libxc = libxcifc_stub.f90
-# To enable Libxc first download and compile version 2.2.x of the library. Next
+# To enable Libxc first download and compile version 4.x of the library. Next
 # copy the files libxcf90.a and libxc.a to the elk/src directory. Then uncomment
 # the following lines and run 'make clean' followed by 'make'.
 #LIB_libxc = libxcf90.a libxc.a
@@ -34,15 +34,15 @@ SRC_FFT = zfftifc.f90
 # LAPACK and BLAS, MKL FFTW and Libxc. The Fortran compiler is mpif90 which
 # enables MPI parallelism. All libraries are statically linked.
 #
-# MKLROOT = /cluster/intel/mkl
+# MKLROOT = /cluster/intel_2018/mkl/
 # MAKE = make
 # F90 = mpif90
-# F90_OPTS = -O3 -ip -openmp -I$(MKLROOT)/include
+# F90_OPTS = -O3 -ip -axCORE-AVX2,AVX,SSE4.2 -qopenmp -I$(MKLROOT)/include
 # F77 = mpif90
-# F77_OPTS = -O3 -ip -openmp
-# AR = ar
+# F77_OPTS = -O3 -ip -axCORE-AVX2,AVX,SSE4.2 -qopenmp
+# AR = xiar
 # LIB_SYS =
-# LIB_LPK = -Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/lib/intel64/libmkl_core.a $(MKLROOT)/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm -openmp -lfftw3_threads -lfftw3
+# LIB_LPK = -Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/lib/intel64/libmkl_core.a $(MKLROOT)/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm -qopenmp
 # SRC_MPI =
 # LIB_libxc = libxcf90.a libxc.a
 # SRC_libxc = libxc_funcs.f90 libxc.f90 libxcifc.f90

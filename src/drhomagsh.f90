@@ -6,15 +6,18 @@
 subroutine drhomagsh
 use modmain
 use modphonon
+use modomp
 implicit none
 ! local variables
-integer idm,is,ias
+integer idm,is,ias,nthd
 integer nrc,nrci,npc
 ! allocatable arrays
 complex(8), allocatable :: zfmt(:)
+call omp_hold(natmtot,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP PRIVATE(zfmt,is,nrc,nrci) &
-!$OMP PRIVATE(npc,idm)
+!$OMP PRIVATE(npc,idm) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ias=1,natmtot
   allocate(zfmt(npcmtmax))
@@ -34,6 +37,7 @@ do ias=1,natmtot
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 return
 end subroutine
 

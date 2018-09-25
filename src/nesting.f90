@@ -5,10 +5,11 @@
 
 subroutine nesting
 use modmain
+use modomp
 implicit none
 ! local variables
 integer iq,ik,jk,jkq,ivkq(3)
-integer ist,i1,i2,i3
+integer ist,i1,i2,i3,nthd
 real(8) sum0,sum1,sum2,sum3
 real(8) vl(3),vc(3),x,t1
 ! allocatable arrays
@@ -29,14 +30,16 @@ end do
 allocate(nq(nqpt))
 t1=1.d0/swidth
 sum0=0.d0
+call omp_hold(nqpt,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP PRIVATE(sum1,sum2,sum3,ik,jk) &
-!$OMP PRIVATE(ivkq,jkq,ist,x)
+!$OMP PRIVATE(ivkq,jkq,ist,x) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do iq=1,nqpt
-!$OMP CRITICAL
+!$OMP CRITICAL(nesting_)
   write(*,'("Info(nesting): ",I6," of ",I6," q-points")') iq,nqpt
-!$OMP END CRITICAL
+!$OMP END CRITICAL(nesting_)
   sum1=0.d0
   do ik=1,nkptnr
     jk=ivkik(ivk(1,ik),ivk(2,ik),ivk(3,ik))
@@ -60,7 +63,8 @@ do iq=1,nqpt
 end do
 !$OMP END DO
 !$OMP END PARALLEL
-open(50,file='NEST3D.OUT',action='WRITE',form='FORMATTED')
+call omp_free(nthd)
+open(50,file='NEST3D.OUT',form='FORMATTED')
 write(50,'(3I6," : grid size")') ngridq(:)
 do i3=0,ngridq(3)-1
   vl(3)=dble(i3)/dble(ngridq(3))
@@ -75,7 +79,7 @@ do i3=0,ngridq(3)-1
   end do
 end do
 close(50)
-open(50,file='NESTING.OUT',action='WRITE',form='FORMATTED')
+open(50,file='NESTING.OUT',form='FORMATTED')
 write(50,'(G18.10)') sum0
 close(50)
 write(*,*)

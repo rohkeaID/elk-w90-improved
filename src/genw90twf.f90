@@ -20,14 +20,14 @@ use modw90
 !BOC
 implicit none
 complex(8), dimension(npcmtmax,natmtot,nspinor,wann_nproj), intent(inout) :: twfmt
-complex(8), dimension(ngtot,nspinor,wann_nproj),   intent(inout) :: twfir
+complex(8), dimension(ngtot,nspinor,wann_nproj),            intent(inout) :: twfir
 ! local variables
 integer i,is,ia,ias,lmaxproj,lmmaxproj,lm,l,m,n,nr,ir,irc
 real(8) s2,s3,s6,s12
 integer irco,ispn,nrc,nrci
 complex(8) :: z1
 ! allocatable arrays
-real(8), allocatable :: rlm(:)
+real(8),    allocatable :: rlm(:)
 complex(8), allocatable :: twfmt1(:)
 ! automatic arrays
 real(8) v1(3)

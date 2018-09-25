@@ -16,11 +16,10 @@ integer idm,is,ias,np
 real(8) rfmt1(npmtmax),rfmt2(npcmtmax)
 ! compute the Coulomb potential
 call potcoul
-! generate the exchange-correlation potentials for hybrids
-if (hyb) call potxc
 ! convert to spherical coordinates and store in output arrays
 if (hyb) then
 ! hybrid functional case
+  call potxc
   do ias=1,natmtot
     is=idxis(ias)
     np=npmt(is)

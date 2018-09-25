@@ -277,9 +277,9 @@ end do
 deallocate(iwork,ifail,w,rv,work)
 deallocate(tr,tp,idx,s,map,rh,ro,zp)
 call timesec(ts1)
-!$OMP CRITICAL
+!$OMP CRITICAL(eveqnfvr_)
 timefv=timefv+ts1-ts0
-!$OMP END CRITICAL
+!$OMP END CRITICAL(eveqnfvr_)
 return
 end subroutine
 !EOC

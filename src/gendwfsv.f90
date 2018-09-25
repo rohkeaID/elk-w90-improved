@@ -58,10 +58,10 @@ do is=1,nspecies
             if (abs(dble(z1))+abs(aimag(z1)).gt.epsocc) then
               if (.not.done(ist)) then
                 if (tsh) then
-                  call wavefmt(lradstp,ias,ngp(jspn),apwalmq(:,:,:,:,jspn), &
+                  call wavefmt(lradstp,ias,ngp(jspn),apwalmq(:,:,:,ias,jspn), &
                    evecfv(:,ist,jspn),wfmt1(:,ist))
                 else
-                  call wavefmt(lradstp,ias,ngp(jspn),apwalmq(:,:,:,:,jspn), &
+                  call wavefmt(lradstp,ias,ngp(jspn),apwalmq(:,:,:,ias,jspn), &
                    evecfv(:,ist,jspn),wfmt2)
                   call zbsht(nrc,nrci,wfmt2,wfmt1(:,ist))
                 end if

@@ -18,6 +18,7 @@ echo 'syn match elkComment ":.*$"' >> elk.vim
 grep "case('" readinput.f90 | cut -d "'" -f2 | grep -v '^$' > vimelk.temp
 grep "case('" readinput.f90 | cut -d "'" -f4 | grep -v '^$' >> vimelk.temp
 grep "case('" readinput.f90 | cut -d "'" -f6 | grep -v '^$' >> vimelk.temp
+grep "case('" readinput.f90 | cut -d "'" -f8 | grep -v '^$' >> vimelk.temp
 awk '{print "syn keyword elkBlock",$1;}' vimelk.temp >> elk.vim
 rm vimelk.temp
 

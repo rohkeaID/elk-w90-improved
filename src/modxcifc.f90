@@ -14,7 +14,8 @@ contains
 ! !INTERFACE:
 subroutine xcifc(xctype,n,c_tb09,rho,rhoup,rhodn,grho,gup,gdn,g2rho,g2up,g2dn, &
  g3rho,g3up,g3dn,grho2,gup2,gdn2,gupdn,tau,tauup,taudn,ex,ec,vx,vc,vxup,vxdn, &
- vcup,vcdn,dxdg2,dxdgu2,dxdgd2,dxdgud,dcdg2,dcdgu2,dcdgd2,dcdgud)
+ vcup,vcdn,dxdgr2,dxdgu2,dxdgd2,dxdgud,dcdgr2,dcdgu2,dcdgd2,dcdgud,dxdg2r, &
+ dxdg2u,dxdg2d,dcdg2r,dcdg2u,dcdg2d,wx,wxup,wxdn,wc,wcup,wcdn)
 ! !INPUT/OUTPUT PARAMETERS:
 !   xctype : type of exchange-correlation functional (in,integer(3))
 !   n      : number of density points (in,integer)
@@ -46,14 +47,26 @@ subroutine xcifc(xctype,n,c_tb09,rho,rhoup,rhodn,grho,gup,gdn,g2rho,g2up,g2dn, &
 !   vxdn   : spin-down exchange potential (out,real(n),optional)
 !   vcup   : spin-up correlation potential (out,real(n),optional)
 !   vcdn   : spin-down correlation potential (out,real(n),optional)
-!   dxdg2  : de_x/d(|grad rho|^2) (out,real(n),optional)
+!   dxdgr2 : de_x/d(|grad rho|^2) (out,real(n),optional)
 !   dxdgu2 : de_x/d(|grad rhoup|^2) (out,real(n),optional)
 !   dxdgd2 : de_x/d(|grad rhodn|^2) (out,real(n),optional)
 !   dxdgud : de_x/d((grad rhoup).(grad rhodn)) (out,real(n),optional)
-!   dcdg2  : de_c/d(|grad rho|^2) (out,real(n),optional)
+!   dcdgr2 : de_c/d(|grad rho|^2) (out,real(n),optional)
 !   dcdgu2 : de_c/d(|grad rhoup|^2) (out,real(n),optional)
 !   dcdgd2 : de_c/d(|grad rhodn|^2) (out,real(n),optional)
 !   dcdgud : de_c/d((grad rhoup).(grad rhodn)) (out,real(n),optional)
+!   dxdg2r : de_x/d(grad^2 rho) (out,real(n),optional)
+!   dxdg2u : de_x/d(grad^2 rhoup) (out,real(n),optional)
+!   dxdg2d : de_x/d(grad^2 rhodn) (out,real(n),optional)
+!   dcdg2r : de_c/d(grad^2 rho) (out,real(n),optional)
+!   dcdg2u : de_c/d(grad^2 rhoup) (out,real(n),optional)
+!   dcdg2d : de_c/d(grad^2 rhodn) (out,real(n),optional)
+!   wx     : de_x/dtau (out,real(n),optional)
+!   wxup   : de_x/dtauup (out,real(n),optional)
+!   wxdn   : de_x/dtaudn (out,real(n),optional)
+!   wc     : de_c/dtau (out,real(n),optional)
+!   wcup   : de_c/dtauup (out,real(n),optional)
+!   wcdn   : de_c/dtaudn (out,real(n),optional)
 ! !DESCRIPTION:
 !   Interface to the exchange-correlation routines. In the most general case
 !   (meta-GGA), the exchange-correlation energy is given by
@@ -86,8 +99,12 @@ real(8), optional, intent(in) :: grho2(n),gup2(n),gdn2(n),gupdn(n)
 real(8), optional, intent(in) :: tau(n),tauup(n),taudn(n)
 real(8), optional, intent(out) :: ex(n),ec(n),vx(n),vc(n)
 real(8), optional, intent(out) :: vxup(n),vxdn(n),vcup(n),vcdn(n)
-real(8), optional, intent(out) :: dxdg2(n),dxdgu2(n),dxdgd2(n),dxdgud(n)
-real(8), optional, intent(out) :: dcdg2(n),dcdgu2(n),dcdgd2(n),dcdgud(n)
+real(8), optional, intent(out) :: dxdgr2(n),dxdgu2(n),dxdgd2(n),dxdgud(n)
+real(8), optional, intent(out) :: dxdg2r(n),dxdg2u(n),dxdg2d(n)
+real(8), optional, intent(out) :: wx(n),wxup(n),wxdn(n)
+real(8), optional, intent(out) :: dcdgr2(n),dcdgu2(n),dcdgd2(n),dcdgud(n)
+real(8), optional, intent(out) :: dcdg2r(n),dcdg2u(n),dcdg2d(n)
+real(8), optional, intent(out) :: wc(n),wcup(n),wcdn(n)
 ! local variables
 real(8) kappa,mu,beta
 ! allocatable arrays
@@ -229,8 +246,24 @@ case(100)
 ! libxc library functionals
   if (present(rhoup).and.present(rhodn).and.present(g2up).and.present(g2dn) &
    .and.present(gup2).and.present(gdn2).and.present(gupdn).and.present(tauup) &
-   .and.present(taudn).and.present(vxup).and.present(vxdn).and.present(vcup) &
-   .and.present(vcdn)) then
+   .and.present(taudn).and.present(ex).and.present(ec).and.present(vxup) &
+   .and.present(vxdn).and.present(vcup).and.present(vcdn).and.present(dxdgu2) &
+   .and.present(dxdgd2).and.present(dxdgud).and.present(dcdgu2) &
+   .and.present(dcdgd2).and.present(dcdgud).and.present(dxdg2u) &
+   .and.present(dxdg2d).and.present(dcdg2u).and.present(dcdg2d) &
+   .and.present(wxup).and.present(wxdn).and.present(wcup) &
+   .and.present(wcdn)) then
+! spin-polarised energy meta-GGA
+    call xcifc_libxc(xctype,n,rhoup=rhoup,rhodn=rhodn,g2up=g2up,g2dn=g2dn, &
+     gup2=gup2,gdn2=gdn2,gupdn=gupdn,tauup=tauup,taudn=taudn,ex=ex,ec=ec, &
+     vxup=vxup,vxdn=vxdn,vcup=vcup,vcdn=vcdn,dxdgu2=dxdgu2,dxdgd2=dxdgd2, &
+     dxdgud=dxdgud,dcdgu2=dcdgu2,dcdgd2=dcdgd2,dcdgud=dcdgud,dxdg2u=dxdg2u, &
+     dxdg2d=dxdg2d,dcdg2u=dcdg2u,dcdg2d=dcdg2d,wxup=wxup,wxdn=wxdn,wcup=wcup, &
+     wcdn=wcdn)
+  else if (present(rhoup).and.present(rhodn).and.present(g2up) &
+   .and.present(g2dn).and.present(gup2).and.present(gdn2).and.present(gupdn) &
+   .and.present(tauup).and.present(taudn).and.present(vxup).and.present(vxdn) &
+   .and.present(vcup).and.present(vcdn)) then
 ! spin-polarised potential-only meta-GGA
     call xcifc_libxc(xctype,n,c_tb09=c_tb09,rhoup=rhoup,rhodn=rhodn,g2up=g2up, &
      g2dn=g2dn,gup2=gup2,gdn2=gdn2,gupdn=gupdn,tauup=tauup,taudn=taudn, &
@@ -239,8 +272,7 @@ case(100)
    .and.present(gdn2).and.present(gupdn).and.present(ex).and.present(ec) &
    .and.present(vxup).and.present(vxdn).and.present(vcup).and.present(vcdn) &
    .and.present(dxdgu2).and.present(dxdgd2).and.present(dxdgud) &
-   .and.present(dcdgu2).and.present(dcdgd2).and.present(dcdgd2) &
-   .and.present(dcdgud)) then
+   .and.present(dcdgu2).and.present(dcdgd2).and.present(dcdgud)) then
 ! spin-polarised GGA
     call xcifc_libxc(xctype,n,rhoup=rhoup,rhodn=rhodn,gup2=gup2,gdn2=gdn2, &
      gupdn=gupdn,ex=ex,ec=ec,vxup=vxup,vxdn=vxdn,vcup=vcup,vcdn=vcdn, &
@@ -253,15 +285,24 @@ case(100)
     call xcifc_libxc(xctype,n,rhoup=rhoup,rhodn=rhodn,ex=ex,ec=ec,vxup=vxup, &
      vxdn=vxdn,vcup=vcup,vcdn=vcdn)
   else if (present(rho).and.present(g2rho).and.present(grho2).and.present(tau) &
+   .and.present(ex).and.present(ec).and.present(vx).and.present(vc) &
+   .and.present(dxdgr2).and.present(dcdgr2).and.present(dxdg2r) &
+   .and.present(dcdg2r).and.present(wx).and.present(wc)) then
+! spin-unpolarised energy meta-GGA
+    call xcifc_libxc(xctype,n,rho=rho,g2rho=g2rho,grho2=grho2,tau=tau,ex=ex, &
+     ec=ec,vx=vx,vc=vc,dxdgr2=dxdgr2,dcdgr2=dcdgr2,dxdg2r=dxdg2r, &
+     dcdg2r=dcdg2r,wx=wx,wc=wc)
+  else if (present(rho).and.present(g2rho).and.present(grho2).and.present(tau) &
    .and.present(vx).and.present(vc)) then
 ! spin-unpolarised potential-only meta-GGA
     call xcifc_libxc(xctype,n,c_tb09=c_tb09,rho=rho,g2rho=g2rho,grho2=grho2, &
      tau=tau,vx=vx,vc=vc)
   else if (present(rho).and.present(grho2).and.present(ex).and.present(ec) &
-   .and.present(vx).and.present(vc).and.present(dxdg2).and.present(dcdg2)) then
+   .and.present(vx).and.present(vc).and.present(dxdgr2) &
+   .and.present(dcdgr2)) then
 ! spin-unpolarised GGA
     call xcifc_libxc(xctype,n,rho=rho,grho2=grho2,ex=ex,ec=ec,vx=vx,vc=vc, &
-     dxdg2=dxdg2,dcdg2=dcdg2)
+     dxdgr2=dxdgr2,dcdgr2=dcdgr2)
   else if (present(rho).and.present(ex).and.present(ec).and.present(vx) &
    .and.present(vc)) then
 ! LDA

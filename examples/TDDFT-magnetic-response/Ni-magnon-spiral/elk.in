@@ -1,0 +1,91 @@
+
+! In this example, the frequency of a magnon at a particular q-vector in fcc Ni
+! is determined. Computing a magnon frequency requires the energy difference,
+! dE, between the ferromagnetic and a conical spin-spiral state with small polar
+! angle theta. The following formula can then be used to compute the frequency:
+!
+!    w(q) = (4/M) dE / sin^2(theta)
+!
+! where M is the total moment in the unit cell. See Q. Niu and L. Kleinman,
+! Phys. Rev. Lett. 80, 2205 (1998). It is good practice to fix a q and then run
+! two fixed spin direction calculations: one at theta=0, and the other at a
+! finite theta (in this case 15 degrees).
+
+! Note that the energy difference is very small (order of meV), and the
+! calculation has to be very well converged in all parameters. As a result this
+! example is best run on a multi-processor, and is still quite time-consuming.
+
+tasks
+  0
+
+stype
+  1
+
+taufsm
+  0.01
+
+swidth
+  0.005
+
+rgkmax
+  8.0
+
+gmaxvr
+  14.0
+
+lmaxapw
+  8
+
+lmaxo
+  8
+
+! tight convergence required
+epspot
+  1.d-9
+
+epsengy
+  1.d-6
+
+! use a fixed spin direction calculation
+fsmtype
+ -1
+
+! use a polar angle of 15 degrees
+momfix
+  0.0  0.258819045  0.965925826
+
+! large global field in same direction as momfix
+bfieldc
+  0.0  0.258819045  0.965925826
+
+spinsprl
+  .true.
+
+! spin-spiral q-vector in lattice coordinates
+vqlss
+  0.1  0.1  0.0
+
+nempty
+  10
+
+! very fine k-point grid required for good convergence
+ngridk
+  20  20  20
+
+avec
+  1.0  1.0  0.0
+  1.0  0.0  1.0
+  0.0  1.0  1.0
+
+! experimental lattice parameter
+scale
+  3.325
+
+sppath
+  '../../../species/'
+
+atoms
+  1                                   : nspecies
+  'Ni.in'                             : spfname
+  1                                   : natoms
+  0.0  0.0  0.0    0.0  0.0  0.0      : atposl, bfcmt

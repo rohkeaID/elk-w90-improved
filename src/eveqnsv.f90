@@ -7,6 +7,7 @@
 subroutine eveqnsv(ngp,igpig,vgpc,apwalm,evalfv,evecfv,evalsvp,evecsv)
 use modmain
 use moddftu
+use modomp
 implicit none
 ! arguments
 integer, intent(in) :: ngp,igpig(ngkmax)
@@ -22,15 +23,16 @@ integer nsc,nsd,ld,ist,jst
 integer ispn,jspn,is,ias
 integer nrc,nrci,nrco,irco,irc
 integer l,lm,nm,npc,npci
-integer igp,ifg,i,j,k
+integer igp,i,j,k,nthd
 real(8) ca,t1
 real(8) ts0,ts1
-complex(8) z1
+complex(8) zsum,z1
 ! automatic arrays
 complex(8) zlflm(lmmaxo,3)
 ! allocatable arrays
 complex(8), allocatable :: wfmt1(:,:),wfmt2(:),wfmt3(:),wfmt4(:,:)
-complex(8), allocatable :: gwfmt(:,:),wfir1(:),wfir2(:),z(:,:)
+complex(8), allocatable :: gwfmt(:,:,:),gzfmt(:,:)
+complex(8), allocatable :: wfir1(:),wfir2(:),wfgp(:,:),gwfgp(:,:)
 ! external functions
 complex(8) zdotc,zfmtinp
 external zdotc,zfmtinp
@@ -74,7 +76,8 @@ evecsv(:,:)=0.d0
 !-------------------------!
 allocate(wfmt1(npcmtmax,nstfv),wfmt2(npcmtmax))
 allocate(wfmt3(npcmtmax),wfmt4(npcmtmax,nsc))
-if (afieldpol) allocate(gwfmt(npcmtmax,3))
+if (tafield.or.(xcgrad.eq.4)) allocate(gzfmt(npcmtmax,3))
+if (xcgrad.eq.4) allocate(gwfmt(npcmtmax,3,nstfv))
 ! begin loop over atoms
 do ias=1,natmtot
   is=idxis(ias)
@@ -86,7 +89,7 @@ do ias=1,natmtot
   npci=npcmti(is)
 ! compute the first-variational wavefunctions
   do ist=1,nstfv
-    call wavefmt(lradstp,ias,ngp,apwalm,evecfv(:,ist),wfmt1(:,ist))
+    call wavefmt(lradstp,ias,ngp,apwalm(:,:,:,ias),evecfv(:,ist),wfmt1(:,ist))
   end do
 ! begin loop over states
   do jst=1,nstfv
@@ -166,16 +169,19 @@ do ias=1,natmtot
       end do
     end if
 ! apply vector potential if required
-    if (afieldpol) then
-      call gradzfmt(nrc,nrci,rcmt(:,is),wfmt1(:,jst),npcmtmax,gwfmt)
+    if (tafield) then
+      call gradzfmt(nrc,nrci,rcmt(:,is),wfmt1(:,jst),npcmtmax,gzfmt)
       do i=1,npc
-        z1=afieldc(1)*gwfmt(i,1)+afieldc(2)*gwfmt(i,2)+afieldc(3)*gwfmt(i,3)
+        z1=afieldc(1)*gzfmt(i,1)+afieldc(2)*gzfmt(i,2)+afieldc(3)*gzfmt(i,3)
         z1=ca*cmplx(-aimag(z1),dble(z1),8)
         wfmt4(i,1:nsd)=wfmt4(i,1:nsd)+z1
       end do
     end if
 ! second-variational Hamiltonian matrix
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(i,j,k)
+    call omp_hold(nstfv,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(i,j,k) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
     do ist=1,nstfv
       do k=1,nsc
@@ -197,57 +203,94 @@ do ias=1,natmtot
     end do
 !$OMP END DO
 !$OMP END PARALLEL
+    call omp_free(nthd)
 ! end loop over states
   end do
+! apply tau-DFT potential if required
+  if (xcgrad.eq.4) then
+    do ist=1,nstfv
+      call gradzfmt(nrc,nrci,rcmt(:,is),wfmt1(:,ist),npcmtmax,gwfmt(:,:,ist))
+    end do
+    do jst=1,nstfv
+      do k=1,3
+        call zbsht(nrc,nrci,gwfmt(:,k,jst),wfmt2)
+        wfmt2(1:npc)=wsmt(1:npc,ias)*wfmt2(1:npc)
+        call zfsht(nrc,nrci,wfmt2,gzfmt(:,k))
+      end do
+      do ist=1,nstfv
+        zsum=0.d0
+        do k=1,3
+          z1=zfmtinp(nrc,nrci,rcmt(:,is),r2cmt(:,is),gwfmt(:,k,ist),gzfmt(:,k))
+          zsum=zsum+z1
+        end do
+        zsum=0.5d0*zsum
+        evecsv(ist,jst)=evecsv(ist,jst)+zsum
+        if (spinpol) then
+          i=ist+nstfv
+          j=jst+nstfv
+          evecsv(i,j)=evecsv(i,j)+zsum
+        end if
+      end do
+    end do
+  end if
 ! end loop over atoms
 end do
 deallocate(wfmt1,wfmt2,wfmt3,wfmt4)
-if (afieldpol) deallocate(gwfmt)
+if (tafield.or.(xcgrad.eq.4)) deallocate(gzfmt)
+if (xcgrad.eq.4) deallocate(gwfmt)
 !---------------------------!
 !     interstitial part     !
 !---------------------------!
-if (spinpol) then
+if (spinpol.or.tafield.or.(xcgrad.eq.4)) then
   if (socz) nsc=2
-  allocate(wfir1(ngtot),wfir2(ngtot),z(ngkmax,nsc))
+  allocate(wfir1(ngtot),wfir2(ngtot),wfgp(ngkmax,nsc))
+  if (xcgrad.eq.4) allocate(gwfgp(ngkmax,nstfv))
 ! begin loop over states
   do jst=1,nstfv
     wfir1(:)=0.d0
     do igp=1,ngp
-      ifg=igfft(igpig(igp))
-      wfir1(ifg)=evecfv(igp,jst)
+      wfir1(igfft(igpig(igp)))=evecfv(igp,jst)
     end do
 ! Fourier transform wavefunction to real-space
     call zfftifc(3,ngridg,1,wfir1)
 ! multiply with magnetic field and transform to G-space
-    wfir2(:)=bsir(:,ndmag)*wfir1(:)
-    call zfftifc(3,ngridg,-1,wfir2)
-    do igp=1,ngp
-      ifg=igfft(igpig(igp))
-      z(igp,1)=wfir2(ifg)
-    end do
-    z(1:ngp,2)=-z(1:ngp,1)
-    if (ncmag) then
-      wfir2(:)=cmplx(bsir(:,1),-bsir(:,2),8)*wfir1(:)
+    if (spinpol) then
+      wfir2(:)=bsir(:,ndmag)*wfir1(:)
       call zfftifc(3,ngridg,-1,wfir2)
       do igp=1,ngp
-        ifg=igfft(igpig(igp))
-        z(igp,3)=wfir2(ifg)
+        wfgp(igp,1)=wfir2(igfft(igpig(igp)))
       end do
+      wfgp(1:ngp,2)=-wfgp(1:ngp,1)
+      if (ncmag) then
+        wfir2(:)=cmplx(bsir(:,1),-bsir(:,2),8)*wfir1(:)
+        call zfftifc(3,ngridg,-1,wfir2)
+        do igp=1,ngp
+          wfgp(igp,3)=wfir2(igfft(igpig(igp)))
+        end do
+      end if
+    else
+      wfgp(1:ngp,1:nsd)=0.d0
     end if
 ! apply vector potential if required
-    if (afieldpol) then
-! multiply wavefunction with characteristic function and transform to G-space
+    if (tafield) then
+      wfir1(:)=0.d0
+      do igp=1,ngp
+        t1=-ca*dot_product(afieldc(:),vgpc(:,igp))
+        wfir1(igfft(igpig(igp)))=t1*evecfv(igp,jst)
+      end do
+      call zfftifc(3,ngridg,1,wfir1)
       wfir1(:)=wfir1(:)*cfunir(:)
       call zfftifc(3,ngridg,-1,wfir1)
       do igp=1,ngp
-        ifg=igfft(igpig(igp))
-        t1=-ca*dot_product(afieldc(:),vgpc(:,igp))
-        z1=t1*wfir1(ifg)
-        z(igp,1:nsd)=z(igp,1:nsd)+z1
+        z1=wfir1(igfft(igpig(igp)))
+        wfgp(igp,1:nsd)=wfgp(igp,1:nsd)+z1
       end do
     end if
 ! add to Hamiltonian matrix
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(i,j,k)
+    call omp_hold(nstfv,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(i,j,k) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
     do ist=1,nstfv
       do k=1,nsc
@@ -262,15 +305,49 @@ if (spinpol) then
           j=jst+nstfv
         end if
         if (i.le.j) then
-          evecsv(i,j)=evecsv(i,j)+zdotc(ngp,evecfv(:,ist),1,z(:,k),1)
+          evecsv(i,j)=evecsv(i,j)+zdotc(ngp,evecfv(:,ist),1,wfgp(:,k),1)
         end if
       end do
     end do
 !$OMP END DO
 !$OMP END PARALLEL
+    call omp_free(nthd)
 ! end loop over states
   end do
-  deallocate(wfir1,wfir2,z)
+! apply tau-DFT potential if required
+  if (xcgrad.eq.4) then
+    do k=1,3
+      do ist=1,nstfv
+        do igp=1,ngp
+          z1=evecfv(igp,ist)
+          gwfgp(igp,ist)=vgpc(k,igp)*cmplx(-aimag(z1),dble(z1),8)
+        end do
+      end do
+      do jst=1,nstfv
+        wfir1(:)=0.d0
+        do igp=1,ngp
+          wfir1(igfft(igpig(igp)))=gwfgp(igp,jst)
+        end do
+        call zfftifc(3,ngridg,1,wfir1)
+        wfir1(:)=wsir(:)*wfir1(:)
+        call zfftifc(3,ngridg,-1,wfir1)
+        do igp=1,ngp
+          wfgp(igp,1)=wfir1(igfft(igpig(igp)))
+        end do
+        do ist=1,nstfv
+          z1=0.5d0*zdotc(ngp,gwfgp(:,ist),1,wfgp,1)
+          evecsv(ist,jst)=evecsv(ist,jst)+z1
+          if (spinpol) then
+            i=ist+nstfv
+            j=jst+nstfv
+            evecsv(i,j)=evecsv(i,j)+z1
+          end if
+        end do
+      end do
+    end do
+  end if
+  deallocate(wfir1,wfir2,wfgp)
+  if (xcgrad.eq.4) deallocate(gwfgp)
 end if
 ! add the diagonal first-variational part
 i=0
@@ -296,9 +373,9 @@ else
   end do
 end if
 call timesec(ts1)
-!$OMP CRITICAL
+!$OMP CRITICAL(eveqnsv_)
 timesv=timesv+ts1-ts0
-!$OMP END CRITICAL
+!$OMP END CRITICAL(eveqnsv_)
 return
 end subroutine
 

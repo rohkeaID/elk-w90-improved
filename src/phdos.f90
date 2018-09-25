@@ -76,7 +76,7 @@ gw(:)=t1*gw(:)
 ! smooth phonon DOS if required
 if (nswplot.gt.0) call fsmooth(nswplot,nwplot,gw)
 ! write phonon DOS to file
-open(50,file='PHDOS.OUT',action='WRITE',form='FORMATTED')
+open(50,file='PHDOS.OUT',form='FORMATTED')
 do iw=1,nwplot
   write(50,'(2G18.10)') w(iw),gw(iw)
 end do
@@ -93,7 +93,7 @@ tmax=wmax/kboltz
 do i=1,ntemp
   temp(i)=tmax*dble(i)/dble(ntemp)
 end do
-open(50,file='THERMO.OUT',action='WRITE',form='FORMATTED')
+open(50,file='THERMO.OUT',form='FORMATTED')
 ! zero point energy
 do iw=1,nwplot
   f(iw)=gw(iw)*w(iw)
@@ -150,7 +150,7 @@ do i=1,ntemp
   do iw=1,nwplot
     t1=w(iw)/(kboltz*temp(i))
     t2=exp(t1)-1.d0
-    if (t2.ne.0.d0) then
+    if (abs(t2).gt.1.d-14) then
       f(iw)=gw(iw)*(t1**2)*(t2+1.d0)/t2**2
     else
       f(iw)=0.d0

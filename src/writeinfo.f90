@@ -12,6 +12,7 @@ use modmain
 use modmpi
 use moddftu
 use modrdm
+use modxcifc
 ! !INPUT/OUTPUT PARAMETERS:
 !   fnum : unit specifier for INFO.OUT file (in,integer)
 ! !DESCRIPTION:
@@ -53,7 +54,7 @@ write(fnum,*)
 write(fnum,'("All units are atomic (Hartree, Bohr, etc.)")')
 write(fnum,*)
 select case(task)
-case(0,1,28,29,200,201,350,351,440)
+case(0,1,28,29,200,201,350,351,360,440)
   if (trdstate) then
     write(fnum,'("+------------------------------------------+")')
     write(fnum,'("| Ground-state run resuming from STATE.OUT |")')
@@ -174,10 +175,15 @@ if (ftmtype.ne.0) then
   write(fnum,*)
   write(fnum,'(" fixed tensor moment (FTM) calculation, type : ",I4)') ftmtype
 end if
-if (efieldpol) then
+if (tefield) then
   write(fnum,*)
   write(fnum,'("Constant electric field applied across unit cell")')
   write(fnum,'(" field strength : ",3G18.10)') efieldc
+end if
+if (tafield) then
+  write(fnum,*)
+  write(fnum,'("Constant A-field applied across unit cell")')
+  write(fnum,'(" field strength : ",3G18.10)') afieldc
 end if
 write(fnum,*)
 write(fnum,'("Number of Bravais lattice symmetries : ",I4)') nsymlat
@@ -215,18 +221,26 @@ end if
 write(fnum,'("Total number of k-points : ",I8)') nkpt
 write(fnum,*)
 write(fnum,'("Muffin-tin radius times maximum |G+k| : ",G18.10)') rgkmax
-if (isgkmax.eq.-2) then
+select case(isgkmax)
+case(:-4)
+  write(fnum,'(" using largest radius")')
+case(-3)
+  write(fnum,'(" using smallest radius")')
+case(-2)
   write(fnum,'(" using gkmax = rgkmax / 2")')
-else
-  if ((isgkmax.ge.1).and.(isgkmax.le.nspecies)) then
+case(-1)
+  write(fnum,'(" using average radius")')
+case(1:)
+  if (isgkmax.le.nspecies) then
     write(fnum,'(" using radius of species ",I4," (",A,")")') isgkmax, &
      trim(spsymb(isgkmax))
-  else if (isgkmax.eq.-1) then
-    write(fnum,'(" using average radius")')
   else
-    write(fnum,'(" using smallest radius")')
+    write(*,*)
+    write(*,'("Error(writeinfo): isgkmax > nspecies : ",2I8)') isgkmax,nspecies
+    write(*,*)
+    stop
   end if
-end if
+end select
 write(fnum,'("Maximum |G+k| for APW functions       : ",G18.10)') gkmax
 write(fnum,'("Maximum (1/2)|G+k|^2                  : ",G18.10)') 0.5d0*gkmax**2
 write(fnum,'("Maximum |G| for potential and density : ",G18.10)') gmaxvr
@@ -238,7 +252,6 @@ write(fnum,'("Number of G-vectors : ",I8)') ngvec
 write(fnum,*)
 write(fnum,'("Maximum angular momentum used for")')
 write(fnum,'(" APW functions                      : ",I4)') lmaxapw
-write(fnum,'(" H and O matrix elements outer loop : ",I4)') lmaxmat
 write(fnum,'(" outer part of muffin-tin           : ",I4)') lmaxo
 write(fnum,'(" inner part of muffin-tin           : ",I4)') lmaxi
 write(fnum,*)
@@ -269,6 +282,9 @@ if (task.eq.5) then
   if (hybrid) then
     write(fnum,'(" hybrid functional, coefficient : ",G18.10)') hybridc
   end if
+end if
+if (xctype(1).eq.100) then
+  write(fnum,'("Using Libxc version ",I2.2,".",I2.2,".",I2.2)') libxcv(:)
 end if
 if (xctype(1).lt.0) then
   write(fnum,'("Optimised effective potential (OEP) and exact exchange (EXX)")')
@@ -364,7 +380,7 @@ end if
 write(fnum,*)
 write(fnum,'("Mixing type : ",I4)') mixtype
 write(fnum,'(" ",A)') trim(mixdescr)
-call flushifc(fnum)
+flush(fnum)
 return
 end subroutine
 !EOC

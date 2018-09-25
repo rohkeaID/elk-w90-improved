@@ -8,28 +8,28 @@ use modmain
 use modtddft
 implicit none
 ! local variables
-integer its,its_,iostat
-open(50,file='AFIELDT.OUT',action='READ',form='FORMATTED',status='OLD', &
- iostat=iostat)
+integer ntimes_,its,its_
+integer iostat
+real(8) times_,t1
+open(50,file='AFIELDT.OUT',form='FORMATTED',status='OLD',iostat=iostat)
 if (iostat.ne.0) then
   write(*,*)
   write(*,'("Error(readafieldt): error opening AFIELDT.OUT")')
   write(*,*)
   stop
 end if
-read(50,*) ntimes
-if (ntimes.le.0) then
+read(50,*) ntimes_
+if (ntimes_.le.0) then
   write(*,*)
-  write(*,'("Error(readafieldt): ntimes <= 0 : ",I8)') ntimes
+  write(*,'("Error(readafieldt): ntimes <= 0 : ",I8)') ntimes_
   write(*,*)
   stop
 end if
-if (allocated(times)) deallocate(times)
-allocate(times(ntimes))
+ntimes=min(ntimes,ntimes_)
 if (allocated(afieldt)) deallocate(afieldt)
 allocate(afieldt(3,ntimes))
 do its=1,ntimes
-  read(50,*) its_,times(its),afieldt(:,its)
+  read(50,*) its_,times_,afieldt(:,its)
   if (its.ne.its_) then
     write(*,*)
     write(*,'("Error(readafieldt): time step number mismatch")')
@@ -38,7 +38,17 @@ do its=1,ntimes
     write(*,*)
     stop
   end if
+  t1=abs(times(its)-times_)
+  if (t1.gt.1.d-10) then
+    write(*,*)
+    write(*,'("Error(readafieldt): time step mismatch : ",G18.10)')
+    write(*,'(" internal    : ",G18.10)') times(its)
+    write(*,'(" AFIELDT.OUT : ",G18.10)') times_
+    stop
+  end if
 end do
+close(50)
+tafieldt=.true.
 return
 end subroutine
 

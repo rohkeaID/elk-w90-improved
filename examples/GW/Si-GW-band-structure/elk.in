@@ -1,0 +1,70 @@
+
+! GW spectral function band structure of silicon.
+
+! This is an extremely expensive calculation and requires about 3 days on 200 CPU cores.
+
+tasks
+  0
+  20
+  620
+
+! type of analytic continuation used for the self-energy
+actype
+  10
+
+! use LAPW
+nxoapwlo
+  1
+
+! use the diagonal approximation to the self-energy
+gwdiag
+  1
+
+! Matsubara frequency cut-off
+wmaxgw
+  5.0
+
+! response function G-vector cut-off
+gmaxrf
+  3.0
+
+! temperature of many-body system (determines Matsubara frequency spacing)
+tempk
+  2000.0
+
+! large number of empty states required
+nempty
+  40
+
+plot1d
+  7 400                                 : nvp1d, npp1d
+  0.0   0.0   1.0                       : vlvp1d
+  0.5   0.5   1.0
+  0.0   0.0   0.0
+  0.5   0.0   0.0
+  0.5   0.5   0.0
+  0.5   0.25 -0.25
+  0.5   0.0   0.0
+
+wplot
+  800 100 0
+  -1.5 2.0
+
+avec
+  5.13  5.13  0.00
+  5.13  0.00  5.13
+  0.00  5.13  5.13
+
+atoms
+  1                                 : nspecies
+  'Si.in'                           : spfname
+  2                                 : natoms; atposl below
+  0.0  0.0  0.0
+  0.25 0.25 0.25
+
+ngridk
+  4  4  4
+
+ngridq
+  4  4  4
+

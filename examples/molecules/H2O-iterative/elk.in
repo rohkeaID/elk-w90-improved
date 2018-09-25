@@ -2,11 +2,6 @@
 ! Water molecule in a box. This example uses iterative diagonalisation which may
 ! be used for fine-grained parallelism.
 
-! Remember to set
-!   export OMP_NUM_THREADS=n
-!   export OMP_NESTED=true
-! where n is the number of available processors.
-
 tasks
   0
 

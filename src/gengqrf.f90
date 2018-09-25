@@ -3,12 +3,11 @@
 ! This file is distributed under the terms of the GNU General Public License.
 ! See the file COPYING for license details.
 
-subroutine gengqrf(vqpc,igq0,vgqc,gqc,jlgqr,ylmgq,sfacgq)
+subroutine gengqrf(vqpc,vgqc,gqc,jlgqr,ylmgq,sfacgq)
 use modmain
 implicit none
 ! arguments
 real(8), intent(in) :: vqpc(3)
-integer, intent(out) :: igq0
 real(8), intent(out) :: vgqc(3,ngrf),gqc(ngrf)
 real(8), intent(out) :: jlgqr(njcmax,nspecies,ngrf)
 complex(8), intent(out) :: ylmgq(lmmaxo,ngrf)
@@ -28,8 +27,6 @@ end do
 call genjlgqr(gqc,jlgqr)
 ! structure factors for G+q
 call gensfacgp(ngrf,vgqc,ngrf,sfacgq)
-! find the shortest G+q-vector
-call findigp0(ngrf,gqc,igq0)
 return
 end subroutine
 

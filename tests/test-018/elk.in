@@ -8,17 +8,21 @@ tasks
 test
  .true.
 
+wplot
+  200 100 10
+  0.0 1.0
+
+swidth
+  0.01
+
 rgkmax
   6.5
-
-maxscl
-  8
 
 ngridq
   2  2  2
 
 ngridk
-  2  2  2
+  4  4  4
 
 avec
   1.0  1.0 -1.0

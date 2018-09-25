@@ -20,20 +20,20 @@ complex(8), intent(inout) :: dh(ld,*)
 integer is,io,jo
 integer l1,l2,l3,m1,m2,m3
 integer lm1,lm2,lm3
-real(8) t1
+real(8) t0
 complex(8) z1,zsum
 ! automatic arrays
-complex(8) x1(ngpq),x2(ngpq)
-complex(8) y1(ngp),y2(ngp)
+complex(8) x1(ngpq),y1(ngp),y2(ngp)
 is=idxis(ias)
+t0=0.5d0*rmt(is)**2
 lm1=0
-do l1=0,lmaxmat
+do l1=0,lmaxapw
   do m1=-l1,l1
     lm1=lm1+1
     do io=1,apword(l1,is)
       y1(:)=0.d0
       lm3=0
-      do l3=0,lmaxmat
+      do l3=0,lmaxapw
         do m3=-l3,l3
           lm3=lm3+1
           do jo=1,apword(l3,is)
@@ -55,7 +55,7 @@ do l1=0,lmaxmat
       if (ias.eq.iasph) then
         y2(:)=0.d0
         lm3=0
-        do l3=0,lmaxmat
+        do l3=0,lmaxapw
           do m3=-l3,l3
             lm3=lm3+1
             do jo=1,apword(l3,is)
@@ -75,29 +75,17 @@ do l1=0,lmaxmat
             end do
           end do
         end do
+! kinetic surface contribution
+        do jo=1,apword(l1,is)
+          z1=t0*apwfr(nrmt(is),1,io,l1,ias)*apwdfr(jo,l1,ias)
+          call zaxpy(ngp,z1,dapwalm(:,jo,lm1),1,y1,1)
+          call zaxpy(ngp,z1,apwalm(:,jo,lm1),1,y2,1)
+        end do
         x1(1:ngpq)=conjg(dapwalmq(1:ngpq,io,lm1))
-        call zgerci(ngpq,ngp,zone,x1,y2,ld,dh)
+        call zgerci(ngpq,ngp,x1,y2,ld,dh)
       end if
       x1(1:ngpq)=conjg(apwalmq(1:ngpq,io,lm1))
-      call zgerci(ngpq,ngp,zone,x1,y1,ld,dh)
-    end do
-  end do
-end do
-if (ias.ne.iasph) return
-! kinetic surface contribution
-t1=0.5d0*rmt(is)**2
-lm1=0
-do l1=0,lmaxmat
-  do m1=-l1,l1
-    lm1=lm1+1
-    do io=1,apword(l1,is)
-      x1(1:ngpq)=conjg(apwalmq(1:ngpq,io,lm1))
-      x2(1:ngpq)=conjg(dapwalmq(1:ngpq,io,lm1))
-      do jo=1,apword(l1,is)
-        z1=t1*apwfr(nrmt(is),1,io,l1,ias)*apwdfr(jo,l1,ias)
-        call zgerci(ngpq,ngp,z1,x1,dapwalm(:,jo,lm1),ld,dh)
-        call zgerci(ngpq,ngp,z1,x2,apwalm(:,jo,lm1),ld,dh)
-      end do
+      call zgerci(ngpq,ngp,x1,y1,ld,dh)
     end do
   end do
 end do

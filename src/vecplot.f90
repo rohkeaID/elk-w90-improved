@@ -38,7 +38,7 @@ if ((task.eq.72).or.(task.eq.73).or.(task.eq.82).or.(task.eq.83)) then
     stop
   end if
 end if
-! read magnetisation from file
+! read magnetisation and exchange-correlation magnetic field from file
 call readstate
 allocate(rvfmt(npmtmax,natmtot,3),rvfir(ngtot,3))
 select case(task)
@@ -75,9 +75,9 @@ case(142,143)
   rvfmt(:,:,:)=-rvfmt(:,:,:)
   rvfir(:,:)=-rvfir(:,:)
 case(152,153)
-  if (ndmag.lt.3) then
+  if (.not.ncmag) then
     write(*,*)
-    write(*,'("Error(vecplot): collinear m(r)xB(r) is zero")')
+    write(*,'("Error(vecplot): collinear m(r) x B_xc(r) is zero")')
     write(*,*)
     stop
   end if
@@ -88,13 +88,13 @@ case(72,82,142,152)
 ! project the magnetisation/field onto the plotting plane
   call proj2d(rvfmt,rvfir)
   if (task.eq.72) then
-    open(50,file='MAG2D.OUT',action='WRITE',form='FORMATTED')
+    open(50,file='MAG2D.OUT',form='FORMATTED')
   else if (task.eq.82) then
-    open(50,file='BXC2D.OUT',action='WRITE',form='FORMATTED')
+    open(50,file='BXC2D.OUT',form='FORMATTED')
   else if (task.eq.142) then
-    open(50,file='EF2D.OUT',action='WRITE',form='FORMATTED')
+    open(50,file='EF2D.OUT',form='FORMATTED')
   else
-    open(50,file='MCBXC2D.OUT',action='WRITE',form='FORMATTED')
+    open(50,file='MCBXC2D.OUT',form='FORMATTED')
   end if
   call plot2d(50,3,rvfmt,rvfir)
   close(50)
@@ -111,13 +111,13 @@ case(72,82,142,152)
   end if
 case(73,83,143,153)
   if (task.eq.73) then
-    open(50,file='MAG3D.OUT',action='WRITE',form='FORMATTED')
+    open(50,file='MAG3D.OUT',form='FORMATTED')
   else if (task.eq.83) then
-    open(50,file='BXC3D.OUT',action='WRITE',form='FORMATTED')
+    open(50,file='BXC3D.OUT',form='FORMATTED')
   else if (task.eq.143) then
-    open(50,file='EF3D.OUT',action='WRITE',form='FORMATTED')
+    open(50,file='EF3D.OUT',form='FORMATTED')
   else
-    open(50,file='MCBXC3D.OUT',action='WRITE',form='FORMATTED')
+    open(50,file='MCBXC3D.OUT',form='FORMATTED')
   end if
   call plot3d(50,3,rvfmt,rvfir)
   close(50)

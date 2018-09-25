@@ -13,22 +13,22 @@ implicit none
 integer is,ia,ja,ias,jas
 integer ip,nph,i,p
 real(8) a,b,t1
-real(8) ft0(3,maxatoms*maxspecies)
+real(8) ft(3,maxatoms*maxspecies)
 complex(8) z1,z2
 ! allocatable arrays
-real(8), allocatable :: vsmt0(:,:),vsir0(:)
+real(8), allocatable :: vsmt_(:,:),vsir_(:)
 complex(8), allocatable :: dyn(:,:)
 ! store original parameters
-natoms0(:)=natoms(:)
-avec0(:,:)=avec(:,:)
-atposl0(:,:,:)=atposl(:,:,:)
-bfcmt00(:,:,:)=bfcmt0(:,:,:)
-mommtfix0(:,:,:)=mommtfix(:,:,:)
-tshift0=tshift
-tforce0=tforce
-autokpt0=autokpt
-primcell0=primcell
-ngridk0(:)=ngridk(:)
+natoms_(:)=natoms(:)
+avec_(:,:)=avec(:,:)
+atposl_(:,:,:)=atposl(:,:,:)
+bfcmt0_(:,:,:)=bfcmt0(:,:,:)
+mommtfix_(:,:,:)=mommtfix(:,:,:)
+tshift_=tshift
+tforce_=tforce
+autokpt_=autokpt
+primcell_=primcell
+ngridk_(:)=ngridk(:)
 ! no shifting of atomic basis allowed
 tshift=.false.
 ! require forces
@@ -42,19 +42,19 @@ call init0
 ! initialise q-point dependent variables
 call init2
 ! store original parameters
-natmtot0=natmtot
-idxis0(1:natmtot)=idxis(1:natmtot)
-bvec0(:,:)=bvec(:,:)
-binv0(:,:)=binv(:,:)
-atposc0(:,:,:)=atposc(:,:,:)
-ngridg0(:)=ngridg(:)
-ngtot0=ngtot
-if (allocated(ivg0)) deallocate(ivg0)
-allocate(ivg0(3,ngtot0))
-ivg0(:,:)=ivg(:,:)
-if (allocated(igfft0)) deallocate(igfft0)
-allocate(igfft0(ngtot0))
-igfft0(:)=igfft(:)
+natmtot_=natmtot
+idxis_(1:natmtot)=idxis(1:natmtot)
+bvec_(:,:)=bvec(:,:)
+binv_(:,:)=binv(:,:)
+atposc_(:,:,:)=atposc(:,:,:)
+ngridg_(:)=ngridg(:)
+ngtot_=ngtot
+if (allocated(ivg_)) deallocate(ivg_)
+allocate(ivg_(3,ngtot_))
+ivg_(:,:)=ivg(:,:)
+if (allocated(igfft_)) deallocate(igfft_)
+allocate(igfft_(ngtot_))
+igfft_(:)=igfft(:)
 ! allocate the Kohn-Sham potential derivative arrays
 if (allocated(dvsmt)) deallocate(dvsmt)
 allocate(dvsmt(npmtmax,natmtot))
@@ -67,23 +67,23 @@ allocate(vscph(3,nqptnr))
 allocate(dyn(3,natmtot))
 ! begin new phonon task
 10 continue
-natoms(:)=natoms0(:)
+natoms(:)=natoms_(:)
 ! find a dynamical matrix to calculate
 call dyntask(80,filext)
 ! if nothing more to do then restore original input parameters and return
 if (iqph.eq.0) then
   filext='.OUT'
-  natoms(:)=natoms0(:)
-  avec(:,:)=avec0(:,:)
-  atposl(:,:,:)=atposl0(:,:,:)
-  bfcmt0(:,:,:)=bfcmt00(:,:,:)
-  mommtfix(:,:,:)=mommtfix0(:,:,:)
-  tshift=tshift0
-  tforce=tforce0
-  autokpt=autokpt0
-  primcell=primcell0
-  ngridk(:)=ngridk0(:)
-  deallocate(ivg0,igfft0)
+  natoms(:)=natoms_(:)
+  avec(:,:)=avec_(:,:)
+  atposl(:,:,:)=atposl_(:,:,:)
+  bfcmt0(:,:,:)=bfcmt0_(:,:,:)
+  mommtfix(:,:,:)=mommtfix_(:,:,:)
+  tshift=tshift_
+  tforce=tforce_
+  autokpt=autokpt_
+  primcell=primcell_
+  ngridk(:)=ngridk_(:)
+  deallocate(ivg_,igfft_)
   return
 end if
 if (mp_mpi) write(*,'("Info(phononsc): working on ",A)') 'DYN'//trim(filext)
@@ -118,19 +118,19 @@ do p=0,nph
   trdstate=.true.
 ! store the total force for the first displacement
   do ias=1,natmtot
-    ft0(:,ias)=forcetot(:,ias)
+    ft(:,ias)=forcetot(:,ias)
   end do
 ! store the Kohn-Sham potential for the first displacement
-  allocate(vsmt0(npmtmax,natmtot),vsir0(ngtot))
-  vsmt0(:,:)=vsmt(:,:)
-  vsir0(:)=vsir(:)
+  allocate(vsmt_(npmtmax,natmtot),vsir_(ngtot))
+  vsmt_(:,:)=vsmt(:,:)
+  vsir_(:)=vsir(:)
 ! generate the supercell again with positive displacement
   call genscph(p,deltaph)
 ! run the ground-state calculation again
   call gndstate
 ! compute the complex Kohn-Sham potential derivative with implicit q-phase
-  call phscdvs(p,vsmt0,vsir0)
-  deallocate(vsmt0,vsir0)
+  call phscdvs(p,vsmt_,vsir_)
+  deallocate(vsmt_,vsir_)
 ! Fourier transform the force differences to obtain the dynamical matrix
   z1=1.d0/(dble(nscph)*2.d0*deltaph)
 ! multiply by i for sin-like displacement
@@ -139,7 +139,7 @@ do p=0,nph
   jas=0
   do is=1,nspecies
     ja=0
-    do ia=1,natoms0(is)
+    do ia=1,natoms_(is)
       ias=ias+1
       do i=1,nscph
         ja=ja+1
@@ -147,7 +147,7 @@ do p=0,nph
         t1=-dot_product(vqc(:,iqph),vscph(:,i))
         z2=z1*cmplx(cos(t1),sin(t1),8)
         do ip=1,3
-          t1=-(forcetot(ip,jas)-ft0(ip,jas))
+          t1=-(forcetot(ip,jas)-ft(ip,jas))
           dyn(ip,ias)=dyn(ip,ias)+z2*t1
         end do
       end do
@@ -159,7 +159,7 @@ end do
 if (mp_mpi) then
   ias=0
   do is=1,nspecies
-    do ia=1,natoms0(is)
+    do ia=1,natoms_(is)
       ias=ias+1
       do ip=1,3
         a=dble(dyn(ip,ias))
@@ -173,16 +173,16 @@ if (mp_mpi) then
   end do
   close(80)
 ! write the complex Kohn-Sham potential derivative to file
-  natoms(:)=natoms0(:)
-  natmtot=natmtot0
-  idxis(1:natmtot)=idxis0(1:natmtot)
-  ngridg(:)=ngridg0(:)
+  natoms(:)=natoms_(:)
+  natmtot=natmtot_
+  idxis(1:natmtot)=idxis_(1:natmtot)
+  ngridg(:)=ngridg_(:)
   call writedvs(filext)
 ! delete the non-essential files
   call phscdelete
 end if
 ! synchronise MPI processes
-call mpi_barrier(mpi_comm_kpt,ierror)
+call mpi_barrier(mpicom,ierror)
 goto 10
 end subroutine
 

@@ -20,8 +20,7 @@ complex(8), allocatable :: zfmt(:,:,:)
 allocate(zfmt(lmmaxo,nrmtmax,natmtot))
 call phfext(iq,is,ia,ip,fext)
 fname='DVS'//trim(fext)
-open(50,file=trim(fname),action='READ',form='UNFORMATTED',status='OLD', &
- iostat=iostat)
+open(50,file=trim(fname),form='UNFORMATTED',status='OLD',iostat=iostat)
 if (iostat.ne.0) then
   write(*,*)
   write(*,'("Error(readdvs): error opening ",A)') trim(fname)

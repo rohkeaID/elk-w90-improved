@@ -29,9 +29,9 @@ do ias=1,natmtot
 !---------------------------!
 !     APW-APW integrals     !
 !---------------------------!
-  do l1=0,lmaxmat
+  do l1=0,lmaxapw
     do io=1,apword(l1,is)
-      do l3=0,lmaxmat
+      do l3=0,lmaxapw
         do jo=1,apword(l3,is)
           lm2=0
           do l2=0,lmaxi
@@ -79,7 +79,7 @@ do ias=1,natmtot
 !-------------------------------------!
   do ilo=1,nlorb(is)
     l1=lorbl(ilo,is)
-    do l3=0,lmaxmat
+    do l3=0,lmaxapw
       do io=1,apword(l3,is)
         lm2=0
         do l2=0,lmaxi

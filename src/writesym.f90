@@ -24,7 +24,7 @@ implicit none
 integer is,ia,ja,ias,i
 integer isym,lspl,lspn
 ! output the Bravais lattice symmetries
-open(50,file='SYMLAT'//trim(filext),action='WRITE',form='FORMATTED')
+open(50,file='SYMLAT'//trim(filext),form='FORMATTED')
 write(50,'(I4," : nsymlat")') nsymlat
 do isym=1,nsymlat
   write(50,*)
@@ -35,7 +35,7 @@ do isym=1,nsymlat
 end do
 close(50)
 ! output the crystal symmetries
-open(50,file='SYMCRYS'//trim(filext),action='WRITE',form='FORMATTED')
+open(50,file='SYMCRYS'//trim(filext),form='FORMATTED')
 write(50,*)
 write(50,'("(translation vectors and rotation matrices are in lattice &
  &coordinates)")')
@@ -59,7 +59,7 @@ do isym=1,nsymcrys
 end do
 close(50)
 ! output the site symmetries
-open(50,file='SYMSITE'//trim(filext),action='WRITE',form='FORMATTED')
+open(50,file='SYMSITE'//trim(filext),form='FORMATTED')
 write(50,*)
 write(50,'("(rotation matrices are in lattice coordinates)")')
 do is=1,nspecies
@@ -87,7 +87,7 @@ do is=1,nspecies
 end do
 close(50)
 ! output the equivalent atoms and related symmetries
-open(50,file='EQATOMS'//trim(filext),action='WRITE',form='FORMATTED')
+open(50,file='EQATOMS'//trim(filext),form='FORMATTED')
 do is=1,nspecies
   write(50,*)
   write(50,'("Species : ",I4," (",A,")")') is,trim(spsymb(is))

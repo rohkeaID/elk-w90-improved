@@ -9,13 +9,13 @@ implicit none
 ! delete the eigenvector files
 call delevec
 ! delete the eigenvalue files
-open(70,file='EVALFV'//trim(filext))
-close(70,status='DELETE')
-open(70,file='EVALSV'//trim(filext))
-close(70,status='DELETE')
+open(120,file='EVALFV'//trim(filext))
+close(120,status='DELETE')
+open(124,file='EVALSV'//trim(filext))
+close(124,status='DELETE')
 ! delete the occupancy file
-open(70,file='OCCSV'//trim(filext))
-close(70,status='DELETE')
+open(130,file='OCCSV'//trim(filext))
+close(130,status='DELETE')
 return
 end subroutine
 

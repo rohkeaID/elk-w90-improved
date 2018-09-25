@@ -1,0 +1,57 @@
+
+! BSE optical spectrum of lithium fluoride. This material has a prominent
+! excitonic peak, which is absent in the usual RPA dielectric function.
+
+tasks
+  0         ! ground-state calculation
+  120       ! compute momentum matrix elements
+  121       ! compute RPA dielectric function with no local field contributions
+  180       ! generate RPA dielectric function with local field contributions
+  185       ! write BSE Hamiltonian matrix
+  186       ! diagonalise BSE matrix
+  187       ! generate BSE dielectric function
+
+scissor
+  0.21
+
+! number of BSE valence states
+nvbse
+  3
+
+! number of BSE conduction states
+ncbse
+  4
+
+! G-vector cut-off of local contribution to RPA
+gmaxrf
+  3.0
+
+swidth
+  0.005
+
+nempty
+  8
+
+wplot
+  800  100  0  : nwplot, ngrkf, nswplot
+  0.0  1.5     : wplot
+
+avec
+  3.80402   3.80402   0.0
+  3.80402   0.0       3.80402
+  0.0       3.80402   3.80402
+
+sppath
+  '../../../species/'
+
+atoms
+  2                                       : nspecies
+  'Li.in'                                 : spfname
+  1                                       : natoms; atposl below
+  0.0  0.0  0.0
+  'F.in'
+  1
+  0.5  0.5  0.5
+
+ngridk
+  4  4  4

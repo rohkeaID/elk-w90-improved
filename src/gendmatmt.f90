@@ -7,9 +7,11 @@ subroutine gendmatmt
 use modmain
 use moddftu
 use modmpi
+use modomp
 implicit none
 ! local variables
-integer ik,ispn,ist,ias,n
+integer ik,ispn,ist
+integer ias,n,nthd
 real(8) t1
 ! allocatable arrays
 complex(8), allocatable :: apwalm(:,:,:,:,:)
@@ -18,9 +20,11 @@ complex(8), allocatable :: dmat(:,:,:,:,:)
 ! zero the density matrix
 dmatmt(:,:,:,:,:)=0.d0
 ! begin parallel loop over k-points
+call omp_hold(nkpt/np_mpi,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP PRIVATE(apwalm,evecfv,evecsv,dmat) &
-!$OMP PRIVATE(ispn,ias,ist,t1)
+!$OMP PRIVATE(ispn,ias,ist,t1) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ik=1,nkpt
 ! distribute among MPI processes
@@ -43,20 +47,21 @@ do ik=1,nkpt
      lmmaxdm,dmat)
     do ist=1,nstsv
       t1=wkpt(ik)*occsv(ist,ik)
-!$OMP CRITICAL
+!$OMP CRITICAL(gendmatmt_)
       dmatmt(:,:,:,:,ias)=dmatmt(:,:,:,:,ias)+t1*dmat(:,:,:,:,ist)
-!$OMP END CRITICAL
+!$OMP END CRITICAL(gendmatmt_)
     end do
   end do
   deallocate(apwalm,evecfv,evecsv,dmat)
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 ! add density matrices from each process and redistribute
 if (np_mpi.gt.1) then
   n=((lmmaxdm*nspinor)**2)*natmtot
-  call mpi_allreduce(mpi_in_place,dmatmt,n,mpi_double_complex,mpi_sum, &
-   mpi_comm_kpt,ierror)
+  call mpi_allreduce(mpi_in_place,dmatmt,n,mpi_double_complex,mpi_sum,mpicom, &
+   ierror)
 end if
 ! initialise with symmetry-breaking tensor moments
 if (ftmtype.lt.0) then

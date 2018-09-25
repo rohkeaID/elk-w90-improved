@@ -63,8 +63,8 @@ use modtest
 !BOC
 implicit none
 ! local variables
-integer ik,ist,idm,jdm
-integer is,ia,ias,n2,i
+integer ik,ist,ispn,idm,jdm
+integer is,ia,ias,np,n2,i
 real(8) cb,vn,sum,f
 complex(8) z1
 ! allocatable arrays
@@ -216,6 +216,7 @@ if (task.eq.5) then
 else
 ! Kohn-Sham case
   allocate(rfmt(npmtmax,natmtot))
+! remove magnetic field contribution
   sum=0.d0
   do idm=1,ndmag
     do ias=1,natmtot
@@ -225,6 +226,17 @@ else
     call rfmtctof(rfmt)
     sum=sum+rfinp(magmt(:,:,idm),magir(:,idm),rfmt,bsir(:,idm))
   end do
+! remove integral of w_xc times tau for generalised Kohn-Sham meta-GGA
+  if (xcgrad.eq.4) then
+    do ispn=1,nspinor
+      do ias=1,natmtot
+        is=idxis(ias)
+        np=npmt(is)
+        rfmt(1:np,ias)=taumt(1:np,ias,ispn)-taucr(1:np,ias,ispn)
+      end do
+      sum=sum+rfinp(rfmt,tauir,wxcmt,wxcir)
+    end do
+  end if
 ! remove fixed tensor moment potential matrix contribution
   if (ftmtype.ne.0) then
     n2=(lmmaxdm*nspinor)**2

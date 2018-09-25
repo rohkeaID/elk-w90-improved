@@ -1,0 +1,57 @@
+
+! Band structure of silicon using meta-GGA. Note that the libxc library has to
+! be linked into the code. See the manual for instructions on how to do this.
+
+! LAPW appears to be required to obtain accurate kinetic energy densities.
+
+! Compare the meta-GGA and LDA band structures and band gaps.
+
+tasks
+  0
+  20
+
+! use the Tran-Blaha meta-GGA functional for exchange and LDA for correlation
+! [Phys. Rev. Lett. 102, 226401 (2009)]
+xctype
+  100  208  12
+
+! double the number of points in the muffin-tin
+nrmtscf
+  2
+
+! use LAPW
+nxoapwlo
+  1
+
+! smooth the gradients to ensure convergence
+msmooth
+  2
+
+avec
+  5.13  5.13  0.00
+  5.13  0.00  5.13
+  0.00  5.13  5.13
+
+sppath
+  '../../../species/'
+
+atoms
+  1                                 : nspecies
+  'Si.in'                           : spfname
+  2                                 : natoms; atposl below
+  0.0   0.0   0.0
+  0.25  0.25  0.25
+
+ngridk
+  14  14  14
+
+! These are the vertices to be joined for the band structure plot
+plot1d
+  7 200                                 : nvp1d, npp1d
+  0.0   0.0   1.0                       : vlvp1d
+  0.5   0.5   1.0
+  0.0   0.0   0.0
+  0.5   0.0   0.0
+  0.5   0.5   0.0
+  0.5   0.25 -0.25
+  0.5   0.0   0.0

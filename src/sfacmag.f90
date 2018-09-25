@@ -10,6 +10,7 @@ subroutine sfacmag
 ! !USES:
 use modmain
 use modpw
+use modtest
 ! !DESCRIPTION:
 !   Outputs magnetic structure factors, i.e. the Fourier transform coefficients
 !   of each component $j$ of magnetization ${\bf m}({\bf r})$,
@@ -38,7 +39,7 @@ allocate(zmagh(nhvec))
 do idm=1,ndmag
   call zftrf(nhvec,ivh,vhc,magmt(:,:,idm),magir(:,idm),zmagh)
   write(fname,'("SFACMAG_",I1.1,".OUT")') idm
-  open(50,file=trim(fname),action='WRITE',form='FORMATTED')
+  open(50,file=trim(fname),form='FORMATTED')
   write(50,*)
   write(50,'("h k l indices transformed by vhmat matrix:")')
   write(50,'(3G18.10)') vhmat(:,1)
@@ -71,7 +72,6 @@ do idm=1,ndmag
   end do
   close(50)
 end do
-deallocate(zmagh)
 write(*,*)
 write(*,'("Info(sfacmag): magnetic structure factors written to &
  &SFACMAG_j.OUT")')
@@ -81,6 +81,9 @@ if (ndmag.eq.1) then
 end if
 write(*,*)
 write(*,'(" Energy window : ",2G18.10)') wsfac(:)
+! write the structure factors to test file
+call writetest(196,'magnetic structure factors',nv=nhvec,tol=1.d-5,zva=zmagh(:))
+deallocate(zmagh)
 return
 end subroutine
 !EOC

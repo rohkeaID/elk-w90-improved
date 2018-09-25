@@ -70,6 +70,8 @@ do l=lmaxi+1,lmaxo
     end do
   end do
 end do
+! apply smoothing if required
+call rfmtsm(msmooth,nr,nri,g2rfmt)
 return
 end subroutine
 

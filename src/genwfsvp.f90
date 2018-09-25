@@ -3,27 +3,24 @@
 ! This file is distributed under the terms of the GNU General Public License.
 ! See the file COPYING for license details.
 
-subroutine genwfsvp(tsh,tgp,nst,idx,vpl,wfmt,ld,wfir)
+subroutine genwfsvp(tsh,tgp,nst,idx,ngdg,igf,vpl,ngp,igpig,wfmt,ld,wfir)
 use modmain
 implicit none
 ! arguments
 logical, intent(in) :: tsh,tgp
-integer, intent(in) :: nst,idx(nst)
+integer, intent(in) :: nst,idx(nst),ngdg(3),igf(*)
 real(8), intent(in) :: vpl(3)
+integer, intent(out) :: ngp(nspnfv),igpig(ngkmax,nspnfv)
 complex(8), intent(out) :: wfmt(npcmtmax,natmtot,nspinor,nst)
 integer, intent(in) :: ld
 complex(8), intent(out) :: wfir(ld,nspinor,nst)
 ! local variables
 integer ispn,igp
 real(8) vl(3),vc(3)
-! automatic arrays
-integer ngp(nspnfv)
 ! allocatable arrays
-integer, allocatable :: igpig(:,:)
 real(8), allocatable :: vgpl(:,:,:),vgpc(:,:),gpc(:),tpgpc(:,:)
 complex(8), allocatable :: sfacgp(:,:),apwalm(:,:,:,:,:)
 complex(8), allocatable :: evecfv(:,:,:),evecsv(:,:)
-allocate(igpig(ngkmax,nspnfv))
 allocate(vgpl(3,ngkmax,nspnfv),vgpc(3,ngkmax))
 allocate(gpc(ngkmax),tpgpc(2,ngkmax))
 allocate(sfacgp(ngkmax,natmtot))
@@ -54,7 +51,7 @@ do ispn=1,nspnfv
 ! find the matching coefficients
   call match(ngp(ispn),gpc,tpgpc,sfacgp,apwalm(:,:,:,:,ispn))
 end do
-deallocate(vgpc,gpc,sfacgp)
+deallocate(vgpc,gpc,tpgpc,sfacgp)
 ! get the first- and second-variational eigenvectors from file
 allocate(evecfv(nmatmax,nstfv,nspnfv))
 call getevecfv(filext,0,vpl,vgpl,evecfv)
@@ -62,8 +59,9 @@ deallocate(vgpl)
 allocate(evecsv(nstsv,nstsv))
 call getevecsv(filext,0,vpl,evecsv)
 ! calculate the second-variational wavefunctions
-call genwfsv(tsh,tgp,nst,idx,ngp,igpig,apwalm,evecfv,evecsv,wfmt,ld,wfir)
-deallocate(igpig,apwalm,evecfv,evecsv)
+call genwfsv(tsh,tgp,nst,idx,ngdg,igf,ngp,igpig,apwalm,evecfv,evecsv,wfmt,ld, &
+ wfir)
+deallocate(apwalm,evecfv,evecsv)
 return
 end subroutine
 

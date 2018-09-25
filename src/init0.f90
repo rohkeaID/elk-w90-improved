@@ -13,9 +13,11 @@ use modxcifc
 use moddftu
 use modtddft
 use modphonon
-use modultra
+use modulr
 use modtest
 use modvars
+use modmpi
+use modomp
 ! !DESCRIPTION:
 !   Performs basic consistency checks as well as allocating and initialising
 !   global variables not dependent on the $k$-point set.
@@ -52,15 +54,8 @@ if (lmaxo.gt.lmaxapw) then
   write(*,*)
   stop
 end if
-if (lmaxmat.gt.lmaxapw) then
-  write(*,*)
-  write(*,'("Error(init0): lmaxmat > lmaxapw : ",2I8)') lmaxmat,lmaxapw
-  write(*,*)
-  stop
-end if
 lmaxi=min(lmaxi,lmaxo)
 lmmaxapw=(lmaxapw+1)**2
-lmmaxmat=(lmaxmat+1)**2
 lmmaxi=(lmaxi+1)**2
 lmmaxo=(lmaxo+1)**2
 ! check DOS lmax is within range
@@ -161,10 +156,15 @@ else
   jspnfv(1)=1
   jspnfv(2)=1
 end if
+! no calculation of second-variational eigenvectors by default
+tevecsv=.false.
 ! spin-polarised calculations require second-variational eigenvectors
 if (spinpol) tevecsv=.true.
 ! Hartree-Fock/RDMFT requires second-variational eigenvectors
-if ((task.eq.5).or.(task.eq.300).or.(task.eq.600)) tevecsv=.true.
+if ((task.eq.5).or.(task.eq.10).or.(task.eq.300).or.(task.eq.460).or. &
+ (task.eq.461).or.(task.eq.600).or.(task.eq.620)) then
+  tevecsv=.true.
+end if
 ! get exchange-correlation functional data
 call getxcdata(xctype,xcdescr,xcspin,xcgrad,hybrid,hybridc)
 if ((spinpol).and.(xcspin.eq.0)) then
@@ -205,7 +205,7 @@ else
   ncmag=.false.
 end if
 ! check for meta-GGA with non-collinearity
-if ((xcgrad.eq.3).and.ncmag) then
+if (((xcgrad.eq.3).or.(xcgrad.eq.4)).and.ncmag) then
   write(*,*)
   write(*,'("Error(init0): meta-GGA is not valid for non-collinear magnetism")')
   write(*,*)
@@ -227,6 +227,11 @@ if (fsmtype.ne.0) then
   if (allocated(bfsmcmt)) deallocate(bfsmcmt)
   allocate(bfsmcmt(3,natmtot))
   bfsmcmt(:,:)=0.d0
+  if (mp_mpi.and.(mixtype.ne.1)) then
+    write(*,*)
+    write(*,'("Info(init0): mixtype changed to 1 for FSM calculation")')
+  end if
+  mixtype=1
 end if
 ! number of independent spin components of the f_xc spin tensor
 if (spinpol) then
@@ -243,12 +248,14 @@ bfieldc(:)=bfieldc0(:)
 bfcmt(:,:,:)=bfcmt0(:,:,:)
 ! if reducebf < 1 then reduce the external magnetic fields immediately for
 ! non-self-consistent calculations or resumptions
-if (reducebf.lt.1.d0-epslat) then
-  if ((task.ge.10).and.(task.ne.28).and.(task.ne.200).and.(task.ne.201).and. &
-   (task.ne.350).and.(task.ne.351)) then
+if (reducebf.lt.1.d0-1.d-4) then
+  select case(task)
+  case(0:9,28,200,201,350,351,360)
+    continue
+  case default
     bfieldc(:)=0.d0
     bfcmt(:,:,:)=0.d0
-  end if
+  end select
 end if
 ! set the fixed tensor moment spatial and spin rotation matrices equal for the
 ! case of spin-orbit coupling; parity for spin is ignored by rotdmat
@@ -282,17 +289,13 @@ do is=1,nspecies
     call r3mv(avec,atposl(:,ia,is),atposc(:,ia,is))
   end do
 end do
-! check muffin-tins are not too close together
+! check for overlapping muffin-tins and adjust radii if required
 call checkmt
 ! compute the total muffin-tin volume (M. Meinert)
 omegamt=0.d0
 do is=1,nspecies
   omegamt=omegamt+dble(natoms(is))*(fourpi/3.d0)*rmt(is)**3
 end do
-! generate ultracell reciprocal lattice vectors if required
-if (ultracell) then
-  call reciplat(avecu,bvecu,omegau,omegabzu)
-end if
 ! input q-vector in Cartesian coordinates
 call r3mv(bvec,vecql,vecqc)
 ! write to VARIABLES.OUT
@@ -306,18 +309,29 @@ end do
 !-------------------------------!
 !     vector fields E and A     !
 !-------------------------------!
-efieldpol=.false.
+tefield=.false.
 if (sum(abs(efieldc(:))).gt.epslat) then
-  efieldpol=.true.
+! no shift of the atomic positions
   tshift=.false.
 ! electric field vector in lattice coordinates
   call r3mv(ainv,efieldc,efieldl)
+  tefield=.true.
 end if
-afieldpol=.false.
+tafield=.false.
 if (sum(abs(afieldc(:))).gt.epslat) then
-  afieldpol=.true.
+  tafield=.true.
+! A-field in lattice coordinates
+  call r3mv(ainv,afieldc,afieldl)
 ! vector potential added in second-variational step
   tevecsv=.true.
+end if
+tafieldt=.false.
+if ((task.eq.460).or.(task.eq.461).or.(task.eq.480).or.(task.eq.481)) then
+! generate the time-step grid
+  call gentimes
+! read time-dependent A-field from file
+  call readafieldt
+  tafieldt=.true.
 end if
 
 !---------------------------------!
@@ -401,27 +415,37 @@ call writevars('chgval',rv=chgtot)
 !-------------------------!
 !     G-vector arrays     !
 !-------------------------!
+! determine gkmax from rgkmax
 if (nspecies.eq.0) isgkmax=-2
-! determine gkmax from rgkmax and the muffin-tin radius
-if (isgkmax.eq.-2) then
+select case(isgkmax)
+case(:-4)
+! use largest muffin-tin radius
+  gkmax=rgkmax/maxval(rmt(1:nspecies))
+case(-3)
+! use smallest muffin-tin radius
+  gkmax=rgkmax/minval(rmt(1:nspecies))
+case(-2)
+! use the fixed value of 2.0
   gkmax=rgkmax/2.d0
-else
-  if ((isgkmax.ge.1).and.(isgkmax.le.nspecies)) then
-! use user-specified muffin-tin radius
-    gkmax=rgkmax/rmt(isgkmax)
-  else if (isgkmax.eq.-1) then
+case(-1)
 ! use average muffin-tin radius
-    rsum=0.d0
-    do is=1,nspecies
-      rsum=rsum+dble(natoms(is))*rmt(is)
-    end do
-    rsum=rsum/dble(natmtot)
-    gkmax=rgkmax/rsum
+  rsum=0.d0
+  do is=1,nspecies
+     rsum=rsum+dble(natoms(is))*rmt(is)
+  end do
+  rsum=rsum/dble(natmtot)
+  gkmax=rgkmax/rsum
+case(1:)
+! use user-specified muffin-tin radius
+  if (isgkmax.le.nspecies) then
+    gkmax=rgkmax/rmt(isgkmax)
   else
-! use minimum muffin-tin radius (isgkmax=-3)
-    gkmax=rgkmax/minval(rmt(1:nspecies))
+    write(*,*)
+    write(*,'("Error(init0): isgkmax > nspecies : ",2I8)') isgkmax,nspecies
+    write(*,*)
+    stop
   end if
-end if
+end select
 ! generate the G-vectors
 call gengvec
 ! write number of G-vectors to test file
@@ -434,6 +458,8 @@ else
 end if
 npsd=max(nint(t1),1)
 lnpsd=lmaxo+npsd+1
+! generate the Coulomb Green's function in G-space = fourpi / G^2
+call gengclg
 ! compute the spherical Bessel functions j_l(|G|R_mt)
 if (allocated(jlgrmt)) deallocate(jlgrmt)
 allocate(jlgrmt(0:lnpsd,ngvec,nspecies))
@@ -471,13 +497,11 @@ if (allocated(occcr)) deallocate(occcr)
 allocate(occcr(nstspmax,natmtot))
 if (allocated(evalcr)) deallocate(evalcr)
 allocate(evalcr(nstspmax,natmtot))
-do is=1,nspecies
-  do ia=1,natoms(is)
-    ias=idxas(ia,is)
-    do ist=1,nstsp(is)
-      occcr(ist,ias)=occsp(ist,is)
-      evalcr(ist,ias)=evalsp(ist,is)
-    end do
+do ias=1,natmtot
+  is=idxis(ias)
+  do ist=1,nstsp(is)
+    occcr(ist,ias)=occsp(ist,is)
+    evalcr(ist,ias)=evalsp(ist,is)
   end do
 end do
 ! allocate core state radial wavefunction array
@@ -507,6 +531,18 @@ if (allocated(magir)) deallocate(magir)
 if (spinpol) then
   allocate(magmt(npmtmax,natmtot,ndmag))
   allocate(magir(ngtot,ndmag))
+end if
+! check if the current density should be calculated
+tcden=.false.
+if (tafield.or.(task.eq.372).or.(task.eq.373).or.(task.eq.460).or. &
+ (task.eq.461)) then
+  tcden=.true.
+end if
+! allocate current density arrays
+if (allocated(cdmt)) deallocate(cdmt)
+if (allocated(cdir)) deallocate(cdir)
+if (tcden) then
+  allocate(cdmt(npmtmax,natmtot,3),cdir(ngtot,3))
 end if
 ! Coulomb potential
 if (allocated(vclmt)) deallocate(vclmt)
@@ -541,10 +577,26 @@ if (allocated(bxcir)) deallocate(bxcir)
 if (allocated(bsmt)) deallocate(bsmt)
 if (allocated(bsir)) deallocate(bsir)
 if (spinpol) then
-  allocate(bxcmt(npmtmax,natmtot,ndmag))
-  allocate(bxcir(ngtot,ndmag))
-  allocate(bsmt(npcmtmax,natmtot,ndmag))
-  allocate(bsir(ngtot,ndmag))
+  allocate(bxcmt(npmtmax,natmtot,ndmag),bxcir(ngtot,ndmag))
+  allocate(bsmt(npcmtmax,natmtot,ndmag),bsir(ngtot,ndmag))
+end if
+! kinetic energy density
+if (allocated(taumt)) deallocate(taumt)
+if (allocated(tauir)) deallocate(tauir)
+if (allocated(taucr)) deallocate(taucr)
+if ((xcgrad.eq.3).or.(xcgrad.eq.4)) then
+  allocate(taumt(npmtmax,natmtot,nspinor),tauir(ngtot,nspinor))
+  allocate(taucr(npmtmax,natmtot,nspinor))
+end if
+! tau-DFT exchange-correlation and Kohn-Sham potentials
+if (allocated(wxcmt)) deallocate(wxcmt)
+if (allocated(wxcir)) deallocate(wxcir)
+if (allocated(wsmt)) deallocate(wsmt)
+if (allocated(wsir)) deallocate(wsir)
+if (xcgrad.eq.4) then
+  allocate(wxcmt(npmtmax,natmtot),wxcir(ngtot))
+  allocate(wsmt(npcmtmax,natmtot),wsir(ngtot))
+  tevecsv=.true.
 end if
 ! spin-orbit coupling radial function
 if (allocated(socfr)) deallocate(socfr)
@@ -654,8 +706,8 @@ if (allocated(vplp1d)) deallocate(vplp1d)
 allocate(vplp1d(3,npp1d))
 if (allocated(dpp1d)) deallocate(dpp1d)
 allocate(dpp1d(npp1d))
-! zero self-consistent loop number
-iscl=0
+! initial self-consistent loop number
+iscl=1
 tlast=.false.
 ! set the Fermi energy to zero
 efermi=0.d0
@@ -668,3 +720,4 @@ timeinit=timeinit+ts1-ts0
 return
 end subroutine
 !EOC
+

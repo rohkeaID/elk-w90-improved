@@ -25,8 +25,6 @@ integer it,n
 if (maxitn.lt.1) return
 ! write the Coulomb matrix elements to file
 call writevclijji
-! synchronise MPI processes
-call mpi_barrier(mpi_comm_kpt,ierror)
 ! calculate derivative of kinetic energy w.r.t. evecsv
 call rdmdkdc
 ! begin iteration loop
@@ -46,13 +44,13 @@ do it=1,maxitn
   if (mp_mpi) call rdmvaryn
 ! broadcast occupation numbers to all other processes
   n=nstsv*nkpt
-  call mpi_bcast(occsv,n,mpi_double_precision,0,mpi_comm_kpt,ierror)
+  call mpi_bcast(occsv,n,mpi_double_precision,0,mpicom,ierror)
 ! calculate the energy
   call rdmenergy
 ! write energy to file
   if (mp_mpi) then
     write(61,'(I6,G18.10)') it,engytot
-    call flushifc(61)
+    flush(61)
   end if
 ! end iteration loop
 end do
@@ -65,3 +63,4 @@ end if
 return
 end subroutine
 !EOC
+

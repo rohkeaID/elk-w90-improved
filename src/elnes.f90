@@ -5,19 +5,24 @@
 
 subroutine elnes
 use modmain
+use modomp
 use modtest
 implicit none
 ! local variables
-integer ik,jk,ikq,ist,jst
-integer isym,n,nsk(3),iw
+integer ik,jk,ikq,isym,nsk(3)
+integer ist,jst,iw,n,nthd
+real(8) vgqc(3),gqc
 real(8) vkql(3),v(3)
-real(8) qc,wd,dw,w,t1
+real(8) q,wd,dw,w,t1
 ! allocatable arrays
-real(8), allocatable :: e(:,:,:),f(:,:,:),ddcs(:)
+real(8), allocatable :: jlgqr(:,:),ddcs(:)
+real(8), allocatable :: e(:,:,:),f(:,:,:)
+complex(8), allocatable :: ylmgq(:),sfacgq(:)
 complex(8), allocatable :: expmt(:,:),emat(:,:)
 ! initialise universal variables
 call init0
 call init1
+call init2
 ! check q-vector is commensurate with k-point grid
 v(:)=dble(ngridk(:))*vecql(:)
 v(:)=abs(v(:)-nint(v(:)))
@@ -29,11 +34,6 @@ if ((v(1).gt.epslat).or.(v(2).gt.epslat).or.(v(3).gt.epslat)) then
   write(*,*)
   stop
 end if
-! allocate local arrays
-allocate(e(nstsv,nstsv,nkptnr))
-allocate(f(nstsv,nstsv,nkptnr))
-allocate(ddcs(nwplot))
-allocate(expmt(npcmtmax,natmtot))
 ! read in the density and potentials from file
 call readstate
 ! read Fermi energy from file
@@ -50,19 +50,28 @@ do ik=1,nkpt
   call getoccsv(filext,ik,vkl(:,ik),occsv(:,ik))
 end do
 ! generate the phase factor function exp(iq.r) in the muffin-tins
-call genexpmt(vecqc,expmt)
+allocate(jlgqr(njcmax,nspecies))
+allocate(ylmgq(lmmaxo),sfacgq(natmtot))
+allocate(expmt(npcmtmax,natmtot))
+ngrf=1
+call gengqrf(vecqc,vgqc,gqc,jlgqr,ylmgq,sfacgq)
+call genexpmt(1,jlgqr,ylmgq,1,sfacgq,expmt)
+deallocate(jlgqr,ylmgq,sfacgq)
+allocate(e(nstsv,nstsv,nkptnr),f(nstsv,nstsv,nkptnr))
 e(:,:,:)=0.d0
 f(:,:,:)=0.d0
 ! begin parallel loop over non-reduced k-points
+call omp_hold(nkptnr,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP PRIVATE(emat,jk,vkql,isym) &
-!$OMP PRIVATE(ikq,ist,jst,t1)
+!$OMP PRIVATE(ikq,ist,jst,t1) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ik=1,nkptnr
   allocate(emat(nstsv,nstsv))
-!$OMP CRITICAL
+!$OMP CRITICAL(elnes_)
   write(*,'("Info(elnes): ",I6," of ",I6," k-points")') ik,nkptnr
-!$OMP END CRITICAL
+!$OMP END CRITICAL(elnes_)
 ! equivalent reduced k-point
   jk=ivkik(ivk(1,ik),ivk(2,ik),ivk(3,ik))
 ! k+q-vector in lattice coordinates
@@ -85,16 +94,18 @@ do ik=1,nkptnr
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 ! number of subdivisions used for interpolation
 nsk(:)=max(ngrkf/ngridk(:),1)
 n=nstsv*nstsv
 ! integrate over the Brillouin zone
+allocate(ddcs(nwplot))
 call brzint(nswplot,ngridk,nsk,ivkiknr,nwplot,wplot,n,n,e,f,ddcs)
-qc=sqrt(vecqc(1)**2+vecqc(2)**2+vecqc(3)**2)
+q=sqrt(vecqc(1)**2+vecqc(2)**2+vecqc(3)**2)
 t1=2.d0/(omega*occmax)
-if (qc.gt.epslat) t1=t1/qc**4
+if (q.gt.epslat) t1=t1/q**4
 ddcs(:)=t1*ddcs(:)
-open(50,file='ELNES.OUT',action='WRITE',form='FORMATTED')
+open(50,file='ELNES.OUT',form='FORMATTED')
 wd=wplot(2)-wplot(1)
 dw=wd/dble(nwplot)
 do iw=1,nwplot

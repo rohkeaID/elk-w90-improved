@@ -1,0 +1,70 @@
+
+! Calculation of the electron loss near-edge spectroscopy (ELNES) for boron
+! nitride. Note that a 16 atom supercell has been constructed with a special
+! N atom (defined in the species file 'N+.in') for which the nuclear and
+! electronic charges have been increased by one, and the 1s core code state has
+! been included as a valence state by adding a local-orbital at the appropriate
+! energy. This approximates the local core-hole interation. Compare with Phys.
+! Rev. B 64, 115107 (2001).
+
+! This example is well converged and is of publication quality. However it is
+! fairly time-consuming and is best run on a multi-processor machine.
+
+tasks
+  0
+  140
+
+! spin-orbit coupling required to obtain realistic 1s state in valence
+spinorb
+  .true.
+
+! ELNES q-vector in lattice coordinates
+vecql
+  0.0  0.0  0.125
+
+! energy range for ELNES plot
+wplot
+  300  150  3    : nwplot, ngrkf, nswplot
+  18.0  22.0     : wplot (for the nitrogen K-edge)
+
+! maximum allowed energy for the initial state in the double differential
+! cross-section formula
+emaxelnes
+ -10.0
+
+! large number of empty states required
+nempty
+  30
+
+ngridk
+  8  8  8
+
+avec
+  9.674352   0.0           0.0
+  4.837176   8.378234597   0.0
+  4.837176   2.792744866   7.899075331
+
+atoms
+  3                                    : nspecies
+  'B.in'                               : spfname
+  8                                    : natoms; atposl below
+  0.0   0.0   0.0
+  0.0   0.0   0.5
+  0.0   0.5   0.0
+  0.0   0.5   0.5
+  0.5   0.0   0.0
+  0.5   0.0   0.5
+  0.5   0.5   0.0
+  0.5   0.5   0.5
+  'N+.in'                              : spfname
+  1                                    : natoms; atposl below
+  0.125   0.125   0.125
+  'N.in'                               : spfname
+  7
+  0.125   0.125   0.625
+  0.125   0.625   0.125
+  0.125   0.625   0.625
+  0.625   0.125   0.125
+  0.625   0.125   0.625
+  0.625   0.625   0.125
+  0.625   0.625   0.625

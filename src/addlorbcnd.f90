@@ -12,7 +12,7 @@ if (.not.lorbcnd) return
 ! add conduction local-orbitals to each species
 do is=1,nspecies
   nlo=nlorb(is)
-  do l=0,lmaxmat
+  do l=0,lmaxo
     nlo=nlo+1
     if (nlo.gt.maxlorb) then
       write(*,*)

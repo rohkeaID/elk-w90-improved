@@ -67,8 +67,7 @@ external polynom
 ! polynomial order
 np=max(apwordmax+1,4)
 allocate(ipiv(np))
-allocate(c(np))
-allocate(djl(0:lmaxapw,apwordmax,ngp))
+allocate(c(np),djl(0:lmaxapw,apwordmax,ngp))
 allocate(ylmgp(lmmaxapw,ngp))
 allocate(a(apwordmax,apwordmax))
 allocate(b(apwordmax,ngp*(2*lmaxapw+1)))
@@ -148,3 +147,4 @@ deallocate(ipiv,c,djl,ylmgp,a,b)
 return
 end subroutine
 !EOC
+

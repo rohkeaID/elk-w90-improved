@@ -7,7 +7,7 @@ subroutine writetimes
 use modmain
 use modtddft
 implicit none
-open(50,file='TIMESTEP.OUT',action='WRITE',form='FORMATTED')
+open(50,file='TIMESTEP.OUT',form='FORMATTED')
 write(50,'(I8,G18.10)') itimes,times(itimes)
 close(50)
 return

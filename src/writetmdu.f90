@@ -20,7 +20,7 @@ call readdmatmt
 ! read Slater integrals from FDU.OUT
 call readfdu
 ! open TMDFTU.OUT
-open(50,file='TMDFTU.OUT',action='WRITE',form='FORMATTED')
+open(50,file='TMDFTU.OUT',form='FORMATTED')
 if (spinorb) then
   call writetm3du(50)
 else

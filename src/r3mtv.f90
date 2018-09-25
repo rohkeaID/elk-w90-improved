@@ -28,3 +28,4 @@ y(3)=a(1,3)*x(1)+a(2,3)*x(2)+a(3,3)*x(3)
 return
 end subroutine
 !EOC
+

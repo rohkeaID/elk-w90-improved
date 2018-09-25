@@ -292,9 +292,9 @@ do jspn=1,nspnfv
           end if
         end do
       end if
-!$OMP CRITICAL
+!$OMP CRITICAL(dforcek_)
       dyn(l,ias)=dyn(l,ias)-wkptnr*zsum
-!$OMP END CRITICAL
+!$OMP END CRITICAL(dforcek_)
 ! end loop over Cartesian components
     end do
 ! end loop over atoms and species

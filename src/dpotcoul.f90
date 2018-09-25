@@ -8,9 +8,7 @@ use modmain
 use modphonon
 implicit none
 ! local variables
-integer nr,nri,ir
-integer np,i,igq0
-complex(8) zgq0
+integer nr,nri,ir,np,i
 ! automatic arrays
 real(8) vn(nrmtmax)
 ! allocatable arrays
@@ -39,13 +37,8 @@ call gradzfmt(nr,nri,rsp(:,isph),zfmt,npmtmax,gzfmt)
 dvclmt(1:np,iasph)=dvclmt(1:np,iasph)-gzfmt(1:np,ipph)
 deallocate(zfmt,gzfmt)
 ! solve Poisson's equation in the entire unit cell
-if (tphq0) then
-  igq0=1
-else
-  igq0=0
-end if
-call zpotcoul(nrmt,nrmti,npmt,npmti,nrspmax,rsp,ngvec,igq0,gqc,ngvec,jlgqrmt, &
- ylmgq,sfacgq,drhoir,npmtmax,dvclmt,dvclir,zgq0)
+call zpotcoul(nrmt,nrmti,npmt,npmti,nrspmax,rsp,ngridg,igfft,ngvec,gqc,gclgq, &
+ ngvec,jlgqrmt,ylmgq,sfacgq,drhoir,npmtmax,dvclmt,dvclir)
 return
 end subroutine
 

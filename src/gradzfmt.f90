@@ -125,7 +125,7 @@ lm1=0
 do l=0,lmaxi
   t1=sqrt(dble(l+1)/dble(2*l+3))
   if (l.gt.0) then
-    t2=sqrt(dble(l)/dble(2*l-1))
+    t2=-sqrt(dble(l)/dble(2*l-1))
   else
     t2=0.d0
   end if
@@ -151,7 +151,7 @@ do l=0,lmaxi
         t3=t2*clebgor(l,1,l-1,m,i,m+i)
         i1=lm1; i2=lm2
         do ir=1,nri
-          gzfmt(i2,j)=gzfmt(i2,j)-t3*(drmt(i1)+dble(l+1)*ri(ir)*zfmt(i1))
+          gzfmt(i2,j)=gzfmt(i2,j)+t3*(drmt(i1)+dble(l+1)*ri(ir)*zfmt(i1))
           i1=i1+lmmaxi; i2=i2+lmmaxi
         end do
       end if
@@ -163,7 +163,7 @@ lm1=0
 do l=0,lmaxo
   t1=sqrt(dble(l+1)/dble(2*l+3))
   if (l.gt.0) then
-    t2=sqrt(dble(l)/dble(2*l-1))
+    t2=-sqrt(dble(l)/dble(2*l-1))
   else
     t2=0.d0
   end if
@@ -187,7 +187,7 @@ do l=0,lmaxo
         t3=t2*clebgor(l,1,l-1,m,i,m+i)
         i1=npi+lm1; i2=npi+lm2
         do ir=iro,nr
-          gzfmt(i2,j)=gzfmt(i2,j)-t3*(drmt(i1)+dble(l+1)*ri(ir)*zfmt(i1))
+          gzfmt(i2,j)=gzfmt(i2,j)+t3*(drmt(i1)+dble(l+1)*ri(ir)*zfmt(i1))
           i1=i1+lmmaxo; i2=i2+lmmaxo
         end do
       end if

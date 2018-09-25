@@ -25,7 +25,7 @@ use modmain
 implicit none
 ! local variables
 integer ig,jg,i1,i2,i3,j1,j2,j3
-real(8) v1(3),v2(3),v3(3),t1
+real(8) v1(3),v2(3),v3(3)
 ! allocatable arrays
 integer, allocatable :: idx(:),ivg0(:,:)
 real(8), allocatable :: vgc0(:,:),gc0(:)
@@ -110,24 +110,6 @@ do ig=1,ngtot
   igfft(ig)=j3*ngridg(2)*ngridg(1)+j2*ngridg(1)+j1+1
 end do
 deallocate(idx,ivg0,gc0,vgc0)
-! find the number of vectors with G < 2*gkmax
-t1=2.d0*gkmax+epslat
-ng2gk=ngvec
-do ig=2,ngvec
-  if (gc(ig).gt.t1) then
-    ng2gk=ig-1
-    exit
-  end if
-end do
-! find the number of vectors with G < 3*gkmax
-t1=3.d0*gkmax+epslat
-ng3gk=ngvec
-do ig=ng2gk+1,ngvec
-  if (gc(ig).gt.t1) then
-    ng3gk=ig-1
-    exit
-  end if
-end do
 return
 end subroutine
 !EOC

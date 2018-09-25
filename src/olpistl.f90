@@ -9,6 +9,7 @@
 subroutine olpistl(ngp,igpig,ld,o)
 ! !USES:
 use modmain
+use modomp
 ! !INPUT/OUTPUT PARAMETERS:
 !   ngp   : number of G+p-vectors (in,integer)
 !   igpig : index from G+p-vectors to G-vectors (in,integer(ngkmax))
@@ -31,9 +32,12 @@ integer, intent(in) :: ngp,igpig(ngkmax)
 integer, intent(in) :: ld
 complex(8), intent(inout) :: o(*)
 ! local variables
-integer iv(3),jv(3),i,j,k
+integer iv(3),jv(3)
+integer i,j,k,nthd
+call omp_hold(ngp,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(k,jv,i,iv)
+!$OMP PRIVATE(k,jv,i,iv) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do j=1,ngp
   k=(j-1)*ld
@@ -46,6 +50,7 @@ do j=1,ngp
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 return
 end subroutine
 !EOC

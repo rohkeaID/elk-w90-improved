@@ -9,15 +9,16 @@
 complex(8) function zfinp(zfmt1,zfir1,zfmt2,zfir2)
 ! !USES:
 use modmain
+use modomp
 ! !INPUT/OUTPUT PARAMETERS:
 !   zfmt1 : first complex function in spherical harmonics/coordinates for all
 !           muffin-tins (in,complex(npcmtmax,natmtot))
 !   zfir1 : first complex interstitial function in real-space
-!           (in,complex(ngtot))
+!           (in,complex(ngtc))
 !   zfmt2 : second complex function in spherical harmonics/coordinates for all
 !           muffin-tins (in,complex(npcmtmax,natmtot))
 !   zfir2 : second complex interstitial function in real-space
-!           (in,complex(ngtot))
+!           (in,complex(ngtc))
 ! !DESCRIPTION:
 !   Calculates the inner product of two complex fuctions over the entire unit
 !   cell. The muffin-tin functions should be stored on the coarse radial grid.
@@ -31,22 +32,25 @@ use modmain
 !BOC
 implicit none
 ! arguments
-complex(8), intent(in) :: zfmt1(npcmtmax,natmtot),zfir1(ngtot)
-complex(8), intent(in) :: zfmt2(npcmtmax,natmtot),zfir2(ngtot)
+complex(8), intent(in) :: zfmt1(npcmtmax,natmtot),zfir1(ngtc)
+complex(8), intent(in) :: zfmt2(npcmtmax,natmtot),zfir2(ngtc)
 ! local variables
-integer ias,is,ir
+integer is,ias,ir,nthd
 complex(8) zsum
 ! external functions
 complex(8) zfmtinp
 external zfmtinp
 ! interstitial contribution
-zsum=cfunir(1)*conjg(zfir1(1))*zfir2(1)
-do ir=2,ngtot
-  zsum=zsum+cfunir(ir)*conjg(zfir1(ir))*zfir2(ir)
+zsum=cfrc(1)*conjg(zfir1(1))*zfir2(1)
+do ir=2,ngtc
+  zsum=zsum+cfrc(ir)*conjg(zfir1(ir))*zfir2(ir)
 end do
-zsum=zsum*(omega/dble(ngtot))
+zsum=zsum*(omega/dble(ngtc))
 ! muffin-tin contribution
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(is) REDUCTION(+:zsum)
+call omp_hold(natmtot,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(is) REDUCTION(+:zsum) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ias=1,natmtot
   is=idxis(ias)
@@ -55,6 +59,7 @@ do ias=1,natmtot
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 zfinp=zsum
 return
 end function

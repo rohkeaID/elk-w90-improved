@@ -1,0 +1,43 @@
+
+! Hybrid functional example using libxc. Note that the DFT step should be run
+! separately with task=0. Then the hybrid step should be run with task=5.
+! Example by Tyrel McQueen.
+
+tasks
+  0
+
+! first run task=0 with PBE...
+xctype
+  100 101 130
+
+!...then uncomment the following and run with task=5 for hybrid GGA
+! (note that only the correlation functional is set)
+!xctype
+!  100 0 406
+
+lmaxo
+  6
+
+gmaxvr
+  10.0
+
+ngridk
+  2  2  2
+
+nempty
+  8
+
+avec
+  5.13  5.13  0.00
+  5.13  0.00  5.13
+  0.00  5.13  5.13
+
+sppath
+ '../../../species/'
+
+atoms
+  1
+  'Si.in'
+  2
+  0.00  0.00  0.00
+  0.25  0.25  0.25

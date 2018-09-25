@@ -14,10 +14,8 @@ real(8), intent(in) :: eps
 ! local variables
 integer i,j,il,iu
 ! Nelder-Mead parmeters
-real(8), parameter :: alpha=1.d0
-real(8), parameter :: gamma=2.d0
-real(8), parameter :: beta=0.5d0
-real(8), parameter :: sigma=0.5d0
+real(8), parameter :: alpha=1.d0,gamma=2.d0
+real(8), parameter :: beta=0.5d0,sigma=0.5d0
 real(8) fr,fe,fc,sum,t1
 ! automatic arrays
 real(8) f(n+1),xm(n),xr(n),xe(n),xc(n)

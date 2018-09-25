@@ -6,7 +6,7 @@
 !BOP
 ! !ROUTINE: ggamt_2b
 ! !INTERFACE:
-subroutine ggamt_2b(is,g2rho,gvrho,vx,vc,dxdg2,dcdg2)
+subroutine ggamt_2b(is,g2rho,gvrho,vx,vc,dxdgr2,dcdgr2)
 ! !USES:
 use modmain
 ! !DESCRIPTION:
@@ -21,7 +21,7 @@ implicit none
 integer, intent(in) :: is
 real(8), intent(in) :: g2rho(npmtmax),gvrho(npmtmax,3)
 real(8), intent(inout) :: vx(npmtmax),vc(npmtmax)
-real(8), intent(in) :: dxdg2(npmtmax),dcdg2(npmtmax)
+real(8), intent(in) :: dxdgr2(npmtmax),dcdgr2(npmtmax)
 ! local variables
 integer nr,nri,np,i
 ! allocatable arrays
@@ -33,31 +33,31 @@ np=npmt(is)
 !------------------!
 !     exchange     !
 !------------------!
-! convert dxdg2 to spherical harmonics
-call rfsht(nr,nri,dxdg2,rfmt1)
-! compute grad dxdg2
+! convert dxdgr2 to spherical harmonics
+call rfsht(nr,nri,dxdgr2,rfmt1)
+! compute grad dxdgr2
 call gradrfmt(nr,nri,rsp(:,is),rfmt1,npmtmax,grfmt)
-! (grad dxdg2).(grad rho) in spherical coordinates
+! (grad dxdgr2).(grad rho) in spherical coordinates
 rfmt1(1:np)=0.d0
 do i=1,3
   call rbsht(nr,nri,grfmt(:,i),rfmt2)
   rfmt1(1:np)=rfmt1(1:np)+rfmt2(1:np)*gvrho(1:np,i)
 end do
-vx(1:np)=vx(1:np)-2.d0*(rfmt1(1:np)+dxdg2(1:np)*g2rho(1:np))
+vx(1:np)=vx(1:np)-2.d0*(rfmt1(1:np)+dxdgr2(1:np)*g2rho(1:np))
 !---------------------!
 !     correlation     !
 !---------------------!
-! convert dcdg2 to spherical harmonics
-call rfsht(nr,nri,dcdg2,rfmt1)
-! compute grad dcdg2
+! convert dcdgr2 to spherical harmonics
+call rfsht(nr,nri,dcdgr2,rfmt1)
+! compute grad dcdgr2
 call gradrfmt(nr,nri,rsp(:,is),rfmt1,npmtmax,grfmt)
-! (grad dcdg2).(grad rho) in spherical coordinates
+! (grad dcdgr2).(grad rho) in spherical coordinates
 rfmt1(1:np)=0.d0
 do i=1,3
   call rbsht(nr,nri,grfmt(:,i),rfmt2)
   rfmt1(1:np)=rfmt1(1:np)+rfmt2(1:np)*gvrho(1:np,i)
 end do
-vc(1:np)=vc(1:np)-2.d0*(rfmt1(1:np)+dcdg2(1:np)*g2rho(1:np))
+vc(1:np)=vc(1:np)-2.d0*(rfmt1(1:np)+dcdgr2(1:np)*g2rho(1:np))
 deallocate(rfmt1,rfmt2,grfmt)
 return
 end subroutine

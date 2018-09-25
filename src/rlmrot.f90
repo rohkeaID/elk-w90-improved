@@ -46,8 +46,7 @@ implicit none
 ! arguments
 integer, intent(in) :: p
 real(8), intent(in) :: ang(3)
-integer, intent(in) :: lmax
-integer, intent(in) :: ld
+integer, intent(in) :: lmax,ld
 real(8), intent(out) :: d(ld,*)
 ! local variables
 integer lmmax,l,m1,m2,lm,lm0
@@ -69,10 +68,10 @@ allocate(dy(lmmax,lmmax))
 ! generate the complex spherical harmonic rotation matrix about the y-axis
 call ylmroty(ang(2),lmax,lmmax,dy)
 do m1=1,lmax
-  ca(m1)=cos(dble(m1)*ang(1))
-  sa(m1)=sin(dble(m1)*ang(1))
-  cg(m1)=cos(dble(m1)*ang(3))
-  sg(m1)=sin(dble(m1)*ang(3))
+  ca(m1)=cos(m1*ang(1))
+  sa(m1)=sin(m1*ang(1))
+  cg(m1)=cos(m1*ang(3))
+  sg(m1)=sin(m1*ang(3))
 end do
 lm=0
 do l=0,lmax

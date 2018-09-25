@@ -16,7 +16,7 @@ do ik=1,nkptnr
 ! equivalent reduced k-point
   jk=ivkik(ivk(1,ik),ivk(2,ik),ivk(3,ik))
   do ist=1,nstsv
-    if (abs(evalsv(ist,jk)-efermi).lt.ewbdg) i=i+1
+    if (abs(evalsv(ist,jk)-efermi).lt.emaxbdg) i=i+1
   end do
 end do
 nbdg=i
@@ -33,7 +33,7 @@ i=0
 do ik=1,nkptnr
   jk=ivkik(ivk(1,ik),ivk(2,ik),ivk(3,ik))
   do ist=1,nstsv
-    if (abs(evalsv(ist,jk)-efermi).lt.ewbdg) then
+    if (abs(evalsv(ist,jk)-efermi).lt.emaxbdg) then
       i=i+1
       idxbdg(1,i)=ik
       idxbdg(2,i)=ist

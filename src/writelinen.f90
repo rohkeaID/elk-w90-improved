@@ -20,7 +20,7 @@ use modmain
 implicit none
 ! local variables
 integer is,ia,ias,l,io,ilo
-open(50,file='LINENGY'//trim(filext),action='WRITE',form='FORMATTED')
+open(50,file='LINENGY'//trim(filext),form='FORMATTED')
 do is=1,nspecies
   do ia=1,natoms(is)
     ias=idxas(ia,is)
@@ -46,3 +46,4 @@ close(50)
 return
 end subroutine
 !EOC
+

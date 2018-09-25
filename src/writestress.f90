@@ -17,7 +17,7 @@ trdstate=.false.
 call genstress
 ! write the stress tensor to file
 if (mp_mpi) then
-  open(50,file='STRESS.OUT',action='WRITE',form='FORMATTED')
+  open(50,file='STRESS.OUT',form='FORMATTED')
   write(50,*)
   write(50,'("Lattice vector matrix, A, changed by")')
   write(50,*)

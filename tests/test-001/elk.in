@@ -7,15 +7,15 @@ tasks
 test
  .true.
 
+mixtype
+  3
+
 ! small cut-off for testing purposes
 rgkmax
   5.0
 
 gmaxvr
   0.0
-
-trimvg
- .true.
 
 maxscl
   2

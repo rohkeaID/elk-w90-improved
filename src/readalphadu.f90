@@ -11,7 +11,7 @@ implicit none
 integer is,ia,i,l
 integer is_,ia_,l_
 if (.not.readadu) return
-open(50,file='ALPHADU'//trim(filext),action='READ',form='FORMATTED')
+open(50,file='ALPHADU'//trim(filext),form='FORMATTED')
 do i=1,ndftu
   is=idftu(1,i)
   l=idftu(2,i)

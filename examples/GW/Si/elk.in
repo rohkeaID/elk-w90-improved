@@ -4,14 +4,15 @@
 tasks
   0
   600
+  610
 
-! use the diagonal approximation to teh self-energy
+! use only the diagonal components of the self-energy
 gwdiag
   1
 
 ! Matsubara frequency cut-off
 wmaxgw
-  3.0
+  4.0
 
 ! response function G-vector cut-off
 gmaxrf

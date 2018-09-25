@@ -10,6 +10,7 @@ subroutine rdmdedc(dedc)
 ! !USES:
 use modmain
 use modrdm
+use modomp
 ! !INPUT/OUTPUT PARAMETERS:
 !   dedc : energy derivative (out,complex(nstsv,nstsv,nkpt))
 ! !DESCRIPTION:
@@ -24,11 +25,13 @@ implicit none
 ! arguments
 complex(8), intent(out) :: dedc(nstsv,nstsv,nkpt)
 ! local variables
-integer ik,ist
+integer ik,ist,nthd
 ! allocatable arrays
 complex(8), allocatable :: evecsv(:,:),c(:,:)
+call omp_hold(nkpt,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(evecsv,c,ist)
+!$OMP PRIVATE(evecsv,c,ist) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ik=1,nkpt
   allocate(evecsv(nstsv,nstsv))
@@ -45,6 +48,7 @@ do ik=1,nkpt
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 ! exchange-correlation contribution
 call rdmdexcdc(dedc)
 return

@@ -10,6 +10,7 @@ subroutine rdmdedn(dedn)
 ! !USES:
 use modmain
 use modrdm
+use modomp
 ! !INPUT/OUTPUT PARAMETERS:
 !   dedn : free energy derivative (out,real(nstsv,nkpt))
 ! !DESCRIPTION:
@@ -23,11 +24,14 @@ use modrdm
 implicit none
 ! arguments
 real(8), intent(out) :: dedn(nstsv,nkpt)
-! allocatable
+! local variables
+integer ik,ist,nthd
+! allocatable arrays
 complex(8), allocatable :: evecsv(:,:),c(:,:)
-integer ik,ist
+call omp_hold(nkpt,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(evecsv,c,ist)
+!$OMP PRIVATE(evecsv,c,ist) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ik=1,nkpt
   allocate(evecsv(nstsv,nstsv),c(nstsv,nstsv))
@@ -43,6 +47,7 @@ do ik=1,nkpt
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 ! add exchange correlation contribution
 call rdmdexcdn(dedn)
 ! add entropic contribution if needed
@@ -50,3 +55,4 @@ if (rdmtemp.gt.0.d0) call rdmdtsdn(dedn)
 return
 end subroutine
 !EOC
+

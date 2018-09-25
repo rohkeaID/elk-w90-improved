@@ -11,7 +11,7 @@ implicit none
 real(8), intent(in) :: gq(nbph,nqpt)
 ! local variables
 integer iq,i
-open(50,file='GAMMAQ.OUT',action='WRITE',form='FORMATTED')
+open(50,file='GAMMAQ.OUT',form='FORMATTED')
 write(50,*)
 write(50,'(I4," : total number of atoms")') natmtot
 write(50,'(I6," : number of q-points")') nqpt

@@ -61,8 +61,6 @@ module modw90overlap
         do ist = 1, nproj
           do ispin = 1,nspinor
             do is = 1, nspecies
-              nrc = nrcmt(is)
-              nrci = nrcmti(is)
               npc=npcmt(is)
               do ia = 1,natoms(is)
                 ias = idxas(ia,is)
@@ -102,11 +100,11 @@ module modw90overlap
             do jspin = 1,ns
               do ispin = 1,nspinor
 
-                call genzrho(.true.,.false.,wfmt(:,:,ispin,ist)  , &
-                                            wfir(:,ispin,ist)    , &
-                                            wfmtq1(:,:,jspin,jst), &
-                                            wfirq(:,jspin,jst)   , &
-                                            zrhomt,zrhoir)
+                call genzrho(.true.,.false.,ngtot,wfmt(:,:,ispin,ist)  , &
+                                                  wfir(:,ispin,ist)    , &
+                                                  wfmtq1(:,:,jspin,jst), &
+                                                  wfirq(:,jspin,jst)   , &
+                                                  zrhomt,zrhoir)
 
                 do ias=1,natmtot
                   is=idxis(ias)

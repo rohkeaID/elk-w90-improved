@@ -32,19 +32,20 @@ complex(8), intent(inout) :: h(*)
 integer is,io,jo
 integer l1,l2,l3,m1,m2,m3
 integer lm1,lm2,lm3
-real(8) t1
+real(8) t0
 complex(8) z1,zsum
 ! automatic arrays
 complex(8) x(ngp),y(ngp)
 is=idxis(ias)
+t0=0.5d0*rmt(is)**2
 lm1=0
-do l1=0,lmaxmat
+do l1=0,lmaxapw
   do m1=-l1,l1
     lm1=lm1+1
     do io=1,apword(l1,is)
       y(:)=0.d0
       lm3=0
-      do l3=0,lmaxmat
+      do l3=0,lmaxapw
         do m3=-l3,l3
           lm3=lm3+1
           do jo=1,apword(l3,is)
@@ -63,23 +64,13 @@ do l1=0,lmaxmat
           end do
         end do
       end do
-      x(1:ngp)=conjg(apwalm(1:ngp,io,lm1))
-      call zher2i(ngp,zone,x,y,ld,h)
-    end do
-  end do
-end do
 ! kinetic surface contribution
-t1=0.5d0*rmt(is)**2
-lm1=0
-do l1=0,lmaxmat
-  do m1=-l1,l1
-    lm1=lm1+1
-    do io=1,apword(l1,is)
-      x(1:ngp)=conjg(apwalm(1:ngp,io,lm1))
       do jo=1,apword(l1,is)
-        z1=t1*apwfr(nrmt(is),1,io,l1,ias)*apwdfr(jo,l1,ias)
-        call zher2i(ngp,z1,x,apwalm(:,jo,lm1),ld,h)
+        z1=t0*apwfr(nrmt(is),1,io,l1,ias)*apwdfr(jo,l1,ias)
+        call zaxpy(ngp,z1,apwalm(:,jo,lm1),1,y,1)
       end do
+      x(1:ngp)=conjg(apwalm(1:ngp,io,lm1))
+      call zher2i(ngp,x,y,ld,h)
     end do
   end do
 end do
@@ -87,25 +78,28 @@ return
 
 contains
 
-subroutine zher2i(n,alpha,x,y,ld,a)
+subroutine zher2i(n,x,y,ld,a)
+use modomp
 implicit none
 ! arguments
 integer, intent(in) :: n
-complex(8), intent(in) :: alpha
 complex(8), intent(in) :: x(n),y(n)
 integer, intent(in) :: ld
 complex(8), intent(inout) :: a(*)
 ! local variables
-integer j,k
+integer j,k,nthd
 ! numbers less than eps are considered to be zero
 real(8), parameter :: eps=1.d-10
 real(8) a1,b1
 complex(8) z1
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(k,z1,a1,b1)
+call omp_hold(n,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(k,z1,a1,b1) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do j=1,n
   k=(j-1)*ld
-  z1=alpha*y(j)
+  z1=y(j)
   if (abs(dble(z1)).gt.eps) then
     if (abs(aimag(z1)).gt.eps) then
 ! complex prefactor
@@ -126,6 +120,7 @@ do j=1,n
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 return
 end subroutine
 

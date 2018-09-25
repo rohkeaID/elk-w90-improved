@@ -9,6 +9,7 @@
 subroutine nonlinopt
 ! !USES:
 use modmain
+use modomp
 ! !DESCRIPTION:
 !   Calculates susceptibility tensor for non-linear optical second-harmonic
 !   generation (SHG). The terms (ztm) are numbered according to Eqs. (49)-(51)
@@ -23,7 +24,7 @@ use modmain
 implicit none
 ! local variables
 integer ik,jk,ist,jst,kst
-integer iw,a,b,c,l
+integer iw,a,b,c,l,nthd
 ! smallest eigenvalue difference allowed in denominator
 real(8), parameter :: etol=1.d-4
 real(8) eji,eki,ekj,t1
@@ -63,16 +64,18 @@ do l=1,noptcomp
   chiw(:,:)=0.d0
   chi2w(:,:)=0.d0
 ! parallel loop over non-reduced k-points
+  call omp_hold(nkptnr,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP PRIVATE(pmat,jk,ist,jst,kst) &
-!$OMP PRIVATE(eji,eki,ekj,t1,z1) &
-!$OMP PRIVATE(pii,dji,vji,vik,vkj,ztm)
+!$OMP PRIVATE(eji,eki,ekj,t1,z1,pii) &
+!$OMP PRIVATE(dji,vji,vik,vkj,ztm,iw) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
   do ik=1,nkptnr
     allocate(pmat(nstsv,nstsv,3))
-!$OMP CRITICAL
+!$OMP CRITICAL(nonlinopt_1)
     write(*,'("Info(nonlinopt): ",I6," of ",I6," k-points")') ik,nkptnr
-!$OMP END CRITICAL
+!$OMP END CRITICAL(nonlinopt_1)
 ! equivalent reduced k-point
     jk=ivkik(ivk(1,ik),ivk(2,ik),ivk(3,ik))
 ! read momentum matrix elements from file
@@ -98,8 +101,8 @@ do l=1,noptcomp
         do jst=1,nstsv
           if (evalsv(jst,jk).gt.efermi) then
             eji=evalsv(jst,jk)-evalsv(ist,jk)+scissor
-            vji(:)=pmat(jst,ist,:)
             dji(:)=pmat(jst,jst,:)-pii(:)
+            vji(:)=pmat(jst,ist,:)
 ! loop over intermediate states
             do kst=1,nstsv
               if ((kst.ne.ist).and.(kst.ne.jst)) then
@@ -110,8 +113,8 @@ do l=1,noptcomp
                 else
                   ekj=ekj-scissor
                 end if
-                vkj(:)=pmat(kst,jst,:)
                 vik(:)=pmat(ist,kst,:)
+                vkj(:)=pmat(kst,jst,:)
 ! interband terms
                 t1=-eji*eki*(-ekj)*(eki+ekj)
                 if (abs(t1).gt.etol) then
@@ -161,7 +164,7 @@ do l=1,noptcomp
                 end if
                 ztm(3,1)=0.25d0*z1*(-eki)*vkj(a)*(vji(b)*vik(c)+vik(b)*vji(c))*t1
                 ztm(3,2)=0.25d0*z1*ekj*vik(a)*(vkj(b)*vji(c)+vji(b)*vkj(c))*t1
-!$OMP CRITICAL
+!$OMP CRITICAL(nonlinopt_2)
                 do iw=1,nwplot
 ! 2w interband
                   chi2w(iw,1)=chi2w(iw,1)+ztm(1,1)/(eji-2.d0*w(iw)+eta)
@@ -174,20 +177,20 @@ do l=1,noptcomp
 ! w modulation
                   chiw(iw,3)=chiw(iw,3)+(ztm(3,1)-ztm(3,2))/(eji-w(iw)+eta)
                 end do
-!$OMP END CRITICAL
+!$OMP END CRITICAL(nonlinopt_2)
               end if
 ! end loop over kst
             end do
             ztm(2,2)=4.d0*z1*conjg(vji(a))*(dji(b)*vji(c)+vji(b)*dji(c))/eji**4
             ztm(3,3)=0.25d0*z1*vji(a)*(vji(b)*dji(c)+dji(b)*vji(c))/eji**4
-!$OMP CRITICAL
+!$OMP CRITICAL(nonlinopt_2)
             do iw=1,nwplot
 ! 2w intraband
               chi2w(iw,2)=chi2w(iw,2)+ztm(2,2)/(eji-2.d0*w(iw)+eta)
 ! w modulation
               chiw(iw,3)=chiw(iw,3)+ztm(3,3)/(eji-w(iw)+eta)
             end do
-!$OMP END CRITICAL
+!$OMP END CRITICAL(nonlinopt_2)
 ! end loop over jst
           end if
         end do
@@ -199,17 +202,18 @@ do l=1,noptcomp
   end do
 !$OMP END DO
 !$OMP END PARALLEL
+  call omp_free(nthd)
 ! write to files
   write(fname,'("CHI_INTER2w_",3I1,".OUT")') a,b,c
-  open(51,file=trim(fname),action='WRITE',form='FORMATTED')
+  open(51,file=trim(fname),form='FORMATTED')
   write(fname,'("CHI_INTRA2w_",3I1,".OUT")') a,b,c
-  open(52,file=trim(fname),action='WRITE',form='FORMATTED')
+  open(52,file=trim(fname),form='FORMATTED')
   write(fname,'("CHI_INTERw_",3I1,".OUT")') a,b,c
-  open(53,file=trim(fname),action='WRITE',form='FORMATTED')
+  open(53,file=trim(fname),form='FORMATTED')
   write(fname,'("CHI_INTRAw_",3I1,".OUT")') a,b,c
-  open(54,file=trim(fname),action='WRITE',form='FORMATTED')
+  open(54,file=trim(fname),form='FORMATTED')
   write(fname,'("CHI_",3I1,".OUT")') a,b,c
-  open(55,file=trim(fname),action='WRITE',form='FORMATTED')
+  open(55,file=trim(fname),form='FORMATTED')
   do iw=1,nwplot
     write(51,'(2G18.10)') w(iw),dble(chi2w(iw,1))
     write(52,'(2G18.10)') w(iw),dble(chi2w(iw,2))

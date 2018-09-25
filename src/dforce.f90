@@ -6,14 +6,14 @@
 subroutine dforce(dyn)
 use modmain
 use modphonon
+use modomp
 implicit none
 ! arguments
 complex(8), intent(out) :: dyn(3,natmtot)
 ! local variables
-integer ik,is,ias
-integer nr,nri,ir
-integer np,igq0,i
-complex(8) zgq0,zsum,z1
+integer ik,is,ias,nthd
+integer nr,nri,ir,np,i
+complex(8) zsum,z1
 ! automatic arrays
 real(8) vn(nrmtmax)
 ! allocatable arrays
@@ -24,8 +24,8 @@ complex(8), allocatable :: gvclmt(:,:,:),gvclir(:,:)
 complex(8), allocatable :: zfmt(:),gzfmt(:,:)
 ! external functions
 real(8) fintgt
-complex(8) zfinp,zfmtinp
-external fintgt,zfinp,zfmtinp
+complex(8) zfmtinp
+external fintgt,zfmtinp
 allocate(zrhomt(npmtmax,natmtot),zrhoir(ngtot))
 allocate(grhomt(npmtmax,natmtot,3),grhoir(ngtot,3))
 allocate(zvclmt(npmtmax,natmtot),zvclir(ngtot))
@@ -42,11 +42,6 @@ call gradzf(zrhomt,zrhoir,grhomt,grhoir)
 !--------------------------------------------------------------!
 !     Hellmann-Feynman force derivative for displaced atom     !
 !--------------------------------------------------------------!
-if (tphq0) then
-  igq0=1
-else
-  igq0=0
-end if
 nr=nrmt(isph)
 nri=nrmti(isph)
 np=npmt(isph)
@@ -69,8 +64,8 @@ call gradzfmt(nr,nri,rsp(:,isph),zfmt,npmtmax,gzfmt)
 zvclmt(:,:)=0.d0
 zvclmt(1:np,iasph)=gzfmt(1:np,ipph)
 tphdyn=.true.
-call zpotcoul(nrmt,nrmti,npmt,npmti,nrspmax,rsp,ngvec,igq0,gqc,ngvec,jlgqrmt, &
- ylmgq,sfacgq,zrhoir,npmtmax,zvclmt,zvclir,zgq0)
+call zpotcoul(nrmt,nrmti,npmt,npmti,nrspmax,rsp,ngridg,igfft,ngvec,gqc,gclgq, &
+ ngvec,jlgqrmt,ylmgq,sfacgq,zrhoir,npmtmax,zvclmt,zvclir)
 zfmt(1:np)=zvnmt(1:np)
 ! multiply with density derivative and integrate
 zsum=0.d0
@@ -87,8 +82,8 @@ dyn(ipph,iasph)=-zsum
 ! compute the lattice-periodic nuclear Coulomb potential derivative
 zvclmt(:,:)=0.d0
 zvclmt(1:np,iasph)=gzfmt(1:np,ipph)
-call zpotcoul(nrmt,nrmti,npmt,npmti,nrspmax,rsp,ngvec,1,gc,ngvec,jlgrmt,ylmg, &
- sfacg,zrhoir,npmtmax,zvclmt,zvclir,zgq0)
+call zpotcoul(nrmt,nrmti,npmt,npmti,nrspmax,rsp,ngridg,igfft,ngvec,gc,gclg, &
+ ngvec,jlgrmt,ylmg,sfacg,zrhoir,npmtmax,zvclmt,zvclir)
 tphdyn=.false.
 ! multiply with density gradient and integrate
 zsum=0.d0
@@ -135,13 +130,16 @@ end do
 !     IBS correction to force derivative     !
 !--------------------------------------------!
 ! k-point dependent part
-!$OMP PARALLEL DEFAULT(SHARED)
+call omp_hold(nkptnr,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ik=1,nkptnr
   call dforcek(ik,dyn)
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 ! k-point independent part
 do ias=1,natmtot
   is=idxis(ias)

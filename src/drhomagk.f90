@@ -37,8 +37,8 @@ do ist=1,nstsv
 end do
 ! generate the wavefunctions
 allocate(wfmt(npcmtmax,natmtot,nspinor,nst),wfir(ngtot,nspinor,nst))
-call genwfsv(.false.,.false.,nst,idx,ngp,igpig,apwalm,evecfv,evecsv,wfmt, &
- ngtot,wfir)
+call genwfsv(.false.,.false.,nst,idx,ngridg,igfft,ngp,igpig,apwalm,evecfv, &
+ evecsv,wfmt,ngtot,wfir)
 ! generate the wavefunction derivatives
 allocate(dwfmt(npcmtmax,natmtot,nspinor,nst),dwfir(ngtot,nspinor,nst))
 call gendwfsv(.false.,.false.,nst,idx,ngp,ngpq,igpqig,apwalmq,dapwalm,evecfv, &
@@ -54,7 +54,7 @@ do ist=1,nst
   do ias=1,natmtot
     is=idxis(ias)
     npc=npcmt(is)
-!$OMP CRITICAL
+!$OMP CRITICAL(drhomagk_1)
     if (spinpol) then
 ! spin-polarised
       if (ncmag) then
@@ -82,12 +82,12 @@ do ist=1,nst
         call drmk03(npc,dwo,wfmt(:,ias,1,jst),drhomt(:,ias))
       end if
     end if
-!$OMP END CRITICAL
+!$OMP END CRITICAL(drhomagk_1)
   end do
 !------------------------------------------------!
 !     interstitial density and magnetisation     !
 !------------------------------------------------!
-!$OMP CRITICAL
+!$OMP CRITICAL(drhomagk_2)
   if (spinpol) then
 ! spin-polarised
     if (ncmag) then
@@ -112,7 +112,7 @@ do ist=1,nst
       call drmk03(ngtot,dwo,wfir(:,1,jst),drhoir)
     end if
   end if
-!$OMP END CRITICAL
+!$OMP END CRITICAL(drhomagk_2)
 ! end loop over states
 end do
 deallocate(wfmt,wfir,dwfmt,dwfir)

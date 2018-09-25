@@ -22,16 +22,16 @@ do i=1,nstrain
   t1=taulatv(i)*(stress(i)+stressp(i))
   avec(:,:)=avec(:,:)-t1*strain(:,:,i)
 end do
+! each MPI process should have identical lattice vectors
+call mpi_bcast(avec,9,mpi_double_precision,0,mpicom,ierror)
 ! compute the new unit cell volume
 call reciplat(avec,bvec,omega,omegabz)
 ! scale the vectors to conserve volume if required
 if (latvopt.eq.2) then
-  t1=(omega0/omega)**(1.d0/3.d0)
+  t1=(omega_/omega)**(1.d0/3.d0)
   avec(:,:)=t1*avec(:,:)
-  omega=omega0
+  omega=omega_
 end if
-! each MPI process should have identical lattice vectors
-call mpi_bcast(avec,9,mpi_double_precision,0,mpi_comm_kpt,ierror)
 return
 end subroutine
 

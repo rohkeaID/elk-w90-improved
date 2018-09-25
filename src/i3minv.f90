@@ -44,3 +44,4 @@ b(3,3)=(a(1,1)*a(2,2)-a(1,2)*a(2,1))*m
 return
 end subroutine
 !EOC
+

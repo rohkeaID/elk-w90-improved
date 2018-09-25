@@ -28,18 +28,18 @@ real(8), intent(out) :: vclijji(nstsv,nstsv,nkpt)
 integer recl,iostat
 ! determine record length
 inquire(iolength=recl) vclijji
-!$OMP CRITICAL
-open(95,file='VCLIJJI.OUT',action='READ',form='UNFORMATTED',access='DIRECT', &
- recl=recl,iostat=iostat)
+!$OMP CRITICAL(u260)
+open(260,file='VCLIJJI.OUT',form='UNFORMATTED',access='DIRECT',recl=recl, &
+ iostat=iostat)
 if (iostat.ne.0) then
   write(*,*)
   write(*,'("Error(getvclijji): error opening file VCLIJJI.OUT")')
   write(*,*)
   stop
 end if
-read(95,rec=ikp) vclijji
-close(95)
-!$OMP END CRITICAL
+read(260,rec=ikp) vclijji
+close(260)
+!$OMP END CRITICAL(u260)
 return
 end subroutine
 !EOC

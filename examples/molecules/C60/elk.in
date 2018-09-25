@@ -2,11 +2,6 @@
 ! C60 buckyball example. This example has high memory and time requirements and
 ! employs iterative diagonalisation.
 
-! Remember to set
-!   export OMP_NUM_THREADS=n
-!   export OMP_NESTED=true
-! where n is the number of available processors.
-
 tasks
   0
 

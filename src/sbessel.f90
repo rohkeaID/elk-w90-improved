@@ -37,9 +37,9 @@ real(8), intent(out) :: jl(0:lmax)
 integer, parameter :: lst=25
 integer l
 ! rescale limit
-real(8), parameter :: rsc=1.d150
-real(8), parameter :: rsci=1.d0/rsc
-real(8) xi,j0,j1,jt,t1
+real(8), parameter :: rsc=1.d150,rsci=1.d0/rsc
+real(8) xi,sx,cx
+real(8) j0,j1,jt,t1
 if ((lmax.lt.0).or.(lmax.gt.50)) then
   write(*,*)
   write(*,'("Error(sbessel): lmax out of range : ",I8)') lmax
@@ -57,59 +57,60 @@ if (x.lt.1.d-8) then
   jl(0)=1.d0
   t1=1.d0
   do l=1,lmax
-    t1=t1*x/dble(2*l+1)
+    t1=t1*x/(2*l+1)
     jl(l)=t1
   end do
   return
 end if
 xi=1.d0/x
-if (lmax.eq.0) then
-  jl(0)=sin(x)*xi
-  return
-end if
+sx=sin(x)
+cx=cos(x)
+jl(0)=sx*xi
+if (lmax.eq.0) return
+jl(1)=(jl(0)-cx)*xi
+if (lmax.eq.1) return
 ! for x < lmax recurse down
-if (x.lt.dble(lmax)) then
+if (x.lt.lmax) then
 ! start from truly random numbers
-  j0=0.6370354636449841609d0*rsci
-  j1=0.3532702964695481204d0*rsci
+  j1=0.6370354636449841609d0*rsci
+  j0=0.3532702964695481204d0*rsci
   do l=lmax+lst,lmax+1,-1
-    jt=j0*dble(2*l+1)*xi-j1
-    j1=j0
-    j0=jt
+    jt=(2*l+1)*j1*xi-j0
+    j0=j1
+    j1=jt
 ! check for overflow
-    if (abs(j0).gt.rsc) then
+    if (abs(j1).gt.rsc) then
 ! rescale
       jt=jt*rsci
-      j1=j1*rsci
       j0=j0*rsci
+      j1=j1*rsci
     end if
   end do
-  do l=lmax,0,-1
-    jt=j0*dble(2*l+1)*xi-j1
-    j1=j0
-    j0=jt
+  do l=lmax,2,-1
+    jt=(2*l+1)*j1*xi-j0
+    j0=j1
+    j1=jt
 ! check for overflow
-    if (abs(j0).gt.rsc) then
+    if (abs(j1).gt.rsc) then
 ! rescale
       jt=jt*rsci
-      j1=j1*rsci
       j0=j0*rsci
+      j1=j1*rsci
       jl(l+1:lmax)=jl(l+1:lmax)*rsci
     end if
-    jl(l)=j1
+    jl(l)=j0
   end do
+  j0=3*j1*xi-j0
 ! rescaling constant
-  t1=1.d0/((jl(0)-x*jl(1))*cos(x)+x*jl(0)*sin(x))
-  jl(:)=t1*jl(:)
+  t1=1.d0/((j0-x*j1)*cx+x*j0*sx)
+  jl(2:)=t1*jl(2:)
   return
 else
 ! for large x recurse up
-  jl(0)=sin(x)*xi
-  jl(1)=(jl(0)-cos(x))*xi
   j0=jl(0)
   j1=jl(1)
   do l=2,lmax
-    jt=dble(2*l-1)*j1*xi-j0
+    jt=(2*l-1)*j1*xi-j0
     j0=j1
     j1=jt
     jl(l)=j1

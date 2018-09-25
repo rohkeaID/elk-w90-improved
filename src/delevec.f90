@@ -19,11 +19,11 @@ use modmain
 !BOC
 implicit none
 ! delete the first-variational eigenvector file
-open(70,file=trim(scrpath)//'EVECFV'//trim(filext))
-close(70,status='DELETE')
+open(122,file=trim(scrpath)//'EVECFV'//trim(filext))
+close(122,status='DELETE')
 ! delete the second-variational eigenvector file
-open(70,file=trim(scrpath)//'EVECSV'//trim(filext))
-close(70,status='DELETE')
+open(126,file=trim(scrpath)//'EVECSV'//trim(filext))
+close(126,status='DELETE')
 return
 end subroutine
 !EOC

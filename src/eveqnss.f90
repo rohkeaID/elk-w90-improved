@@ -6,6 +6,7 @@
 subroutine eveqnss(ngp,igpig,apwalm,evalfv,evecfv,evalsvp,evecsv)
 use modmain
 use moddftu
+use modomp
 implicit none
 ! arguments
 integer, intent(in) :: ngp(nspnfv),igpig(ngkmax,nspnfv)
@@ -15,17 +16,17 @@ complex(8), intent(in) :: evecfv(nmatmax,nstfv,nspnfv)
 real(8), intent(out) :: evalsvp(nstsv)
 complex(8), intent(out) :: evecsv(nstsv,nstsv)
 ! local variables
-integer ld,ist,jst,ispn,jspn
-integer is,ia,ias
+integer ist,jst,ispn,jspn
+integer is,ia,ias,i,j,k
 integer nrc,nrci,nrco
 integer l,lm,nm,npc,npci
-integer igp,ifg,i,j,k
+integer igp,ld,nthd
 real(8) t1
 real(8) ts0,ts1
 complex(8) zq
 ! allocatable arrays
 complex(8), allocatable :: wfmt1(:,:,:),wfmt2(:,:),wfmt3(:),wfmt4(:,:)
-complex(8), allocatable :: wfir1(:,:),wfir2(:),z(:,:)
+complex(8), allocatable :: wfir1(:,:),wfir2(:),wfgp(:,:)
 ! external functions
 complex(8) zdotc,zfmtinp
 external zdotc,zfmtinp
@@ -60,7 +61,7 @@ do ias=1,natmtot
   do ispn=1,nspnfv
     if (ispn.eq.2) zq=conjg(zq)
     do ist=1,nstfv
-      call wavefmt(lradstp,ias,ngp(ispn),apwalm(:,:,:,:,ispn), &
+      call wavefmt(lradstp,ias,ngp(ispn),apwalm(:,:,:,ias,ispn), &
        evecfv(:,ist,ispn),wfmt1(:,ist,ispn))
 ! de-phase if required
       if (ssdph) wfmt1(1:npc,ist,ispn)=zq*wfmt1(1:npc,ist,ispn)
@@ -107,7 +108,10 @@ do ias=1,natmtot
       end do
     end if
 ! second-variational Hamiltonian matrix
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(i,j,k,ispn)
+    call omp_hold(nstfv,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(i,j,k,ispn) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
     do ist=1,nstfv
       do k=1,3
@@ -132,19 +136,19 @@ do ias=1,natmtot
     end do
 !$OMP END DO
 !$OMP END PARALLEL
+    call omp_free(nthd)
   end do
 end do
 deallocate(wfmt1,wfmt2,wfmt3,wfmt4)
 !---------------------------!
 !     interstitial part     !
 !---------------------------!
-allocate(wfir1(ngtot,nspnfv),wfir2(ngtot),z(ngkmax,3))
+allocate(wfir1(ngtot,nspnfv),wfir2(ngtot),wfgp(ngkmax,3))
 do jst=1,nstfv
   do ispn=1,nspnfv
     wfir1(:,ispn)=0.d0
     do igp=1,ngp(ispn)
-      ifg=igfft(igpig(igp,ispn))
-      wfir1(ifg,ispn)=evecfv(igp,jst,ispn)
+      wfir1(igfft(igpig(igp,ispn)),ispn)=evecfv(igp,jst,ispn)
     end do
 ! Fourier transform wavefunction to real-space
     call zfftifc(3,ngridg,1,wfir1(:,ispn))
@@ -153,23 +157,23 @@ do jst=1,nstfv
   wfir2(:)=bsir(:,3)*wfir1(:,1)
   call zfftifc(3,ngridg,-1,wfir2)
   do igp=1,ngp(1)
-    ifg=igfft(igpig(igp,1))
-    z(igp,1)=wfir2(ifg)
+    wfgp(igp,1)=wfir2(igfft(igpig(igp,1)))
   end do
   wfir2(:)=-bsir(:,3)*wfir1(:,2)
   call zfftifc(3,ngridg,-1,wfir2)
   do igp=1,ngp(2)
-    ifg=igfft(igpig(igp,2))
-    z(igp,2)=wfir2(ifg)
+    wfgp(igp,2)=wfir2(igfft(igpig(igp,2)))
   end do
   wfir2(:)=cmplx(bsir(:,1),-bsir(:,2),8)*wfir1(:,2)
   call zfftifc(3,ngridg,-1,wfir2)
   do igp=1,ngp(1)
-    ifg=igfft(igpig(igp,1))
-    z(igp,3)=wfir2(ifg)
+    wfgp(igp,3)=wfir2(igfft(igpig(igp,1)))
   end do
 ! add to Hamiltonian matrix
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(i,j,k,ispn)
+  call omp_hold(nstfv,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(i,j,k,ispn) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
   do ist=1,nstfv
     do k=1,3
@@ -187,14 +191,16 @@ do jst=1,nstfv
         j=jst+nstfv
       end if
       if (i.le.j) then
-        evecsv(i,j)=evecsv(i,j)+zdotc(ngp(ispn),evecfv(:,ist,ispn),1,z(:,k),1)
+        evecsv(i,j)=evecsv(i,j)+zdotc(ngp(ispn),evecfv(:,ist,ispn),1, &
+         wfgp(:,k),1)
       end if
     end do
   end do
 !$OMP END DO
 !$OMP END PARALLEL
+  call omp_free(nthd)
 end do
-deallocate(wfir1,wfir2,z)
+deallocate(wfir1,wfir2,wfgp)
 ! add the diagonal first-variational part
 i=0
 do ispn=1,nspinor
@@ -206,9 +212,9 @@ end do
 ! diagonalise the second-variational Hamiltonian
 call eveqnz(nstsv,nstsv,evecsv,evalsvp)
 call timesec(ts1)
-!$OMP CRITICAL
+!$OMP CRITICAL(eveqnss_)
 timesv=timesv+ts1-ts0
-!$OMP END CRITICAL
+!$OMP END CRITICAL(eveqnss_)
 return
 end subroutine
 

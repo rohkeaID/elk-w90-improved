@@ -24,7 +24,7 @@ use modxcifc
 !BOC
 implicit none
 ! local variables
-integer idm,is,ia,ias
+integer ispn,idm,is,ia,ias
 integer nr,nri,ir,np,i,n
 real(8) t0,t1,t2,t3,t4
 ! allocatable arrays
@@ -34,28 +34,30 @@ real(8), allocatable :: grho(:),gup(:),gdn(:)
 real(8), allocatable :: g2rho(:),g2up(:),g2dn(:)
 real(8), allocatable :: g3rho(:),g3up(:),g3dn(:)
 real(8), allocatable :: grho2(:),gup2(:),gdn2(:),gupdn(:)
-real(8), allocatable :: taumt(:,:,:),tauir(:,:)
 real(8), allocatable :: ex(:),ec(:),vxc(:)
 real(8), allocatable :: vx(:),vxup(:),vxdn(:)
 real(8), allocatable :: vc(:),vcup(:),vcdn(:)
-real(8), allocatable :: dxdg2(:),dxdgu2(:),dxdgd2(:),dxdgud(:)
-real(8), allocatable :: dcdg2(:),dcdgu2(:),dcdgd2(:),dcdgud(:)
-real(8), allocatable :: mag(:,:),bxc(:,:)
+real(8), allocatable :: mag(:,:),bxc(:,:),tau(:,:)
+real(8), allocatable :: dxdgr2(:),dxdgu2(:),dxdgd2(:),dxdgud(:)
+real(8), allocatable :: dcdgr2(:),dcdgu2(:),dcdgd2(:),dcdgud(:)
+real(8), allocatable :: dxdg2r(:),dxdg2u(:),dxdg2d(:)
+real(8), allocatable :: dcdg2r(:),dcdg2u(:),dcdg2d(:)
+real(8), allocatable :: wx(:),wxup(:),wxdn(:)
+real(8), allocatable :: wc(:),wcup(:),wcdn(:)
+n=max(npmtmax,ngtot)
 ! meta-GGA variables if required
-if (xcgrad.eq.3) then
-! generate the kinetic energy density if required
-  allocate(taumt(npmtmax,natmtot,nspinor))
-  allocate(tauir(ngtot,nspinor))
-  call gentau(taumt,tauir)
+if ((xcgrad.eq.3).or.(xcgrad.eq.4)) then
+! generate the kinetic energy density
+  call gentau
 ! compute the Tran-Blaha '09 constant c
-  call xc_c_tb09
+  if (xcgrad.eq.3) call xc_c_tb09
+  allocate(tau(npmtmax,nspinor))
 end if
 ! allocate local arrays
 allocate(rho(npmtmax),ex(npmtmax),ec(npmtmax),vxc(npmtmax))
 if (spinpol) then
   allocate(mag(npmtmax,3),bxc(npmtmax,3))
 end if
-n=max(npmtmax,ngtot)
 if (spinpol) then
   allocate(rhoup(n),rhodn(n))
   allocate(vxup(n),vxdn(n),vcup(n),vcdn(n))
@@ -73,6 +75,15 @@ if (spinpol) then
     allocate(g2up(n),g2dn(n))
     allocate(gvup(3*n),gvdn(3*n))
     allocate(gup2(n),gdn2(n),gupdn(n))
+  else if (xcgrad.eq.4) then
+    allocate(g2up(n),g2dn(n))
+    allocate(gvup(3*n),gvdn(3*n))
+    allocate(gup2(n),gdn2(n),gupdn(n))
+    allocate(dxdgu2(n),dxdgd2(n),dxdgud(n))
+    allocate(dcdgu2(n),dcdgd2(n),dcdgud(n))
+    allocate(dxdg2u(n),dxdg2d(n))
+    allocate(dcdg2u(n),dcdg2d(n))
+    allocate(wxup(n),wxdn(n),wcup(n),wcdn(n))
   end if
 else
   allocate(vx(n),vc(n))
@@ -80,9 +91,14 @@ else
     allocate(grho(n),g2rho(n),g3rho(n))
   else if (xcgrad.eq.2) then
     allocate(g2rho(n),gvrho(3*n),grho2(n))
-    allocate(dxdg2(n),dcdg2(n))
+    allocate(dxdgr2(n),dcdgr2(n))
   else if (xcgrad.eq.3) then
     allocate(g2rho(n),gvrho(3*n),grho2(n))
+  else if (xcgrad.eq.4) then
+    allocate(g2rho(n),gvrho(3*n),grho2(n))
+    allocate(dxdgr2(n),dcdgr2(n))
+    allocate(dxdg2r(n),dcdg2r(n))
+    allocate(wx(n),wc(n))
   end if
 end if
 !---------------------------------------!
@@ -94,8 +110,14 @@ do is=1,nspecies
   np=npmt(is)
   do ia=1,natoms(is)
     ias=idxas(ia,is)
-! compute the density in spherical coordinates
+! convert the density to spherical coordinates
     call rbsht(nr,nri,rhomt(:,ias),rho)
+! convert tau to spherical coordinates if required
+    if ((xcgrad.eq.3).or.(xcgrad.eq.4)) then
+      do ispn=1,nspinor
+        call rbsht(nr,nri,taumt(:,ias,ispn),tau(:,ispn))
+      end do
+    end if
     if (spinpol) then
 !------------------------!
 !     spin-polarised     !
@@ -156,10 +178,21 @@ do is=1,nspecies
       else if (xcgrad.eq.3) then
         call ggamt_sp_2a(is,rhoup,rhodn,g2up,g2dn,gvup,gvdn,gup2,gdn2,gupdn)
         call xcifc(xctype,n=np,c_tb09=c_tb09,rhoup=rhoup,rhodn=rhodn, &
-         g2up=g2up,g2dn=g2dn,gup2=gup2,gdn2=gdn2,gupdn=gupdn, &
-         tauup=taumt(:,ias,1),taudn=taumt(:,ias,2),vxup=vxup,vxdn=vxdn, &
-         vcup=vcup,vcdn=vcdn)
+         g2up=g2up,g2dn=g2dn,gup2=gup2,gdn2=gdn2,gupdn=gupdn,tauup=tau(:,1), &
+         taudn=tau(:,2),vxup=vxup,vxdn=vxdn,vcup=vcup,vcdn=vcdn)
         ex(1:np)=0.d0; ec(1:np)=0.d0
+      else if (xcgrad.eq.4) then
+        call ggamt_sp_2a(is,rhoup,rhodn,g2up,g2dn,gvup,gvdn,gup2,gdn2,gupdn)
+        call xcifc(xctype,n=np,rhoup=rhoup,rhodn=rhodn,g2up=g2up,g2dn=g2dn, &
+         gup2=gup2,gdn2=gdn2,gupdn=gupdn,tauup=tau(:,1),taudn=tau(:,2),ex=ex, &
+         ec=ec,vxup=vxup,vxdn=vxdn,vcup=vcup,vcdn=vcdn,dxdgu2=dxdgu2, &
+         dxdgd2=dxdgd2,dxdgud=dxdgud,dcdgu2=dcdgu2,dcdgd2=dcdgd2, &
+         dcdgud=dcdgud,dxdg2u=dxdg2u,dxdg2d=dxdg2d,dcdg2u=dcdg2u, &
+         dcdg2d=dcdg2d,wxup=wxup,wxdn=wxdn,wcup=wcup,wcdn=wcdn)
+        call ggamt_sp_2b(is,g2up,g2dn,gvup,gvdn,vxup,vxdn,vcup,vcdn,dxdgu2, &
+         dxdgd2,dxdgud,dcdgu2,dcdgd2,dcdgud)
+        wxup(1:np)=0.5d0*(wxup(1:np)+wxdn(1:np)+wcup(1:np)+wcdn(1:np))
+        call rfsht(nr,nri,wxup,wxcmt(:,ias))
       end if
 ! hybrid functionals
       if (hybrid) then
@@ -211,13 +244,21 @@ do is=1,nspecies
       else if (xcgrad.eq.2) then
         call ggamt_2a(ias,g2rho,gvrho,grho2)
         call xcifc(xctype,n=np,rho=rho,grho2=grho2,ex=ex,ec=ec,vx=vx,vc=vc, &
-         dxdg2=dxdg2,dcdg2=dcdg2)
-        call ggamt_2b(is,g2rho,gvrho,vx,vc,dxdg2,dcdg2)
+         dxdgr2=dxdgr2,dcdgr2=dcdgr2)
+        call ggamt_2b(is,g2rho,gvrho,vx,vc,dxdgr2,dcdgr2)
       else if (xcgrad.eq.3) then
         call ggamt_2a(ias,g2rho,gvrho,grho2)
         call xcifc(xctype,n=np,c_tb09=c_tb09,rho=rho,g2rho=g2rho,grho2=grho2, &
-         tau=taumt(:,ias,1),vx=vx,vc=vc)
+         tau=tau,vx=vx,vc=vc)
         ex(1:np)=0.d0; ec(1:np)=0.d0
+      else if (xcgrad.eq.4) then
+        call ggamt_2a(ias,g2rho,gvrho,grho2)
+        call xcifc(xctype,n=np,rho=rho,g2rho=g2rho,grho2=grho2,tau=tau,ex=ex, &
+         ec=ec,vx=vx,vc=vc,dxdgr2=dxdgr2,dcdgr2=dcdgr2,dxdg2r=dxdg2r, &
+         dcdg2r=dcdg2r,wx=wx,wc=wc)
+        call ggamt_2b(is,g2rho,gvrho,vx,vc,dxdgr2,dcdgr2)
+        wx(1:np)=wx(1:np)+wc(1:np)
+        call rfsht(nr,nri,wx,wxcmt(:,ias))
       end if
 ! hybrid functionals
       if (hybrid) then
@@ -294,6 +335,18 @@ if (spinpol) then
      g2dn=g2dn,gup2=gup2,gdn2=gdn2,gupdn=gupdn,tauup=tauir(:,1), &
      taudn=tauir(:,2),vxup=vxup,vxdn=vxdn,vcup=vcup,vcdn=vcdn)
     exir(1:ngtot)=0.d0; ecir(1:ngtot)=0.d0
+  else if (xcgrad.eq.4) then
+    call ggair_sp_2a(rhoup,rhodn,g2up,g2dn,gvup,gvdn,gup2,gdn2,gupdn)
+    call xcifc(xctype,n=ngtot,rhoup=rhoup,rhodn=rhodn,g2up=g2up,g2dn=g2dn, &
+     gup2=gup2,gdn2=gdn2,gupdn=gupdn,tauup=tauir(:,1),taudn=tauir(:,2), &
+     ex=exir,ec=ecir,vxup=vxup,vxdn=vxdn,vcup=vcup,vcdn=vcdn,dxdgu2=dxdgu2, &
+     dxdgd2=dxdgd2,dxdgud=dxdgud,dcdgu2=dcdgu2,dcdgd2=dcdgd2,dcdgud=dcdgud, &
+     dxdg2u=dxdg2u,dxdg2d=dxdg2d,dcdg2u=dcdg2u,dcdg2d=dcdg2d,wxup=wxup, &
+     wxdn=wxdn,wcup=wcup,wcdn=wcdn)
+    call ggair_sp_2b(g2up,g2dn,gvup,gvdn,vxup,vxdn,vcup,vcdn,dxdgu2,dxdgd2, &
+     dxdgud,dcdgu2,dcdgd2,dcdgud)
+    wxcir(1:ngtot)=0.5d0*(wxup(1:ngtot)+wxdn(1:ngtot) &
+                         +wcup(1:ngtot)+wcdn(1:ngtot))
   end if
 ! hybrid functionals
   if (hybrid) then
@@ -340,13 +393,20 @@ else
   else if (xcgrad.eq.2) then
     call ggair_2a(g2rho,gvrho,grho2)
     call xcifc(xctype,n=ngtot,rho=rhoir,grho2=grho2,ex=exir,ec=ecir,vx=vx, &
-     vc=vc,dxdg2=dxdg2,dcdg2=dcdg2)
-    call ggair_2b(g2rho,gvrho,vx,vc,dxdg2,dcdg2)
+     vc=vc,dxdgr2=dxdgr2,dcdgr2=dcdgr2)
+    call ggair_2b(g2rho,gvrho,vx,vc,dxdgr2,dcdgr2)
   else if (xcgrad.eq.3) then
     call ggair_2a(g2rho,gvrho,grho2)
     call xcifc(xctype,n=ngtot,c_tb09=c_tb09,rho=rhoir,g2rho=g2rho,grho2=grho2, &
-     tau=tauir(:,1),vx=vx,vc=vc)
+     tau=tauir,vx=vx,vc=vc)
     exir(1:ngtot)=0.d0; ecir(1:ngtot)=0.d0
+  else if (xcgrad.eq.4) then
+    call ggair_2a(g2rho,gvrho,grho2)
+    call xcifc(xctype,n=ngtot,rho=rhoir,g2rho=g2rho,grho2=grho2,tau=tauir, &
+     ex=exir,ec=ecir,vx=vx,vc=vc,dxdgr2=dxdgr2,dcdgr2=dcdgr2,dxdg2r=dxdg2r, &
+     dcdg2r=dcdg2r,wx=wx,wc=wc)
+    call ggair_2b(g2rho,gvrho,vx,vc,dxdgr2,dcdgr2)
+    wxcir(1:ngtot)=wx(1:ngtot)+wc(1:ngtot)
   end if
 ! hybrid functionals
   if (hybrid) then
@@ -365,12 +425,12 @@ if (xctype(1).lt.0) call oepmain
 call symrf(nrmt,nrmti,npmt,npmtmax,vxcmt,vxcir)
 if (spinpol) then
 ! symmetrise the exchange-correlation effective field
-  call symrvf(nrmt,nrmti,npmt,npmtmax,bxcmt,bxcir)
+  call symrvf(.true.,ncmag,nrmt,nrmti,npmt,npmtmax,bxcmt,bxcir)
 ! remove the source contribution if required
   if (nosource) call projsbf
 end if
-if (xcgrad.eq.3) deallocate(taumt,tauir)
 deallocate(rho,ex,ec,vxc)
+if ((xcgrad.eq.3).or.(xcgrad.eq.4)) deallocate(tau)
 if (spinpol) then
   deallocate(mag,bxc)
   deallocate(rhoup,rhodn,vxup,vxdn,vcup,vcdn)
@@ -393,9 +453,13 @@ else
     deallocate(grho,g2rho,g3rho)
   else if (xcgrad.eq.2) then
     deallocate(g2rho,gvrho,grho2)
-    deallocate(dxdg2,dcdg2)
+    deallocate(dxdgr2,dcdgr2)
   else if (xcgrad.eq.3) then
     deallocate(g2rho,gvrho,grho2)
+  else if (xcgrad.eq.4) then
+    deallocate(g2rho,gvrho,grho2)
+    deallocate(dxdgr2,dcdgr2,dxdg2r,dcdg2r)
+    deallocate(wx,wc)
   end if
 end if
 return

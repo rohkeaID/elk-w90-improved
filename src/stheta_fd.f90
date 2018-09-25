@@ -32,3 +32,4 @@ stheta_fd=1.d0/(1.d0+exp(-x))
 return
 end function
 !EOC
+

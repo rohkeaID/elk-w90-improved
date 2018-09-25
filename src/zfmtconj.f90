@@ -13,7 +13,7 @@ complex(8), intent(inout) :: zfmt(np)
 integer ir,i
 ! automatic arrays
 complex(8) zfmt1(np)
-zfmt1(1:np)=zfmt(1:np)
+call zcopy(np,zfmt,1,zfmt1,1)
 i=1
 do ir=1,nri
   call zflmconj(lmaxi,zfmt1(i),zfmt(i))

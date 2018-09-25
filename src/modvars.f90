@@ -14,8 +14,8 @@ subroutine delvars
 implicit none
 if (.not.mp_mpi) return
 ! delete existing variables file
-open(90,file='VARIABLES.OUT')
-close(90,status='DELETE')
+open(95,file='VARIABLES.OUT')
+close(95,status='DELETE')
 return
 end subroutine
 
@@ -52,46 +52,46 @@ if ((present(iva)).or.(present(rva)).or.(present(zva)).or.(present(sva))) then
     end if
   end if
 end if
-open(90,file='VARIABLES.OUT',position='APPEND',form='FORMATTED')
-write(90,*)
-write(90,'(A)',advance='NO') trim(vname)
-if (present(l)) write(90,'(I8)',advance='NO') l
-if (present(m)) write(90,'(I8)',advance='NO') m
-write(90,*)
+open(95,file='VARIABLES.OUT',position='APPEND',form='FORMATTED')
+write(95,*)
+write(95,'(A)',advance='NO') trim(vname)
+if (present(l)) write(95,'(I8)',advance='NO') l
+if (present(m)) write(95,'(I8)',advance='NO') m
+write(95,*)
 if (present(iv)) then
-  write(90,'(2I8)') 1,1
-  write(90,'(I8)') iv
+  write(95,'(2I8)') 1,1
+  write(95,'(I8)') iv
 else if (present(rv)) then
-  write(90,'(2I8)') 2,1
-  write(90,'(G22.12)') rv
+  write(95,'(2I8)') 2,1
+  write(95,'(G22.12)') rv
 else if (present(zv)) then
-  write(90,'(2I8)') 3,1
-  write(90,'(2G22.12)') dble(zv),aimag(zv)
+  write(95,'(2I8)') 3,1
+  write(95,'(2G22.12)') dble(zv),aimag(zv)
 else if (present(sv)) then
-  write(90,'(2I8)') 4,1
-  write(90,'(A)') trim(sv)
+  write(95,'(2I8)') 4,1
+  write(95,'(A)') trim(sv)
 else if (present(iva)) then
-  write(90,'(2I8)') 1,nv
+  write(95,'(2I8)') 1,nv
   do i=1,nv
-    write(90,'(I8)') iva(i)
+    write(95,'(I8)') iva(i)
   end do
 else if (present(rva)) then
-  write(90,'(2I8)') 2,nv
+  write(95,'(2I8)') 2,nv
   do i=1,nv
-    write(90,'(G22.12)') rva(i)
+    write(95,'(G22.12)') rva(i)
   end do
 else if (present(zva)) then
-  write(90,'(2I8)') 3,nv
+  write(95,'(2I8)') 3,nv
   do i=1,nv
-    write(90,'(2G22.12)') dble(zva(i)),aimag(zva(i))
+    write(95,'(2G22.12)') dble(zva(i)),aimag(zva(i))
   end do
 else if (present(sva)) then
-  write(90,'(2I8)') 4,nv
+  write(95,'(2I8)') 4,nv
   do i=1,nv
-    write(90,'(A)') trim(sva(i))
+    write(95,'(A)') trim(sva(i))
   end do
 end if
-close(90)
+close(95)
 return
 end subroutine
 

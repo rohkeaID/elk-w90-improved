@@ -3,24 +3,27 @@
 ! This file is distributed under the terms of the GNU Lesser General Public
 ! License. See the file COPYING for license details.
 
-subroutine zgerci(m,n,alpha,x,y,ld,a)
+subroutine zgerci(m,n,x,y,ld,a)
+use modomp
 implicit none
 ! arguments
 integer, intent(in) :: m,n
-complex(8), intent(in) :: alpha
 complex(8), intent(in) :: x(m),y(n)
 integer, intent(in) :: ld
 complex(8), intent(inout) :: a(ld,*)
 ! local variables
-integer j
+integer j,nthd
 ! numbers less than eps are considered to be zero
 real(8), parameter :: eps=1.d-10
 real(8) a1,b1
 complex(8) z1
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(z1,a1,b1)
+call omp_hold(n,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(z1,a1,b1) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do j=1,n
-  z1=alpha*y(j)
+  z1=y(j)
   if (abs(dble(z1)).gt.eps) then
     if (abs(aimag(z1)).gt.eps) then
 ! complex prefactor
@@ -38,6 +41,7 @@ do j=1,n
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 return
 end subroutine
 

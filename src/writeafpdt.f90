@@ -29,14 +29,14 @@ end do
 t1=1.d0/(8.d0*pi*solsc)
 pd(:)=t1*pd(:)
 ! write the power density to file
-open(50,file='AFPDT.OUT',action='WRITE',form='FORMATTED')
+open(50,file='AFPDT.OUT',form='FORMATTED')
 do its=1,ntimes
   write(50,'(2G18.10)') times(its),pd(its)
 end do
 close(50)
 ! integrate power density to find the total energy density
 ed=fintgt(-1,ntimes,times,pd)
-open(50,file='AFTED.OUT',action='WRITE',form='FORMATTED')
+open(50,file='AFTED.OUT',form='FORMATTED')
 write(50,*)
 write(50,'("Total energy density : ",G18.10)') ed
 write(50,'(" in J/cm^2           : ",G18.10)') ed*ced

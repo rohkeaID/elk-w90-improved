@@ -13,9 +13,6 @@ real(8), intent(out) :: ffacgp(ngtot)
 ! local variables
 integer ig
 real(8) t1,t2
-! external functions
-real(8) stheta_mp
-external stheta_mp
 t1=fourpi/omega
 do ig=1,ngtot
   if (gpc(ig).gt.epslat) then

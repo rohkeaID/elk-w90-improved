@@ -90,7 +90,7 @@ do ias=1,natmtot
           if (abs(dble(z1))+abs(aimag(z1)).gt.epsocc) then
             if (spinsprl.and.ssdph) z1=z1*zq(ispn)
             if (.not.done(ist,jspn)) then
-              call wavefmt(lradstp,ias,ngp(jspn),apwalm(:,:,:,:,jspn), &
+              call wavefmt(lradstp,ias,ngp(jspn),apwalm(:,:,:,ias,jspn), &
                evecfv(:,ist,jspn),wfmt2)
 ! convert to spherical coordinates
               call zbsht(nrc,nrci,wfmt2,wfmt1(:,ist,jspn))
@@ -103,12 +103,12 @@ do ias=1,natmtot
       end do
     else
 ! spin-unpolarised wavefunction
-      call wavefmt(lradstp,ias,ngp,apwalm,evecfv(:,j,1),wfmt2)
+      call wavefmt(lradstp,ias,ngp,apwalm(:,:,:,ias,1),evecfv(:,j,1),wfmt2)
 ! convert to spherical coordinates
       call zbsht(nrc,nrci,wfmt2,wfmt3)
     end if
 ! add to density and magnetisation
-!$OMP CRITICAL
+!$OMP CRITICAL(rhomagk_1)
     if (spinpol) then
 ! spin-polarised
       if (ncmag) then
@@ -123,7 +123,7 @@ do ias=1,natmtot
 ! spin-unpolarised
       call rmk3(npc,wo,wfmt3(:,1),rhomt(:,ias))
     end if
-!$OMP END CRITICAL
+!$OMP END CRITICAL(rhomagk_1)
   end do
 ! end loop over atoms
 end do
@@ -165,7 +165,7 @@ do j=1,nstsv
     call zfftifc(3,ngridg,1,wfir(:,ispn))
   end do
 ! add to density and magnetisation
-!$OMP CRITICAL
+!$OMP CRITICAL(rhomagk_2)
   if (spinpol) then
 ! spin-polarised
     if (ncmag) then
@@ -180,13 +180,13 @@ do j=1,nstsv
 ! spin-unpolarised
     call rmk3(ngtot,wo,wfir,rhoir)
   end if
-!$OMP END CRITICAL
+!$OMP END CRITICAL(rhomagk_2)
 end do
 deallocate(wfir)
 call timesec(ts1)
-!$OMP CRITICAL
+!$OMP CRITICAL(rhomagk_3)
 timerho=timerho+ts1-ts0
-!$OMP END CRITICAL
+!$OMP END CRITICAL(rhomagk_3)
 return
 
 contains

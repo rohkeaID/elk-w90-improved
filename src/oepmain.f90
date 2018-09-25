@@ -6,11 +6,12 @@
 subroutine oepmain
 use modmain
 use modmpi
+use modomp
 implicit none
 ! local variables
 integer ik,idm,is,ias
 integer nrc,nrci,np,npc
-integer it,n
+integer it,n,nthd
 real(8) tau,resp,t1
 ! allocatable arrays
 real(8), allocatable :: dvxmt(:,:),dvxir(:)
@@ -21,7 +22,7 @@ complex(8), allocatable :: vclcv(:,:,:,:),vclvv(:,:,:)
 ! external functions
 real(8) rfinpc
 external rfinpc
-if (iscl.lt.1) return
+if (iscl.le.0) return
 ! calculate Coulomb matrix elements
 allocate(vclcv(ncrmax,natmtot,nstsv,nkpt),vclvv(nstsv,nstsv,nkpt))
 call oepvcl(vclcv,vclvv)
@@ -57,7 +58,9 @@ do it=1,maxitoep
     dbxir(:,:)=0.d0
   end if
 ! calculate the k-dependent residuals
-!$OMP PARALLEL DEFAULT(SHARED)
+  call omp_hold(nkpt/np_mpi,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
   do ik=1,nkpt
 ! distribute among MPI processes
@@ -66,24 +69,28 @@ do it=1,maxitoep
   end do
 !$OMP END DO
 !$OMP END PARALLEL
+  call omp_free(nthd)
 ! add residuals from each process and redistribute
   if (np_mpi.gt.1) then
     n=npcmtmax*natmtot
     call mpi_allreduce(mpi_in_place,dvxmt,n,mpi_double_precision,mpi_sum, &
-     mpi_comm_kpt,ierror)
+     mpicom,ierror)
     call mpi_allreduce(mpi_in_place,dvxir,ngtot,mpi_double_precision, &
-     mpi_sum,mpi_comm_kpt,ierror)
+     mpi_sum,mpicom,ierror)
     if (spinpol) then
       n=n*ndmag
       call mpi_allreduce(mpi_in_place,dbxmt,n,mpi_double_precision,mpi_sum, &
-       mpi_comm_kpt,ierror)
+       mpicom,ierror)
       n=ngtot*ndmag
       call mpi_allreduce(mpi_in_place,dbxir,n,mpi_double_precision,mpi_sum, &
-       mpi_comm_kpt,ierror)
+       mpicom,ierror)
     end if
   end if
 ! convert muffin-tin residuals to spherical harmonics
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(is,nrc,nrci,idm)
+  call omp_hold(natmtot,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(is,nrc,nrci,idm) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
   do ias=1,natmtot
     is=idxis(ias)
@@ -96,9 +103,10 @@ do it=1,maxitoep
   end do
 !$OMP END DO
 !$OMP END PARALLEL
+  call omp_free(nthd)
 ! symmetrise the residuals
   call symrf(nrcmt,nrcmti,npcmt,npmtmax,rfmt1,dvxir)
-  if (spinpol) call symrvf(nrcmt,nrcmti,npcmt,npmtmax,rvfmt,dbxir)
+  if (spinpol) call symrvf(.true.,ncmag,nrcmt,nrcmti,npcmt,npmtmax,rvfmt,dbxir)
 ! magnitude of residuals
   resoep=sqrt(abs(rfinpc(npmtmax,rfmt1,dvxir,rfmt1,dvxir)))
   do idm=1,ndmag
@@ -116,8 +124,10 @@ do it=1,maxitoep
   end if
   resp=resoep
 ! update exchange potential and magnetic field
+  call omp_hold(natmtot,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(rfmt2,is,nrc,nrci,npc,idm)
+!$OMP PRIVATE(rfmt2,is,nrc,nrci,npc,idm) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
   do ias=1,natmtot
     allocate(rfmt2(npcmtmax))
@@ -138,6 +148,7 @@ do it=1,maxitoep
   end do
 !$OMP END DO
 !$OMP END PARALLEL
+  call omp_free(nthd)
   vxir(:)=vxir(:)-tau*dvxir(:)
   do idm=1,ndmag
     bxir(:,idm)=bxir(:,idm)-tau*dbxir(:,idm)
@@ -145,8 +156,10 @@ do it=1,maxitoep
 ! end iteration loop
 end do
 ! convert the exchange potential and field to spherical harmonics
+call omp_hold(natmtot,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(is,nrc,nrci,idm)
+!$OMP PRIVATE(is,nrc,nrci,idm) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ias=1,natmtot
   is=idxis(ias)
@@ -159,6 +172,7 @@ do ias=1,natmtot
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 ! convert potential and field from a coarse to a fine radial mesh
 call rfmtctof(rfmt1)
 do idm=1,ndmag
@@ -179,7 +193,7 @@ do idm=1,ndmag
 end do
 ! symmetrise the exchange potential and field
 call symrf(nrmt,nrmti,npmt,npmtmax,vxcmt,vxcir)
-if (spinpol) call symrvf(nrmt,nrmti,npmt,npmtmax,bxcmt,bxcir)
+if (spinpol) call symrvf(.true.,ncmag,nrmt,nrmti,npmt,npmtmax,bxcmt,bxcir)
 deallocate(rfmt1,rfir,vclcv,vclvv)
 deallocate(dvxmt,dvxir)
 if (spinpol) then

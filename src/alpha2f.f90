@@ -123,7 +123,7 @@ a2f(:)=t1*a2f(:)
 ! smooth Eliashberg function if required
 if (nswplot.gt.0) call fsmooth(nswplot,nwplot,a2f)
 ! write Eliashberg function to file
-open(50,file='ALPHA2F.OUT',action='WRITE',form='FORMATTED')
+open(50,file='ALPHA2F.OUT',form='FORMATTED')
 do iw=1,nwplot
   write(50,'(2G18.10)') w(iw),a2f(iw)
 end do
@@ -134,7 +134,7 @@ write(*,'(" Eliashberg function written to ALPHA2F.OUT")')
 ! compute lambda, logarithmic average frequency, RMS average frequency and
 ! McMillan-Allen-Dynes superconducting critical temperature
 call mcmillan(w,a2f,lambda,wlog,wrms,tc)
-open(50,file='MCMILLAN.OUT',action='WRITE',form='FORMATTED')
+open(50,file='MCMILLAN.OUT',form='FORMATTED')
 write(50,*)
 write(50,'("Electron-phonon coupling constant, lambda : ",G18.10)') lambda
 write(50,*)
@@ -155,7 +155,7 @@ write(*,'(" logarithmic and RMS average frequencies;")')
 write(*,'(" and McMillan-Allen-Dynes superconducting critical temperature")')
 write(*,'(" written to MCMILLAN.OUT")')
 ! write lambda to test file
-call writetest(251,'Electron-phonon coupling constant, lambda',tol=5.d-2, &
+call writetest(251,'electron-phonon coupling constant, lambda',tol=5.d-2, &
  rv=lambda)
 deallocate(wq,wp,gq,a2fp,w,a2f)
 deallocate(dynq,dynr,dynp,ev,b)

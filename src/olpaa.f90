@@ -17,12 +17,12 @@ integer is,l,m,lm,io
 complex(8) x(ngp)
 is=idxis(ias)
 lm=0
-do l=0,lmaxmat
+do l=0,lmaxapw
   do m=-l,l
     lm=lm+1
     do io=1,apword(l,is)
       x(1:ngp)=conjg(apwalm(1:ngp,io,lm))
-      call zheri(ngp,1.d0,x,ld,o)
+      call zheri(ngp,x,ld,o)
     end do
   end do
 end do
@@ -30,25 +30,28 @@ return
 
 contains
 
-subroutine zheri(n,alpha,x,ld,a)
+subroutine zheri(n,x,ld,a)
+use modomp
 implicit none
 ! arguments
 integer, intent(in) :: n
-real(8), intent(in) :: alpha
 complex(8), intent(in) :: x(n)
 integer, intent(in) :: ld
 complex(8), intent(inout) :: a(*)
 ! local variables
-integer j,k
+integer j,k,nthd
 ! numbers less than eps are considered to be zero
 real(8), parameter :: eps=1.d-10
 real(8) a1,b1
 complex(8) z1
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(k,z1,a1,b1)
+call omp_hold(n,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(k,z1,a1,b1) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do j=1,n
   k=(j-1)*ld
-  z1=alpha*conjg(x(j))
+  z1=conjg(x(j))
   if (abs(dble(z1)).gt.eps) then
     if (abs(aimag(z1)).gt.eps) then
 ! complex prefactor
@@ -69,6 +72,7 @@ do j=1,n
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 return
 end subroutine
 

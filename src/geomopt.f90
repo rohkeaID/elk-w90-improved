@@ -11,20 +11,14 @@ implicit none
 ! local variables
 integer istp,jstp,i
 real(8) ds
-! store original rmtdelta (minimum distance between muffin-tin surfaces)
-rmtdelta0=rmtdelta
-! make rmtdelta large enough to accommodate changes in atomic positions
-rmtdelta=0.2d0
 ! initialise global variables (and the muffin-tin radii)
 call init0
 call init1
-! trim vsig for |G| > gmaxvr/2
-trimvg0=trimvg
-trimvg=.true.
-! make rmtdelta small so the muffin-tin radii are not subsequently adjusted
-rmtdelta=0.01d0
+! smooth the exchange-correlation potentials and fields
+msmooth_=msmooth
+msmooth=4
 ! store orginal volume
-omega0=omega
+omega_=omega
 ! atomic forces are required
 tforce=.true.
 if (task.eq.3) then
@@ -42,31 +36,33 @@ allocate(forcetotp(3,natmtot))
 forcetotp(:,:)=0.d0
 ! initial lattice optimisation step size
 taulatv(:)=tau0latv
-! initialise current and previous stress tensor
+! initialise previous stress tensor
 stressp(:)=0.d0
 if (mp_mpi) then
 ! open TOTENERGY.OUT
-  open(71,file='TOTENERGY_OPT.OUT',action='WRITE',form='FORMATTED')
+  open(71,file='TOTENERGY_OPT.OUT',form='FORMATTED')
 ! open FORCEMAX.OUT
-  open(72,file='FORCEMAX.OUT',action='WRITE',form='FORMATTED')
+  open(72,file='FORCEMAX.OUT',form='FORMATTED')
 ! open GEOMETRY_OPT.OUT
-  open(73,file='GEOMETRY_OPT.OUT',action='WRITE',form='FORMATTED')
+  open(73,file='GEOMETRY_OPT.OUT',form='FORMATTED')
 ! open IADIST_OPT.OUT
-  open(74,file='IADIST_OPT.OUT',action='WRITE',form='FORMATTED')
+  open(74,file='IADIST_OPT.OUT',form='FORMATTED')
 ! open FORCES_OPT.OUT
-  open(75,file='FORCES_OPT.OUT',action='WRITE',form='FORMATTED')
+  open(75,file='FORCES_OPT.OUT',form='FORMATTED')
 ! open MOMENTM_OPT.OUT
   if (spinpol) then
-    open(78,file='MOMENTM_OPT.OUT',action='WRITE',form='FORMATTED')
+    open(78,file='MOMENTM_OPT.OUT',form='FORMATTED')
   end if
 ! open STRESSMAX.OUT and STRESS_OPT.OUT if required
   if (latvopt.ne.0) then
-    open(86,file='STRESSMAX.OUT',action='WRITE',form='FORMATTED')
-    open(87,file='STRESS_OPT.OUT',action='WRITE',form='FORMATTED')
-    open(88,file='OMEGA_OPT.OUT',action='WRITE',form='FORMATTED')
+    open(86,file='STRESSMAX.OUT',form='FORMATTED')
+    open(87,file='STRESS_OPT.OUT',form='FORMATTED')
+    open(88,file='OMEGA_OPT.OUT',form='FORMATTED')
   end if
 end if
 if (mp_mpi) write(*,*)
+! synchronise MPI processes
+call mpi_barrier(mpicom,ierror)
 do istp=1,maxlatvstp
   do jstp=1,maxatpstp
     if (atpopt.eq.0) exit
@@ -84,31 +80,31 @@ do istp=1,maxlatvstp
 ! write total energy, forces, atomic positions, interatomic distances to file
     if (mp_mpi) then
       write(71,'(G22.12)') engytot
-      call flushifc(71)
+      flush(71)
       write(72,'(G18.10)') forcemax
-      call flushifc(72)
+      flush(72)
       write(73,*); write(73,*)
       write(73,'("! Atomic position optimisation step : ",I6)') jstp
       call writegeom(73)
-      call flushifc(73)
+      flush(73)
       write(74,*); write(74,*)
       write(74,'("Atomic position optimisation step : ",I6)') jstp
       call writeiad(74)
-      call flushifc(74)
+      flush(74)
       write(75,*); write(75,*)
       write(75,'("Atomic position optimisation step : ",I6)') jstp
       call writeforces(75)
       write(75,*)
       write(75,'("Maximum force magnitude over all atoms (target) : ",G18.10,&
        &" (",G18.10,")")') forcemax,epsforce
-      call flushifc(75)
+      flush(75)
       if (spinpol) then
         write(78,'(G22.12)') momtotm
-        call flushifc(78)
+        flush(78)
       end if
     end if
 ! broadcast forcemax from master process to all other processes
-    call mpi_bcast(forcemax,1,mpi_double_precision,0,mpi_comm_kpt,ierror)
+    call mpi_bcast(forcemax,1,mpi_double_precision,0,mpicom,ierror)
 ! check force convergence
     if (forcemax.le.epsforce) then
       if (mp_mpi) then
@@ -142,30 +138,30 @@ do istp=1,maxlatvstp
 ! write stress tensor components and maximum magnitude to file
   if (mp_mpi) then
     write(71,'(G22.12)') engytot
-    call flushifc(71)
+    flush(71)
     write(73,*); write(73,*)
     write(73,'("! Lattice optimisation step : ",I6)') istp
     call writegeom(73)
-    call flushifc(73)
+    flush(73)
     write(74,*); write(74,*)
     write(74,'("Lattice optimisation step : ",I6)') istp
     call writeiad(74)
-    call flushifc(74)
+    flush(74)
     if (spinpol) then
       write(78,'(G22.12)') momtotm
-      call flushifc(78)
+      flush(78)
     end if
     write(86,'(G18.10)') stressmax
-    call flushifc(86)
+    flush(86)
     write(87,*)
     write(87,'("Lattice optimisation step : ",I6)') istp
     write(87,'("Derivative of total energy w.r.t. strain tensors :")')
     do i=1,nstrain
       write(87,'(G18.10)') stress(i)
     end do
-    call flushifc(87)
+    flush(87)
     write(88,'(G18.10)') omega
-    call flushifc(88)
+    flush(88)
   end if
 ! check for stress convergence
   if (latvopt.eq.1) then
@@ -176,7 +172,7 @@ do istp=1,maxlatvstp
     ds=sum(abs(stress(:)-stressp(:)))
   end if
 ! broadcase ds from master process to all other processes
-  call mpi_bcast(ds,1,mpi_double_precision,0,mpi_comm_kpt,ierror)
+  call mpi_bcast(ds,1,mpi_double_precision,0,mpicom,ierror)
   if ((istp.ge.3).and.(ds.le.epsstress*tau0latv)) then
     if (mp_mpi) then
       write(87,*)
@@ -203,8 +199,7 @@ end if
 ! ground-state should be run again after lattice optimisation
 if (latvopt.ne.0) call gndstate
 ! restore original parameters
-trimvg=trimvg0
-rmtdelta=rmtdelta0
+msmooth=msmooth_
 return
 end subroutine
 

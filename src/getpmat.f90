@@ -12,24 +12,48 @@ real(8), intent(in) :: vpl(3)
 complex(8), intent(out) :: pmat(nstsv,nstsv,3)
 ! local variables
 integer isym,ik,ist,jst
-integer recl,nstsv_
+integer recl,nstsv_,i
 real(8) vkl_(3),sc(3,3),t1
 real(8) v1(3),v2(3),v3(3)
 ! find the k-point number
 call findkpt(vpl,isym,ik)
 ! find the record length
 inquire(iolength=recl) vkl_,nstsv_,pmat
-!$OMP CRITICAL
 if (tfv) then
-  open(85,file='PMATFV.OUT',action='READ',form='UNFORMATTED',access='DIRECT', &
-   recl=recl)
+!$OMP CRITICAL(u152)
+  do i=1,2
+    open(152,file='PMATFV.OUT',form='UNFORMATTED',access='DIRECT',recl=recl, &
+     err=10)
+    read(152,rec=ik,err=10) vkl_,nstsv_,pmat
+    exit
+10 continue
+    if (i.eq.2) then
+      write(*,*)
+      write(*,'("Error(getpmat): unable to read from PMATFV.OUT")')
+      write(*,*)
+      stop
+    end if
+    close(152)
+  end do
+!$OMP END CRITICAL(u152)
 else
-  open(85,file='PMAT.OUT',action='READ',form='UNFORMATTED',access='DIRECT', &
-   recl=recl)
+!$OMP CRITICAL(u150)
+  do i=1,2
+    open(150,file='PMAT.OUT',form='UNFORMATTED',access='DIRECT',recl=recl, &
+     err=20)
+    read(150,rec=ik,err=20) vkl_,nstsv_,pmat
+    exit
+20 continue
+    if (i.eq.2) then
+      write(*,*)
+      write(*,'("Error(getpmat): unable to read from PMAT.OUT")')
+      write(*,*)
+      stop
+    end if
+    close(150)
+  end do
+!$OMP END CRITICAL(u150)
 end if
-read(85,rec=ik) vkl_,nstsv_,pmat
-close(85)
-!$OMP END CRITICAL
 t1=abs(vkl(1,ik)-vkl_(1))+abs(vkl(2,ik)-vkl_(2))+abs(vkl(3,ik)-vkl_(3))
 if (t1.gt.epslat) then
   write(*,*)

@@ -10,6 +10,7 @@ subroutine writevclijji
 ! !USES:
 use modmain
 use modmpi
+use modomp
 ! !DESCRIPTION:
 !   Generates Coulomb matrix elements of the type $(i-jj-i)$ and outputs them to
 !   the file {\tt VCLIJJI.OUT}.
@@ -21,33 +22,38 @@ use modmpi
 implicit none
 ! allocatable arrays
 real(8), allocatable :: vclijji(:,:,:)
-integer recl,ik
+integer recl,ik,nthd
 ! determine record length for vclijji and open file
 allocate(vclijji(nstsv,nstsv,nkpt))
 inquire(iolength=recl) vclijji
 deallocate(vclijji)
-open(100,file='VCLIJJI.OUT',action='WRITE',form='UNFORMATTED',access='DIRECT', &
- recl=recl)
+open(260,file='VCLIJJI.OUT',form='UNFORMATTED',access='DIRECT',recl=recl)
+call omp_hold(nkptnr/np_mpi,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(vclijji)
+!$OMP PRIVATE(vclijji) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ik=1,nkptnr
 ! distribute among MPI processes
   if (mod(ik-1,np_mpi).ne.lp_mpi) cycle
   allocate(vclijji(nstsv,nstsv,nkpt))
-!$OMP CRITICAL
+!$OMP CRITICAL(writevclijji_)
   write(*,'("Info(writevclijji): ",I6," of ",I6," k-points")') ik,nkptnr
-!$OMP END CRITICAL
+!$OMP END CRITICAL(writevclijji_)
 ! calculate Coulomb matrix elements of the type (i-jj-i)
   call genvclijji(ik,vclijji)
-!$OMP CRITICAL
-  write(100,rec=ik) vclijji
-!$OMP END CRITICAL
+!$OMP CRITICAL(u260)
+  write(260,rec=ik) vclijji
+!$OMP END CRITICAL(u260)
   deallocate(vclijji)
 end do
 !$OMP END DO
 !$OMP END PARALLEL
-close(100)
+call omp_free(nthd)
+close(260)
+! synchronise MPI processes
+call mpi_barrier(mpicom,ierror)
 return
 end subroutine
 !EOC
+

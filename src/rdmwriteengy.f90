@@ -33,7 +33,8 @@ if (rdmtemp.gt.0.d0) then
   write(fnum,'(" entropy",T30,": ",G18.10)') rdmentrpy
 end if
 write(fnum,'(" total energy",T30,": ",G18.10)') engytot
-call flushifc(fnum)
+flush(fnum)
 return
 end subroutine
 !EOC
+

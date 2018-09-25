@@ -12,9 +12,10 @@ use modmain
 use modmpi
 use modvars
 ! !DESCRIPTION:
-!   Checks for muffin-tins which are too close together. If any such muffin-tins
-!   are found then the radii of their associated atomic species are adjusted so
-!   that the minimum distance between their surfaces is {\tt rmtdelta}.
+!   Checks for muffin-tins which are too close together or intersecting. If any
+!   such muffin-tins are found then the radii of their associated atomic species
+!   are adjusted so that the minimum distance between their surfaces is
+!   {\tt rmtdelta}.
 !
 ! !REVISION HISTORY:
 !   Created May 2003 (JKD)
@@ -50,6 +51,7 @@ do is=1,nspecies
   end if
   if (rmt(is).lt.rmt0(is)) then
     if (mp_mpi) then
+      write(*,*)
       write(*,'("Info(checkmt): reduced muffin-tin radius of species ",I3,&
        &" (",A,") from ",F8.4," to ",F8.4)') is,trim(spsymb(is)),rmt0(is), &
        rmt(is)
@@ -61,3 +63,4 @@ call writevars('rmt',nv=nspecies,rva=rmt)
 return
 end subroutine
 !EOC
+

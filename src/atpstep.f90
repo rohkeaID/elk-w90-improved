@@ -47,10 +47,9 @@ do is=1,nspecies
 end do
 ! each MPI process should have identical atomic positions
 n=3*maxatoms*maxspecies
-call mpi_bcast(atposc,n,mpi_double_precision,0,mpi_comm_kpt,ierror)
+call mpi_bcast(atposc,n,mpi_double_precision,0,mpicom,ierror)
 do is=1,nspecies
   do ia=1,natoms(is)
-    ias=idxas(ia,is)
 ! compute the lattice coordinates of the atomic positions
     call r3mv(ainv,atposc(:,ia,is),atposl(:,ia,is))
   end do
@@ -58,3 +57,4 @@ end do
 return
 end subroutine
 !EOC
+

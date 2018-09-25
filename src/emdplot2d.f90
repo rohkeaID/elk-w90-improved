@@ -6,11 +6,12 @@
 subroutine emdplot2d(emds)
 use modmain
 use modpw
+use modomp
 implicit none
 ! arguments
 real(4), intent(in) :: emds(nhkmax,nkpt)
 ! local variables
-integer nh(3),np,ip,n,i
+integer nh(3),np,ip,n,i,nthd
 real(8) vpnl(3),v1(3),t1
 ! allocatable arrays
 real(8), allocatable :: vpl(:,:),vppc(:,:)
@@ -31,10 +32,13 @@ do i=1,n
   t1=2.d0*dble(i-1)/dble(n-1)-1.d0
   x(i)=t1*hkmax
 end do
-open(50,file='EMD2D.OUT',action='WRITE',form='FORMATTED')
+open(50,file='EMD2D.OUT',form='FORMATTED')
 write(50,'(2I6," : grid size")') np2d(:)
 ! loop over plotting points in the 2D plane
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(f,g,i,v1)
+call omp_hold(np,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(f,g,i,v1) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO ORDERED
 do ip=1,np
   allocate(f(n),g(n))
@@ -51,6 +55,7 @@ do ip=1,np
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 close(50)
 deallocate(vpl,vppc,x)
 return

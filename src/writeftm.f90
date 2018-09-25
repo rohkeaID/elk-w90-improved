@@ -14,7 +14,7 @@ integer l,n,k,p,r,t,x,y
 complex(8), allocatable :: tm2(:,:),tm3(:)
 allocate(tm2(-lmmaxdm:lmmaxdm,-1:1),tm3(-lmmaxdm:lmmaxdm))
 ! open FTM.OUT
-open(50,file='FTM.OUT',action='WRITE',form='FORMATTED')
+open(50,file='FTM.OUT',form='FORMATTED')
 do i=1,ntmfix
   is=itmfix(1,i)
   ia=itmfix(2,i)

@@ -22,7 +22,7 @@ implicit none
 ! local variables
 logical spinpol_
 integer iostat
-integer is,ias,lmmax,lm,ir,jr
+integer is,ia,ias,lmmax,lm,ir,jr
 integer idm,jdm,mapidm(3)
 integer i1,i2,i3,j1,j2,j3,n
 integer version_(3)
@@ -31,7 +31,7 @@ integer nrmt_(maxspecies),nrmtmax_
 integer nrcmt_(maxspecies),nrcmtmax_
 integer ngridg_(3),ngtot_,ngvec_
 integer ndmag_,nspinor_,fsmtype_,ftmtype_
-integer dftu_,lmmaxdm_
+integer dftu_,lmmaxdm_,xcgrad_
 real(8) t1
 ! allocatable arrays
 integer, allocatable :: mapir(:)
@@ -42,15 +42,15 @@ real(8), allocatable :: rvfcmt_(:,:,:,:),rfmt(:,:)
 real(8), allocatable :: bfsmcmt_(:,:),fi(:),fo(:)
 complex(8), allocatable :: vsig_(:)
 complex(8), allocatable :: vmatmt_(:,:,:,:,:),vmftm_(:,:,:,:,:)
-open(50,file='STATE'//trim(filext),action='READ',form='UNFORMATTED', &
- status='OLD',iostat=iostat)
+open(40,file='STATE'//trim(filext),form='UNFORMATTED',status='OLD', &
+ iostat=iostat)
 if (iostat.ne.0) then
   write(*,*)
   write(*,'("Error(readstate): error opening ",A)') 'STATE'//trim(filext)
   write(*,*)
   stop
 end if
-read(50) version_
+read(40) version_
 if (version_(1).lt.2) then
   write(*,*)
   write(*,'("Error(readstate): unable to read STATE.OUT from versions earlier &
@@ -65,8 +65,8 @@ if ((version(1).ne.version_(1)).or.(version(2).ne.version_(2)).or. &
   write(*,'(" current   : ",I3.3,".",I3.3,".",I3.3)') version
   write(*,'(" STATE.OUT : ",I3.3,".",I3.3,".",I3.3)') version_
 end if
-read(50) spinpol_
-read(50) nspecies_
+read(40) spinpol_
+read(40) nspecies_
 if (nspecies.ne.nspecies_) then
   write(*,*)
   write(*,'("Error(readstate): differing nspecies")')
@@ -75,14 +75,14 @@ if (nspecies.ne.nspecies_) then
   write(*,*)
   stop
 end if
-read(50) lmmaxo_
+read(40) lmmaxo_
 lmmax=min(lmmaxo,lmmaxo_)
-read(50) nrmtmax_
-read(50) nrcmtmax_
+read(40) nrmtmax_
+read(40) nrcmtmax_
 allocate(rsp_(nrmtmax_,nspecies))
 allocate(rcmt_(nrcmtmax_,nspecies))
 do is=1,nspecies
-  read(50) natoms_
+  read(40) natoms_
   if (natoms(is).ne.natoms_) then
     write(*,*)
     write(*,'("Error(readstate): differing natoms for species ",I4)') is
@@ -91,29 +91,34 @@ do is=1,nspecies
     write(*,*)
     stop
   end if
-  read(50) nrmt_(is)
-  read(50) rsp_(1:nrmt_(is),is)
-  read(50) nrcmt_(is)
-  read(50) rcmt_(1:nrcmt_(is),is)
+  read(40) nrmt_(is)
+  read(40) rsp_(1:nrmt_(is),is)
+  read(40) nrcmt_(is)
+  read(40) rcmt_(1:nrcmt_(is),is)
 end do
-read(50) ngridg_
-read(50) ngvec_
-read(50) ndmag_
+read(40) ngridg_
+read(40) ngvec_
+read(40) ndmag_
 if ((spinpol_).and.(ndmag_.ne.1).and.(ndmag_.ne.3)) then
   write(*,*)
   write(*,'("Error(readstate): invalid ndmag in STATE.OUT : ",I8)') ndmag_
   write(*,*)
   stop
 end if
-read(50) nspinor_
-read(50) fsmtype_
+read(40) nspinor_
+read(40) fsmtype_
 if ((version_(1).gt.2).or.(version_(2).ge.3)) then
-  read(50) ftmtype_
+  read(40) ftmtype_
 else
   ftmtype_=0
 end if
-read(50) dftu_
-read(50) lmmaxdm_
+read(40) dftu_
+read(40) lmmaxdm_
+if ((version_(1).gt.5).or.((version_(1).eq.5).and.(version_(2).ge.1))) then
+  read(40) xcgrad_
+else
+  xcgrad_=0
+end if
 ngtot_=ngridg_(1)*ngridg_(2)*ngridg_(3)
 ! map from old interstitial grid to new
 allocate(mapir(ngtot))
@@ -138,30 +143,29 @@ allocate(rfmt(lmmaxo,nrmtmax))
 n=max(nrmtmax,nrmtmax_)
 allocate(fi(n),fo(n))
 ! read the muffin-tin density
-read(50) rfmt_,rfir_
+read(40) rfmt_,rfir_
 ! regrid and pack the muffin-tin function
-call rgpmt(rhomt)
+call rgfmt(rhomt)
 ! regrid the interstitial function
 rhoir(:)=rfir_(mapir(:))
 ! read the Coulomb potential, regrid and pack
-read(50) rfmt_,rfir_
-call rgpmt(vclmt)
+read(40) rfmt_,rfir_
+call rgfmt(vclmt)
 vclir(:)=rfir_(mapir(:))
 ! read the exchange-correlation potential, regrid and pack
-read(50) rfmt_,rfir_
-call rgpmt(vxcmt)
+read(40) rfmt_,rfir_
+call rgfmt(vxcmt)
 vxcir(:)=rfir_(mapir(:))
 ! read the Kohn-Sham effective potential, regrid and pack
 if ((version_(1).gt.2).or.(version_(2).ge.2)) then
-  read(50) rfmt_,rfir_
+  read(40) rfmt_,rfir_
 else
   allocate(vsig_(ngvec_))
-  read(50) rfmt_,rfir_,vsig_
+  read(40) rfmt_,rfir_,vsig_
   deallocate(vsig_)
 end if
-call rgpmt(vsmt)
+call rgfmt(vsmt)
 vsir(:)=rfir_(mapir(:))
-deallocate(rfmt_,rfir_)
 ! read the magnetisation, exchange-correlation and effective magnetic fields
 if (spinpol_) then
 ! component map for spin-polarised case
@@ -176,31 +180,58 @@ if (spinpol_) then
   allocate(rvfmt_(lmmaxo_,nrmtmax_,natmtot,ndmag_))
   allocate(rvfir_(ngtot_,ndmag_))
   allocate(rvfcmt_(lmmaxo_,nrcmtmax_,natmtot,ndmag_))
-  read(50) rvfmt_,rvfir_
-  call rgpvmt(magmt)
+  read(40) rvfmt_,rvfir_
+  call rgvfmt(magmt)
   call rgvir(magir)
-  read(50) rvfmt_,rvfir_
-  call rgpvmt(bxcmt)
+  read(40) rvfmt_,rvfir_
+  call rgvfmt(bxcmt)
   call rgvir(bxcir)
-  read(50) rvfcmt_,rvfir_
-  call rgpvcmt(bsmt)
+  read(40) rvfcmt_,rvfir_
+  call rgvfcmt(bsmt)
   call rgvir(bsir)
   deallocate(rvfmt_,rvfir_,rvfcmt_)
 ! read fixed spin moment effective fields
   if (fsmtype_.ne.0) then
     allocate(bfsmcmt_(3,natmtot))
-    read(50) bfsmc
-    read(50) bfsmcmt_
+    read(40) bfsmc
+    read(40) bfsmcmt_
     if (fsmtype.ne.0) bfsmcmt(:,:)=bfsmcmt_(:,:)
+! make sure that the constraining fields are perpendicular to the fixed moments
+! for fixed direction calculations (Y. Kvashnin and LN)
+    if (fsmtype.lt.0) then
+      if (ncmag) then
+        call r3vo(momfix,bfsmc)
+        do is=1,nspecies
+          do ia=1,natoms(is)
+            ias=idxas(ia,is)
+            call r3vo(mommtfix(:,ia,is),bfsmcmt(:,ias))
+          end do
+        end do
+      else
+        bfsmc(:)=0.d0
+        bfsmcmt(:,:)=0.d0
+      end if
+    end if
     deallocate(bfsmcmt_)
   end if
 end if
-deallocate(rfmt,fi,fo)
+if (xcgrad.eq.4) then
+  if (xcgrad_.eq.4) then
+    read(40) rfmt_,rfir_
+    call rgfmt(wxcmt)
+    wxcir(:)=rfir_(mapir(:))
+  else
+    wxcmt(:,:)=0.d0
+    wxcir(:)=0.d0
+  end if
+  call genws
+end if
+deallocate(rfmt_,rfir_,rfmt,fi,fo)
 ! read DFT+U potential matrix in each muffin-tin
 if (((dftu.ne.0).and.(dftu_.ne.0)).or. &
     ((ftmtype.ne.0).and.(ftmtype_.ne.0))) then
   allocate(vmatmt_(lmmaxdm_,nspinor_,lmmaxdm_,nspinor_,natmtot))
-  read(50) vmatmt_
+  read(40) vmatmt_
   lmmax=min(lmmaxdm,lmmaxdm_)
   vmatmt(:,:,:,:,:)=0.d0
   if (nspinor.eq.nspinor_) then
@@ -217,7 +248,7 @@ end if
 ! read fixed tensor moment potential matrix elements
 if ((ftmtype.ne.0).and.(ftmtype_.ne.0)) then
   allocate(vmftm_(lmmaxdm_,nspinor_,lmmaxdm_,nspinor_,natmtot))
-  read(50) vmftm_
+  read(40) vmftm_
   lmmax=min(lmmaxdm,lmmaxdm_)
   vmftm_(:,:,:,:,:)=0.d0
   if (nspinor.eq.nspinor_) then
@@ -231,14 +262,12 @@ if ((ftmtype.ne.0).and.(ftmtype_.ne.0)) then
   end if
   deallocate(vmftm_)
 end if
-close(50)
-! Fourier transform Kohn-Sham potential to G-space
-call genvsig
+close(40)
 return
 
 contains
 
-subroutine rgpmt(rfmtp)
+subroutine rgfmt(rfmtp)
 implicit none
 ! arguments
 real(8), intent(out) :: rfmtp(npmtmax,natmtot)
@@ -257,7 +286,7 @@ end do
 return
 end subroutine
 
-subroutine rgpvmt(rvfmt)
+subroutine rgvfmt(rvfmt)
 implicit none
 ! arguments
 real(8), intent(out) :: rvfmt(npmtmax,natmtot,ndmag)
@@ -281,7 +310,7 @@ end do
 return
 end subroutine
 
-subroutine rgpvcmt(rvfcmt)
+subroutine rgvfcmt(rvfcmt)
 implicit none
 ! arguments
 real(8), intent(out) :: rvfcmt(npcmtmax,natmtot,ndmag)

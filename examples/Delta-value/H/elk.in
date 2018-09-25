@@ -1,0 +1,51 @@
+
+! Dense metallic hydrogen is surprisingly difficult for LAPW codes because the
+! muffin-tin radii are so small. This requires that the cut-off rgkmax is also
+! small to keep the matrix sizes reasonable.
+
+tasks
+  0
+
+mixtype
+  3
+
+xctype
+  20
+
+rgkmax
+  5.0
+
+autolinengy
+  .true.
+
+gmaxvr
+  24.0
+
+nxlo
+  3
+
+lorbcnd
+  .true.
+
+rmtdelta
+  0.0
+
+avec
+  7.57324755    0.00000000    0.00000000
+ -3.78662378    6.55862477    0.00000000
+  0.00000000    0.00000000    9.45443212
+
+sppath
+  '../../../species/'
+
+atoms
+  1
+  'H.in'
+  4
+  0.3333333333    0.6666666667    0.17498
+  0.6666666667    0.3333333333    0.82502
+  0.6666666667    0.3333333333    0.67498
+  0.3333333333    0.6666666667    0.32502
+
+ngridk
+  10  10  8

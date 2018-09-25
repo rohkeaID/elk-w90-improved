@@ -6,7 +6,7 @@
 subroutine writelat
 use modmain
 implicit none
-open(50,file='LATTICE'//trim(filext),action='WRITE',form='FORMATTED')
+open(50,file='LATTICE'//trim(filext),form='FORMATTED')
 write(50,*)
 write(50,'("+----------------------------+")')
 write(50,'("| Real-space lattice vectors |")')

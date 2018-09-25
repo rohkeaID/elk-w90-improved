@@ -9,6 +9,7 @@
 subroutine eveqnfv(nmatp,ngp,igpig,vpc,vgpc,apwalm,evalfv,evecfv)
 ! !USES:
 use modmain
+use modomp
 ! !INPUT/OUTPUT PARAMETERS:
 !   nmatp  : order of overlap and Hamiltonian matrices (in,integer)
 !   ngp    : number of G+p-vectors (in,integer)
@@ -36,7 +37,7 @@ complex(8), intent(in) :: apwalm(ngkmax,apwordmax,lmmaxapw,natmtot)
 real(8), intent(out) :: evalfv(nstfv)
 complex(8), intent(out) :: evecfv(nmatmax,nstfv)
 ! local variables
-integer ias,i
+integer ias,i,nthd
 real(8) ts0,ts1
 ! allocatable arrays
 complex(8), allocatable :: h(:,:),o(:,:)
@@ -45,7 +46,10 @@ complex(8), allocatable :: h(:,:),o(:,:)
 !-----------------------------------------------!
 call timesec(ts0)
 allocate(h(nmatp,nmatp),o(nmatp,nmatp))
-!$OMP PARALLEL SECTIONS DEFAULT(SHARED) PRIVATE(i,ias)
+call omp_hold(2,nthd)
+!$OMP PARALLEL SECTIONS DEFAULT(SHARED) &
+!$OMP PRIVATE(i,ias) &
+!$OMP NUM_THREADS(nthd)
 !$OMP SECTION
 ! Hamiltonian
 do i=1,nmatp
@@ -69,10 +73,11 @@ do ias=1,natmtot
 end do
 call olpistl(ngp,igpig,nmatp,o)
 !$OMP END PARALLEL SECTIONS
+call omp_free(nthd)
 call timesec(ts1)
-!$OMP CRITICAL
+!$OMP CRITICAL(eveqnfv_)
 timemat=timemat+ts1-ts0
-!$OMP END CRITICAL
+!$OMP END CRITICAL(eveqnfv_)
 !---------------------------------------!
 !     solve the eigenvalue equation     !
 !---------------------------------------!

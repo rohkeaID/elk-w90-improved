@@ -34,10 +34,15 @@ do ias=1,natmtot
   vsmt(1:np,ias)=vclmt(1:np,ias)+vxcmt(1:np,ias)
 end do
 vsir(:)=vclir(:)+vxcir(:)
-! generate the Kohn-Sham effective magnetic fields
-call bfieldks
+! smooth the interstitial potential if required
+call rfirsm(msmooth,vsir)
+! generate the effective magnetic fields
+call genbs
+! generate the tau-DFT effective potential
+call genws
 call timesec(ts1)
 timepot=timepot+ts1-ts0
 return
 end subroutine
 !EOC
+

@@ -3,18 +3,18 @@
 ! This file is distributed under the terms of the GNU General Public License.
 ! See the file COPYING for license details.
 
-subroutine phscdvs(p,vsmt0,vsir0)
+subroutine phscdvs(p,vsmt_,vsir_)
 use modmain
 use modphonon
 use modstore
 implicit none
 ! arguments
 integer, intent(in) :: p
-real(8), intent(in) :: vsmt0(npmtmax,natmtot),vsir0(ngtot)
+real(8), intent(in) :: vsmt_(npmtmax,natmtot),vsir_(ngtot)
 ! local variables
 integer is,ia,ja,ias,jas
 integer nr,nri,np,i
-integer iv(3),ig0,ifg0,ifg
+integer iv(3),ig_,ifg_,ifg
 real(8) vl(3),vc(3),t1
 complex(8) z0,z1,z2
 ! allocatable arrays
@@ -36,13 +36,13 @@ do is=1,nspecies
   nri=nrmti(is)
   np=npmt(is)
   ja=0
-  do ia=1,natoms0(is)
+  do ia=1,natoms_(is)
     ias=ias+1
     do i=1,nscph
       ja=ja+1
       jas=jas+1
 ! compute the difference between the perturbed and unperturbed potentials
-      rfmt(1:np)=vsmt(1:np,jas)-vsmt0(1:np,jas)
+      rfmt(1:np)=vsmt(1:np,jas)-vsmt_(1:np,jas)
 ! convert real potential difference to a complex spherical harmonic expansion
       call rtozfmt(nr,nri,rfmt,zfmt)
 ! the muffin-tin potential should have an *explicit* phase exp(iq.r)
@@ -60,26 +60,26 @@ deallocate(rfmt,zfmt)
 !--------------------------------!
 ! Fourier transform interstitial potential derivative to G-space
 allocate(zfir(ngtot))
-zfir(:)=z0*(vsir(:)-vsir0(:))
+zfir(:)=z0*(vsir(:)-vsir_(:))
 call zfftifc(3,ngridg,-1,zfir)
 ! convert to G+q-space
-do ig0=1,ngtot0
-  ifg0=igfft0(ig0)
-  vl(:)=dble(ivg0(:,ig0))+vql(:,iqph)
-  call r3mv(bvec0,vl,vc)
+do ig_=1,ngtot_
+  ifg_=igfft_(ig_)
+  vl(:)=dble(ivg_(:,ig_))+vql(:,iqph)
+  call r3mv(bvec_,vl,vc)
   call r3mv(binv,vc,vl)
   iv(:)=nint(vl(:))
   if ((iv(1).ge.intgv(1,1)).and.(iv(1).le.intgv(2,1)).and. &
       (iv(2).ge.intgv(1,2)).and.(iv(2).le.intgv(2,2)).and. &
       (iv(3).ge.intgv(1,3)).and.(iv(3).le.intgv(2,3))) then
     ifg=igfft(ivgig(iv(1),iv(2),iv(3)))
-    dvsir(ifg0)=dvsir(ifg0)+zfir(ifg)
+    dvsir(ifg_)=dvsir(ifg_)+zfir(ifg)
   else
-    dvsir(ifg0)=0.d0
+    dvsir(ifg_)=0.d0
   end if
 end do
 ! Fourier transform back to real-space
-if (p.eq.1) call zfftifc(3,ngridg0,1,dvsir)
+if (p.eq.1) call zfftifc(3,ngridg_,1,dvsir)
 deallocate(zfir)
 return
 end subroutine

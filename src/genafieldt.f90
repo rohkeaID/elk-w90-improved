@@ -35,17 +35,9 @@ real(8) a0(3),t0,d,w,phi,rc
 real(8) gs,ppd,s,t,t1,t2,t3
 ! conversion factor of power density to W/cm^2
 real(8), parameter :: cpd=ha_si/(t_si*(100.d0*br_si)**2)
-! number of time steps
-ntimes=int(tstime/dtimes)+1
-! find the next largest number compatible with the FFT routine
-call nfftifc(ntimes)
-! generate the time-step array
-if (allocated(times)) deallocate(times)
-allocate(times(ntimes))
-do its=1,ntimes
-  times(its)=dble(its-1)*dtimes
-end do
-open(50,file='TD_INFO.OUT',action='WRITE',form='FORMATTED')
+! generate the time-step grid
+call gentimes
+open(50,file='TD_INFO.OUT',form='FORMATTED')
 write(50,*)
 write(50,'("(All units are atomic unless otherwise specified)")')
 write(50,*)
@@ -132,8 +124,9 @@ do i=1,nramp
     end if
   end do
 end do
+close(50)
 ! write the vector potential to AFIELDT.OUT
-open(50,file='AFIELDT.OUT',action='WRITE',form='FORMATTED')
+open(50,file='AFIELDT.OUT',form='FORMATTED')
 write(50,'(I8," : number of time steps")') ntimes
 do its=1,ntimes
   write(50,'(I8,4G18.10)') its,times(its),afieldt(:,its)

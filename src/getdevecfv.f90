@@ -20,12 +20,12 @@ call phfext(iq,is,ia,ip,fext)
 fname='DEVECFV'//trim(fext)
 ! find the record length
 inquire(iolength=recl) vkl_,nmatmax_,nstfv_,nspnfv_,devecfv
-!$OMP CRITICAL
-open(70,file=trim(scrpath)//trim(fname),action='READ',form='UNFORMATTED', &
- access='DIRECT',recl=recl)
-read(70,rec=ik) vkl_,nmatmax_,nstfv_,nspnfv_,devecfv
-close(70)
-!$OMP END CRITICAL
+!$OMP CRITICAL(u222)
+open(222,file=trim(scrpath)//trim(fname),form='UNFORMATTED',access='DIRECT', &
+ recl=recl)
+read(222,rec=ik) vkl_,nmatmax_,nstfv_,nspnfv_,devecfv
+close(222)
+!$OMP END CRITICAL(u222)
 t1=abs(vkl(1,ik)-vkl_(1))+abs(vkl(2,ik)-vkl_(2))+abs(vkl(3,ik)-vkl_(3))
 if (t1.gt.epslat) then
   write(*,*)

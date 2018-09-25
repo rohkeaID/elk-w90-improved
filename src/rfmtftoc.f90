@@ -3,29 +3,29 @@
 ! This file is distributed under the terms of the GNU General Public License.
 ! See the file COPYING for license details.
 
-subroutine rfmtftoc(nr,nri,rfmt1,rfmt2)
+subroutine rfmtftoc(nr,nri,rfmt,rfcmt)
 use modmain
 implicit none
 ! arguments
 integer, intent(in) :: nr,nri
-real(8), intent(in) :: rfmt1(*)
-real(8), intent(out) :: rfmt2(*)
+real(8), intent(in) :: rfmt(*)
+real(8), intent(out) :: rfcmt(*)
 ! local variables
-integer ir,i1,i2,j1
-i1=1
-i2=1
-j1=lmmaxi*lradstp
+integer ir,i,j,n
+i=1
+j=1
+n=lmmaxi*lradstp
 do ir=1,nri,lradstp
-  call dcopy(lmmaxi,rfmt1(i1),1,rfmt2(i2),1)
-  i1=i1+j1
-  i2=i2+lmmaxi
+  call dcopy(lmmaxi,rfmt(i),1,rfcmt(j),1)
+  i=i+n
+  j=j+lmmaxi
 end do
-i1=i1+(lradstp-1)*(lmmaxo-lmmaxi)
-j1=lmmaxo*lradstp
+i=i+(lradstp-1)*(lmmaxo-lmmaxi)
+n=lmmaxo*lradstp
 do ir=nri+lradstp,nr,lradstp
-  call dcopy(lmmaxo,rfmt1(i1),1,rfmt2(i2),1)
-  i1=i1+j1
-  i2=i2+lmmaxo
+  call dcopy(lmmaxo,rfmt(i),1,rfcmt(j),1)
+  i=i+n
+  j=j+lmmaxo
 end do
 return
 end subroutine

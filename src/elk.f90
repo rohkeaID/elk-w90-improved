@@ -6,6 +6,7 @@
 ! main routine for the Elk code
 program elk
 use modmain
+use modomp
 use modmpi
 use modvars
 implicit none
@@ -15,11 +16,11 @@ integer itask
 ! initialise MPI execution environment
 call mpi_init(ierror)
 ! duplicate mpi_comm_world
-call mpi_comm_dup(mpi_comm_world,mpi_comm_kpt,ierror)
+call mpi_comm_dup(mpi_comm_world,mpicom,ierror)
 ! determine the number of MPI processes
-call mpi_comm_size(mpi_comm_kpt,np_mpi,ierror)
+call mpi_comm_size(mpicom,np_mpi,ierror)
 ! determine the local MPI process number
-call mpi_comm_rank(mpi_comm_kpt,lp_mpi,ierror)
+call mpi_comm_rank(mpicom,lp_mpi,ierror)
 ! determine if the local process is the master
 if (lp_mpi.eq.0) then
   mp_mpi=.true.
@@ -34,6 +35,16 @@ else
 end if
 ! read input files
 call readinput
+! initialise OpenMP variables
+call omp_init
+if (mp_mpi) then
+  write(*,*)
+  write(*,'("Number of CPUs per MPI process : ",I4)') ncpu
+  write(*,'("Number of OpenMP threads per MPI process : ",I4)') maxthd
+  write(*,'("Nested OpenMP : ",L1)') omp_get_nested()
+  write(*,'("Maximum active nested levels : ",I10)') omp_get_max_active_levels()
+  write(*,'("OpenMP dynamic thread adjustment : ",L1)') omp_get_dynamic()
+end if
 ! delete the VARIABLES.OUT file
 call delvars
 ! write version number to VARIABLES.OUT
@@ -59,12 +70,12 @@ do itask=1,ntasks
     write(*,'("Info(elk): current task : ",I6)') task
   end if
 ! synchronise MPI processes
-  call mpi_barrier(mpi_comm_kpt,ierror)
+  call mpi_barrier(mpicom,ierror)
 ! check if task can be run with MPI
   if (lp_mpi.gt.0) then
     select case(task)
     case(0,1,2,3,5,28,29,120,135,136,170,180,185,188,200,201,205,240,300,320, &
-     330,331,440,460,461,600,601,602,603,604)
+     330,331,360,372,373,440,460,461,600,601,602,603,604,610,620)
       continue
     case default
       write(*,'("Info(elk): MPI process ",I6," idle for task ",I6)') lp_mpi,task
@@ -134,6 +145,8 @@ do itask=1,ntasks
     call elnes
   case(150)
     call writeevsp
+  case(160)
+    call torque
   case(170)
     call writeemd
   case(171,172,173)
@@ -174,12 +187,18 @@ do itask=1,ntasks
     call scdft
   case(300)
     call rdmft
-  case(188,320)
+  case(320)
     call tddftlr
   case(330,331)
     call tddftsplr
+  case(341,342,343)
+    call wxcplot
   case(350,351,352)
     call spiralsc
+  case(360)
+    call ssfsmjx
+  case(372,373)
+    call curdenplot
   case(400)
     call writetmdu
   case(440)
@@ -188,10 +207,12 @@ do itask=1,ntasks
     call genafieldt
   case(460,461)
     call tddft
+  case(480,481)
+    call dielectric_tdrt
   case(500)
     call testcheck
   case(600)
-    call gw
+    call gwsefm
   case(601)
     call writew90win
   ! case(602)
@@ -202,12 +223,22 @@ do itask=1,ntasks
     call runw90
   case(604)
      call genw90amn
+  case(610)
+    call gwspecf
+  case(620)
+    call gwbandstr
+  case(700)
+    call gndstulr
   case default
     write(*,*)
     write(*,'("Error(elk): task not defined : ",I8)') task
     write(*,*)
     stop
   end select
+! reset the OpenMP thread variables
+  call omp_reset
+! close all opened files
+  call closefiles
 end do
 if (mp_mpi) then
   open(50,file='RUNNING')
@@ -221,7 +252,7 @@ stop
 end program
 
 !BOI
-! !TITLE: {\huge{\sc The Elk Code Manual}}\\ \Large{\sc Version 4.3.6}\\ \vskip 20pt \includegraphics[height=1cm]{elk_silhouette.pdf}
+! !TITLE: {\huge{\sc The Elk Code Manual}}\\ \Large{\sc Version 5.2.14}\\ \vskip 20pt \includegraphics[height=1cm]{elk_silhouette.pdf}
 ! !AUTHORS: {\sc J. K. Dewhurst, S. Sharma} \\ {\sc L. Nordstr\"{o}m, F. Cricchio, O. Gr\aa n\"{a}s} \\ {\sc E. K. U. Gross}
 ! !AFFILIATION:
 ! !INTRODUCTION: Introduction
@@ -254,12 +285,13 @@ end program
 !   Floyd, Arkardy Davydov, Florian Eich, Aldo Romero Castro, Koichi Kitahara,
 !   James Glasbrenner, Konrad Bussmann, Igor Mazin, Matthieu Verstraete, David
 !   Ernsting, Stephen Dugdale, Peter Elliott, Marcin Dulak, Jos\'{e} A. Flores
-!   Livas, Stefaan Cottenier, Yasushi Shinohara and Michael Fechner. Special
-!   mention of David Singh's very useful book on the LAPW method\footnote{D. J.
-!   Singh, {\it Planewaves, Pseudopotentials and the LAPW Method} (Kluwer
-!   Academic Publishers, Boston, 1994).} must also be made. Finally we would
-!   like to acknowledge the generous support of Karl-Franzens-Universit\"{a}t
-!   Graz, as well as the EU Marie-Curie Research Training Networks initiative.
+!   Livas, Stefaan Cottenier, Yasushi Shinohara, Michael Fechner and Yaroslav
+!   Kvashnin. Special mention of David Singh's very useful book on the LAPW
+!   method\footnote{D. J. Singh, {\it Planewaves, Pseudopotentials and the LAPW
+!   Method} (Kluwer Academic Publishers, Boston, 1994).} must also be made.
+!   Finally we would like to acknowledge the generous support of
+!   Karl-Franzens-Universit\"{a}t Graz, the EU Marie-Curie Research Training
+!   Networks initiative and the Max Planck Society.
 !
 !   \vspace{24pt}
 !   Kay Dewhurst\newline
@@ -270,7 +302,7 @@ end program
 !   Hardy Gross
 !
 !   \vspace{12pt}
-!   Halle and Uppsala, March 2017
+!   Halle and Uppsala, May 2018
 !   \newpage
 !
 !   \section{Units}
@@ -313,25 +345,14 @@ end program
 !   \item
 !    OpenMP works for symmetric multiprocessors, i.e. computers that have many
 !    cores with the same unified memory accessible to each. It is enabled by
-!    setting the appropriate command-line options (e.g. {\tt -openmp} for the
+!    setting the appropriate command-line options (e.g. {\tt -qopenmp} for the
 !    Intel compiler) before compiling, and also at runtime by the environment
 !    variable
 !    \begin{verbatim}
 !     export OMP_NUM_THREADS=x
 !    \end{verbatim}
-!    where x is the number of cores available on a particular node. Elk also
-!    makes use of nested OpenMP parallelism, meaning that there are nested
-!    parallel loops in parts of the code, the iterative diagonaliser being one
-!    such example. These nested loops can be run in parallel by setting
-!    \begin{verbatim}
-!     export OMP_NESTED=true
-!    \end{verbatim}
-!    Be aware that using this option can actually degrade performance if too
-!    many threads are created. To avoid such oversubscription, you may need to
-!    adjust related OpenMP variables including {\tt OMP\_THREAD\_LIMIT},
-!    {\tt OMP\_MAX\_ACTIVE\_LEVELS} and {\tt OMP\_DYNAMIC} (there may also be
-!    additional compiler-specific environment variables that can be set).
-!    Finally, some vendor-supplied BLAS/LAPACK libraries use OpenMP internally,
+!    where x is the number of cores available on a particular node. In addition,
+!    some vendor-supplied BLAS/LAPACK libraries use OpenMP internally,
 !    for example MKL from Intel and ACML from AMD; refer to their documentation
 !    for usage.
 !    \item
@@ -374,11 +395,11 @@ end program
 !   Libxc is the ETSF library of exchange-correlation functionals. Elk can use
 !   the complete set of LDA and GGA functionals available in Libxc as well as
 !   the potential-only metaGGA's. In order to enable this, first download and
-!   compile Libxc version 2.2.$x$. This should have produced the files
-!   {\tt libxc.a} and {\tt libxcf90.a}. Copy these files to the {\tt elk/src}
-!   directory and then uncomment the lines indicated for Libxc in the file
-!   {\tt elk/make.inc}. Once this is done, run {\tt make clean} followed by
-!   {\tt make}. To select a particular functional of Libxc, use the block
+!   compile Libxc version 4. This should have produced the files {\tt libxc.a}
+!   and {\tt libxcf90.a}. Copy these files to the {\tt elk/src} directory and
+!   then uncomment the lines indicated for Libxc in the file {\tt elk/make.inc}.
+!   Once this is done, run {\tt make clean} followed by {\tt make}. To select a
+!   particular functional of Libxc, use the block
 !   \begin{verbatim}
 !     xctype
 !      100 nx nc
@@ -827,7 +848,7 @@ end program
 !   $$ f_{xc}({\bf G},{\bf G}',{\bf q},\omega)=-\frac{\alpha+\beta\omega^2}{q^2}
 !    \delta_{{\bf G},{\bf G}'}\delta_{{\bf G},{\bf 0}}. $$
 !
-!   \block{fxtype}{
+!   \block{fxctype}{
 !   {\tt fxctype} & integer defining the type of exchange-correlation kernel
 !    $f_{\rm xc}$ & integer & $-1$}
 !   The acceptable values are:
@@ -839,9 +860,7 @@ end program
 !    {\it Phys. Rev. B} {\bf 72}, 125203 (2005); see {\tt fxclrc} \\
 !   210 & `Bootstrap' kernel, S. Sharma, J. K. Dewhurst, A. Sanna and
 !    E. K. U. Gross, {\it Phys. Rev. Lett.} {\bf 107}, 186401 (2011) \\
-!   211 & Single iteration bootstrap \\
-!   212 & Revised bootstrap, S. Rigamonti, S. Botti, V. Veniard, C. Draxl,
-!    L. Reining, F. Sottile, {\it Phys. Rev. Lett.} {\bf 114}, 146402 (2015)
+!   211 & Single iteration bootstrap
 !   \end{tabularx}
 !
 !   \block{gmaxrf}{
@@ -854,11 +873,11 @@ end program
 !   This variable has a lower bound which is enforced by the code as follows:
 !   $$ {\rm gmaxvr}\rightarrow\max\,({\rm gmaxvr},2\times{\rm gkmax}
 !    +{\rm epslat}) $$
-!   See {\tt rgkmax} and {\tt trimvg}.
+!   See {\tt rgkmax}.
 !
 !   \block{gwdiag}{
 !   {\tt gwdiag} & type of diagonal approximation for the $GW$ self-energy &
-!    integer & 0}
+!    integer & 1}
 !   Calculation of the $GW$ self-energy $\Sigma$ can be made faster, at the
 !   expense of accuracy, by taking $\Sigma_{ij}(i\omega)$ or
 !   the correlation part of the interaction,
@@ -907,11 +926,17 @@ end program
 !   \block{isgkmax}{
 !   {\tt isgkmax} & species for which the muffin-tin radius will be used for
 !    calculating {\tt gkmax} & integer & $-1$}
-!   By default ($-1$) the average muffin-tin radius is used for determining
-!   {\tt gkmax} from {\tt rgkmax}. This can be changed by setting {\tt isgkmax}
-!   either to the desired species number; or to $-2$ if
-!   ${\tt gkmax}={\tt rgkmax}/2$; or to $-3$ in which case the smallest
-!   radius is used.
+!   The APW cut-off is determined from ${\tt gkmax}={\tt rgkmax}/R$. The
+!   variable {\tt isgkmax} determines which muffin-tin radius is to be used for
+!   $R$. These are the options:
+!   \vskip 6pt
+!   \begin{tabularx}{\textwidth}[h]{lX}
+!   -4 & Use the largest radius \\
+!   -3 & Use the smallest radius \\
+!   -2 & Use the fixed value $R=2.0$ \\
+!   -1 & Use the average of the muffin-tin radii \\
+!   $n\ge 1$ & Use the radius of species $n$
+!   \end{tabularx}
 !
 !   \block{kstlist}{
 !   {\tt kstlist(i)} & $i$th $k$-point and state pair & integer(2) & $(1,1)$}
@@ -944,10 +969,6 @@ end program
 !   Close to the nucleus, the density and potential is almost spherical and
 !   therefore the spherical harmonic expansion can be truncated a low angular
 !   momentum. See also {\tt fracinr}.
-!
-!   \block{lmaxmat}{
-!   {\tt lmaxmat} & angular momentum cut-off for the outer-most loop in the
-!    hamiltonian and overlap matrix set up & integer & 7}
 !
 !   \block{lmaxo}{
 !   {\tt lmaxo} & angular momentum cut-off for the muffin-tin density and
@@ -1034,8 +1055,19 @@ end program
 !   specified (even for collinear calculations). See {\tt fsmtype}, {\tt taufsm}
 !   and {\tt spinpol}.
 !
+!   \block{msmooth}{
+!   {\tt msmooth} & amount of smoothing to be applied to the
+!    exchange-correlation potentials and magnetic field & integer & 0}
+!   Smoothing operations can be applied to the exchange-correlation potentials
+!   $v_{xc}$, $w_{xc}$ and the magnetic field ${\bf B}_{xc}$ in order to improve
+!   convergence. In the muffin-tin, this smoothing takes the form of $m$
+!   successive three-point running averages applied to the radial component. In
+!   the interstitial region, the potential is first Fourier transformed to
+!   $G$-space, then a low-pass filter of the form $\exp[-2m(G/G_{\rm max})^8]$
+!   is applied and the function is transformed back to real-space.
+!
 !   \block{mstar}{
-!   {\tt mstar} & Value of the effective mass parameter used for adaptive
+!   {\tt mstar} & value of the effective mass parameter used for adaptive
 !    determination of {\tt swidth} & real & $10.0$}
 !   See {\tt autoswidth}.
 !
@@ -1551,13 +1583,6 @@ end program
 !   from a given density matrix and set of Slater parameters at the end of the
 !   self-consistent cycle.
 !
-!   \block{trimvg}{
-!   {\tt trimvg} & set to {\tt .true.} if the Fourier components of the
-!    Kohn-Sham potential for $|G|>{\tt gmaxvr}/2$ are to be set to zero &
-!    logical & {\tt .false.}}
-!   This fixes stability problems which can occur for large {\tt rgkmax}. Should
-!   be used only in conjunction with large {\tt gmaxvr}.
-!
 !   \block{tefvit}{
 !   {\tt tefvit} & set to {\tt .true.} if the first-variational eigenvalue
 !    equation should be solved iteratively & logical & {\tt .false.}}
@@ -1723,9 +1748,9 @@ end program
 !   original mathematics. We would also appreciate the following conventions
 !   being adhered to:
 !   \begin{itemize}
-!   \item Strict Fortran 90/95 should be used. Features which are marked as
-!    obsolescent in F90/95 should be avoided. These include assigned format
-!    specifiers, labeled do-loops, computed goto statements and statement
+!   \item Strict Fortran 2003 should be used. Features which are marked as
+!    obsolescent in Fortran 2003 should be avoided. These include assigned
+!    format specifiers, labeled do-loops, computed goto statements and statement
 !    functions.
 !   \item Modules should be used in place of common blocks for declaring
 !    global variables. Use the existing modules to declare new global variables.
@@ -1787,3 +1812,4 @@ end program
 !    will be accepted without this.
 !
 !EOI
+

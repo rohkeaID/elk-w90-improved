@@ -40,7 +40,7 @@ call init0
 call readstate
 ! allocate local arrays
 allocate(fr(nrmtmax,3))
-open(50,file='MOSSBAUER.OUT',action='WRITE',form='FORMATTED')
+open(50,file='MOSSBAUER.OUT',form='FORMATTED')
 ! loop over species
 do is=1,nspecies
   nr=nrmt(is)

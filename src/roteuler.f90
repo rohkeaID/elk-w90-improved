@@ -27,7 +27,7 @@ subroutine roteuler(rot,ang)
 !    \end{matrix}\right),
 !   \end{align*}
 !   this routine determines the Euler angles, $(\alpha,\beta,\gamma)$. This
-!   corresponds to the so-called `y-convention', which involves the following
+!   corresponds to the so-called `$y$-convention', which involves the following
 !   successive rotations of the coordinate system:
 !   \begin{itemize}
 !    \item[1.]{The $x_1$-, $x_2$-, $x_3$-axes are rotated anticlockwise through
@@ -85,3 +85,4 @@ end if
 return
 end subroutine
 !EOC
+

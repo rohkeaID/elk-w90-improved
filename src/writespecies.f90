@@ -55,7 +55,7 @@ do ist=1,nst
   end if
 end do
 if (mp_mpi) then
-  open(55,file=trim(symb)//'.in',action='WRITE',form='FORMATTED')
+  open(55,file=trim(symb)//'.in',form='FORMATTED')
   write(55,'(" ''",A,"''",T45,": spsymb")') trim(symb)
   write(55,'(" ''",A,"''",T45,": spname")') trim(name)
   write(55,'(G14.6,T45,": spzn")') zn
@@ -88,7 +88,7 @@ if (mp_mpi) then
   close(55)
 end if
 ! synchronise MPI processes
-call mpi_barrier(mpi_comm_kpt,ierror)
+call mpi_barrier(mpicom,ierror)
 return
 end subroutine
 

@@ -8,44 +8,44 @@ use modmain
 use modtddft
 use moddftu
 use modmpi
+use modomp
+use modstore
 use modtest
 implicit none
 ! local variables
+logical exist
 integer ik,itimes0
-real(8) t1
 ! allocatable arrays
+real(8), allocatable :: evalfv(:,:)
 complex(8), allocatable :: evecfv(:,:,:),evecsv(:,:)
-if (symtype.ne.0) then
+if (tshift) then
   write(*,*)
-  write(*,'("Error(tddft): use nosym = .true. for the ground-state run")')
+  write(*,'("Error(tddft): use tshift = .false. for the ground-state run")')
   write(*,*)
   stop
 end if
-t1=sum(abs(vkloff(:)))
-if (t1.gt.epslat) then
-  write(*,*)
-  write(*,'("Warning(tddft): non-zero vkloff may cause inaccuracies")')
-end if
+! average force can be non-zero (allow for translation of atomic basis)
+tfav0_=tfav0
+tfav0=.false.
 ! initialise global variables
 call init0
 call init1
 ! read the charge density and potentials from file
 call readstate
-! generate the core wavefunctions and densities
+! generate the first- and second-variational eigenvectors and eigenvalues for
+! the k-point set reduced with the symmetries which leave A(t) invariant for all
+! time steps
+call genvsig
 call gencore
-! read Fermi energy from file
 call readfermi
-! find the linearisation energies
 call linengy
-! generate the APW radial functions
 call genapwfr
-! generate the local-orbital radial functions
 call genlofr
-! get the eigenvalues and occupation numbers from file
-do ik=1,nkpt
-  call getevalsv(filext,ik,vkl(:,ik),evalsv(:,ik))
-  call getoccsv(filext,ik,vkl(:,ik),occsv(:,ik))
-end do
+call olprad
+call hmlrad
+call gensocfr
+call genevfsv
+call occupy
 ! DFT+U
 if (dftu.ne.0) then
   call gendmatmt
@@ -55,48 +55,55 @@ end if
 call genkmat(.false.,.false.)
 ! write the momentum matrix elements in first- and second-variational basis
 call genpmat(.true.,.true.)
-! read time-dependent A-field from file
-call readafieldt
 ! write the power density to file
 if (mp_mpi) call writeafpdt
-! copy OCCSV.OUT, EVECFV.OUT and EVECSV.OUT to _TD.OUT extension
+! copy EVALFV.OUT, EVECFV.OUT, OCCSV.OUT and EVECSV.OUT to _TD.OUT extension
 if (mp_mpi.and.(task.eq.460)) then
+  allocate(evalfv(nstfv,nspnfv),evecfv(nmatmax,nstfv,nspnfv))
+  allocate(evecsv(nstsv,nstsv))
   do ik=1,nkpt
-    call putoccsv('_TD.OUT',ik,occsv(:,ik))
-    allocate(evecfv(nmatmax,nstfv,nspnfv))
+    call getevalfv('.OUT',ik,vkl(:,ik),evalfv)
+    call putevalfv('_TD.OUT',ik,evalfv)
     call getevecfv('.OUT',ik,vkl(:,ik),vgkl(:,:,:,ik),evecfv)
     call putevecfv('_TD.OUT',ik,evecfv)
-    deallocate(evecfv)
-    allocate(evecsv(nstsv,nstsv))
+    call putoccsv('_TD.OUT',ik,occsv(:,ik))
     call getevecsv('.OUT',ik,vkl(:,ik),evecsv)
 ! randomise eigenvectors at t=0 if required
     call rndevsv(rndevt0,evecsv)
     call putevecsv('_TD.OUT',ik,evecsv)
-    deallocate(evecsv)
   end do
+  deallocate(evalfv,evecfv,evecsv)
 end if
 ! set global file extension
 filext='_TD.OUT'
+! output the new k-point set to file
+if (mp_mpi) call writekpts
 ! synchronise MPI processes
-call mpi_barrier(mpi_comm_kpt,ierror)
+call mpi_barrier(mpicom,ierror)
 itimes0=0
 ! restart if required
 if (task.eq.461) call readtimes(itimes0)
+! set the stop signal to .false.
+tstop=.false.
 !---------------------------------!
 !    main loop over time steps    !
 !---------------------------------!
 if (mp_mpi) write(*,*)
+! synchronise MPI processes
+call mpi_barrier(mpicom,ierror)
 do itimes=itimes0+1,ntimes-1
   if (mp_mpi) then
     write(*,'("Info(tddft): time step ",I8," of ",I8,",   t = ",G18.10)') &
      itimes,ntimes,times(itimes)
   end if
+! reset the OpenMP thread variables
+  call omp_reset
 ! evolve the wavefunctions across a single time step
   call timestep
 ! generate the density and magnetisation at current time step
   call rhomag
 ! compute the total current
-  call current
+  call curden(afieldt(:,itimes))
 ! compute the time-dependent Kohn-Sham potentials and magnetic fields
   call potkst
 ! DFT+U
@@ -104,18 +111,29 @@ do itimes=itimes0+1,ntimes-1
     call gendmatmt
     call genvmatmt
   end if
+! compute the atomic forces if required
+  if (tforce) call force
   if (mp_mpi) then
 ! write TDDFT output
     call writetddft
 ! write the time step to file
     call writetimes
+! check for STOP file
+    inquire(file='STOP',exist=exist)
+    if (exist) then
+      open(50,file='STOP')
+      close(50,status='DELETE')
+      tstop=.true.
+    end if
   end if
-! synchronise MPI processes
-  call mpi_barrier(mpi_comm_kpt,ierror)
+! broadcast tstop from master process to all other processes
+  call mpi_bcast(tstop,1,mpi_logical,0,mpicom,ierror)
+  if (tstop) exit
 end do
 filext='.OUT'
+tfav0=tfav0_
 ! write the total current of the last step to test file
-call writetest(460,'total current of last time step',nv=3,tol=1.d-6,rva=curtot)
+call writetest(460,'total current of last time step',nv=3,tol=1.d-4,rva=curtot)
 return
 end subroutine
 

@@ -5,6 +5,7 @@
 
 subroutine genvbmatk(vmt,vir,bmt,bir,ngp,igpig,wfmt,ld,wfir,vbmat)
 use modmain
+use modomp
 implicit none
 ! arguments
 real(8), intent(in) :: vmt(npcmtmax,natmtot),vir(ngtot)
@@ -16,10 +17,8 @@ complex(8), intent(in) :: wfir(ld,nspinor,nstsv)
 complex(8), intent(out) :: vbmat(nstsv,nstsv)
 ! local variables
 integer ist,jst,ispn,jspn
-integer is,ias,nrc,nrci,ir
-integer igp,ifg
-real(8) t0,t1
-complex(8) z1,z2,z3
+integer is,ias,nrc,nrci,npc
+integer igp,ifg,nthd
 ! allocatable arrays
 complex(8), allocatable :: wfmt1(:,:),wfir1(:,:),z(:)
 ! external functions
@@ -30,9 +29,11 @@ vbmat(:,:)=0.d0
 !-------------------------!
 !     muffin-tin part     !
 !-------------------------!
+call omp_hold(nstsv,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(wfmt1,ias,is,nrc,nrci) &
-!$OMP PRIVATE(ist,ispn,z1)
+!$OMP PRIVATE(wfmt1,ias,is,nrc) &
+!$OMP PRIVATE(nrci,npc,ispn,ist) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do jst=1,nstsv
   allocate(wfmt1(npcmtmax,nspinor))
@@ -40,22 +41,24 @@ do jst=1,nstsv
     is=idxis(ias)
     nrc=nrcmt(is)
     nrci=nrcmti(is)
+    npc=npcmt(is)
+    do ispn=1,nspinor
+      call zcopy(npc,wfmt(:,ias,ispn,jst),1,wfmt1(:,ispn),1)
+    end do
 ! apply local potential and magnetic field to spinor wavefunction
     if (ncmag) then
 ! non-collinear case
-      call vbmt1(npcmt(is),vmt(:,ias),bmt(:,ias,1),bmt(:,ias,2),bmt(:,ias,3), &
-       wfmt(:,ias,1,jst),wfmt(:,ias,2,jst),wfmt1(:,1),wfmt1(:,2))
+      call vbmk1(npc,vmt(:,ias),bmt(:,ias,1),bmt(:,ias,2),bmt(:,ias,3), &
+       wfmt1(:,1),wfmt1(:,2))
     else
 ! collinear case
-      call vbmt2(npcmt(is),vmt(:,ias),bmt(:,ias,1),wfmt(:,ias,1,jst), &
-       wfmt(:,ias,2,jst),wfmt1(:,1),wfmt1(:,2))
+      call vbmk2(npc,vmt(:,ias),bmt(:,ias,1),wfmt1(:,1),wfmt1(:,2))
     end if
     do ist=1,jst
       do ispn=1,nspinor
 ! compute inner product (functions are in spherical coordinates)
-        z1=zfcmtinp(nrc,nrci,rcmt(:,is),r2cmt(:,is),wfmt(:,ias,ispn,ist), &
-         wfmt1(:,ispn))
-        vbmat(ist,jst)=vbmat(ist,jst)+z1
+        vbmat(ist,jst)=vbmat(ist,jst)+zfcmtinp(nrc,nrci,rcmt(:,is), &
+         r2cmt(:,is),wfmt(:,ias,ispn,ist),wfmt1(:,ispn))
       end do
     end do
   end do
@@ -63,12 +66,15 @@ do jst=1,nstsv
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 !---------------------------!
 !     interstitial part     !
 !---------------------------!
+call omp_hold(nstsv,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(wfir1,z,ispn,jspn,igp,ifg) &
-!$OMP PRIVATE(ir,t0,t1,z1,z2,z3,ist)
+!$OMP PRIVATE(wfir1,z,ispn,jspn) &
+!$OMP PRIVATE(igp,ifg,ist) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do jst=1,nstsv
   allocate(wfir1(ngtot,nspinor),z(ngkmax))
@@ -85,23 +91,10 @@ do jst=1,nstsv
 ! apply local potential and magnetic field to spinor wavefunction
   if (ncmag) then
 ! non-collinear case
-    do ir=1,ngtot
-      t0=vir(ir)
-      z3=cmplx(bir(ir,1),bir(ir,2),8)
-      t1=bir(ir,3)
-      z1=wfir1(ir,1)
-      z2=wfir1(ir,2)
-      wfir1(ir,1)=(t0+t1)*z1+conjg(z3)*z2
-      wfir1(ir,2)=(t0-t1)*z2+z3*z1
-    end do
+    call vbmk1(ngtot,vir,bir(:,1),bir(:,2),bir(:,3),wfir1(:,1),wfir1(:,2))
   else
 ! collinear case
-    do ir=1,ngtot
-      t0=vir(ir)
-      t1=bir(ir,1)
-      wfir1(ir,1)=(t0+t1)*wfir1(ir,1)
-      wfir1(ir,2)=(t0-t1)*wfir1(ir,2)
-    end do
+    call vbmk2(ngtot,vir,bir,wfir1(:,1),wfir1(:,2))
   end if
   do ispn=1,nspinor
     jspn=jspnfv(ispn)
@@ -112,14 +105,14 @@ do jst=1,nstsv
       z(igp)=wfir1(ifg,ispn)
     end do
     do ist=1,jst
-      z1=zdotc(ngp(jspn),wfir(:,ispn,ist),1,z,1)
-      vbmat(ist,jst)=vbmat(ist,jst)+z1
+      vbmat(ist,jst)=vbmat(ist,jst)+zdotc(ngp(jspn),wfir(:,ispn,ist),1,z,1)
     end do
   end do
   deallocate(wfir1,z)
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 ! lower triangular part
 do ist=1,nstsv
   do jst=1,ist-1
@@ -130,13 +123,12 @@ return
 
 contains
 
-subroutine vbmt1(n,v,b1,b2,b3,wf11,wf12,wf21,wf22)
+subroutine vbmk1(n,v,b1,b2,b3,wf1,wf2)
 implicit none
 ! arguments
 integer, intent(in) :: n
 real(8), intent(in) :: v(n),b1(n),b2(n),b3(n)
-complex(8), intent(in) :: wf11(n),wf12(n)
-complex(8), intent(out) :: wf21(n),wf22(n)
+complex(8), intent(inout) :: wf1(n),wf2(n)
 ! local variables
 integer i
 real(8) t0,t1
@@ -145,31 +137,30 @@ do i=1,n
   t0=v(i)
   z3=cmplx(b1(i),b2(i),8)
   t1=b3(i)
-  z1=wf11(i)
-  z2=wf12(i)
-  wf21(i)=(t0+t1)*z1+conjg(z3)*z2
-  wf22(i)=(t0-t1)*z2+z3*z1
+  z1=wf1(i); z2=wf2(i)
+  wf1(i)=(t0+t1)*z1+conjg(z3)*z2
+  wf2(i)=(t0-t1)*z2+z3*z1
 end do
 return
 end subroutine
 
-subroutine vbmt2(n,v,b,wf11,wf12,wf21,wf22)
+subroutine vbmk2(n,v,b,wf1,wf2)
 implicit none
 ! arguments
 integer, intent(in) :: n
 real(8), intent(in) :: v(n),b(n)
-complex(8), intent(in) :: wf11(n),wf12(n)
-complex(8), intent(out) :: wf21(n),wf22(n)
+complex(8), intent(inout) :: wf1(n),wf2(n)
 ! local variables
 integer i
 real(8) t0,t1
 do i=1,n
   t0=v(i)
   t1=b(i)
-  wf21(i)=(t0+t1)*wf11(i)
-  wf22(i)=(t0-t1)*wf12(i)
+  wf1(i)=(t0+t1)*wf1(i)
+  wf2(i)=(t0-t1)*wf2(i)
 end do
 return
 end subroutine
 
 end subroutine
+

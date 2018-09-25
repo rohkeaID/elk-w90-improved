@@ -11,7 +11,7 @@ integer is,ist
 ! solve the atomic Dirac-Kohn-Sham ground state for all species
 call init0
 ! write out the atomic eigenvalues for each species
-open(50,file='EVALSP.OUT',action='WRITE',form='FORMATTED')
+open(50,file='EVALSP.OUT',form='FORMATTED')
 write(50,*)
 write(50,'("Kohn-Sham-Dirac eigenvalues for all atomic species")')
 write(50,*)
@@ -24,6 +24,7 @@ do is=1,nspecies
      lsp(ist,is),ksp(ist,is),evalsp(ist,is)
   end do
 end do
+close(50)
 write(*,*)
 write(*,'("Info(writeevsp)")')
 write(*,'(" Kohn-Sham-Dirac eigenvalues written to EVALSP.OUT for all atomic &

@@ -9,7 +9,6 @@ implicit none
 ! local variables
 integer idm,is,ias,np
 real(8) t1
-complex(8) zg0
 ! allocatable arrays
 real(8), allocatable :: rfmt(:,:),rfir(:)
 real(8), allocatable :: grfmt(:,:,:),grfir(:,:)
@@ -46,8 +45,8 @@ end do
 zrhoir(:)=rfir(:)
 ! solve the complex Poisson's equation
 call genzvclmt(nrmt,nrmti,nrspmax,rsp,npmtmax,zrhomt,zvclmt)
-call zpotcoul(nrmt,nrmti,npmt,npmti,nrspmax,rsp,ngvec,1,gc,ngvec,jlgrmt,ylmg, &
- sfacg,zrhoir,npmtmax,zvclmt,zvclir,zg0)
+call zpotcoul(nrmt,nrmti,npmt,npmti,nrspmax,rsp,ngridg,igfft,ngvec,gc,gclg, &
+ ngvec,jlgrmt,ylmg,sfacg,zrhoir,npmtmax,zvclmt,zvclir)
 ! convert complex muffin-tin potential to real spherical harmonic expansion
 do ias=1,natmtot
   is=idxis(ias)

@@ -21,7 +21,7 @@ implicit none
 ! local variables
 integer ik,ist,is,ia,ias
 ! write out the valence eigenvalues
-open(50,file='EIGVAL'//trim(filext),action='WRITE',form='FORMATTED')
+open(50,file='EIGVAL'//trim(filext),form='FORMATTED')
 write(50,'(I6," : nkpt")') nkpt
 write(50,'(I6," : nstsv")') nstsv
 do ik=1,nkpt
@@ -35,7 +35,7 @@ do ik=1,nkpt
 end do
 close(50)
 ! write out the core eigenvalues
-open(50,file='EVALCORE'//trim(filext),action='WRITE',form='FORMATTED')
+open(50,file='EVALCORE'//trim(filext),form='FORMATTED')
 do is=1,nspecies
   do ia=1,natoms(is)
     ias=idxas(ia,is)
@@ -53,3 +53,4 @@ close(50)
 return
 end subroutine
 !EOC
+

@@ -31,8 +31,7 @@ allocate(evalbse(nmbse))
 if (allocated(hmlbse)) deallocate(hmlbse)
 allocate(hmlbse(nmbse,nmbse))
 ! read in BSE Hamiltonian matrix
-open(50,file='HMLBSE.OUT',action='READ',form='UNFORMATTED',status='OLD', &
- iostat=iostat)
+open(50,file='HMLBSE.OUT',form='UNFORMATTED',status='OLD',iostat=iostat)
 if (iostat.ne.0) then
   write(*,*)
   write(*,'("Error(writeevbse): error opening HMLBSE.OUT")')
@@ -74,13 +73,13 @@ else
   call eveqnz(nmbse,nmbse,hmlbse,evalbse)
 end if
 ! write the BSE eigenvectors and eigenvalues to file
-open(50,file='EVBSE.OUT',action='WRITE',form='UNFORMATTED')
+open(50,file='EVBSE.OUT',form='UNFORMATTED')
 write(50) nmbse
 write(50) evalbse
 write(50) hmlbse
 close(50)
 ! write the BSE eigenvalues to file
-open(50,file='EIGVAL_BSE.OUT',action='WRITE',form='FORMATTED')
+open(50,file='EIGVAL_BSE.OUT',form='FORMATTED')
 write(50,'(I6," : nmbse")') nmbse
 if (bsefull) then
   do a=1,nmbse

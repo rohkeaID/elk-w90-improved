@@ -7,14 +7,14 @@ subroutine ephcouple
 use modmain
 use modphonon
 use modmpi
+use modomp
 use modstore
 implicit none
 ! local variables
 integer iq,ik,jk,jkq
-integer iv(3),isym,ip
-integer ist,jst,i,n
+integer ist,jst,isym,ip
 integer is,ia,ias,js,jas
-integer nr,nri,np
+integer nr,nri,np,i,n,nthd
 real(8) vl(3),de,x
 real(8) t1,t2,t3,t4
 ! allocatable arrays
@@ -27,22 +27,12 @@ complex(8), allocatable :: ephmat(:,:,:)
 real(8) sdelta
 external sdelta
 ! increase the angular momentum cut-off on the inner part of the muffin-tin
-lmaxi0=lmaxi
+lmaxi_=lmaxi
 lmaxi=max(lmaxi,4)
 ! initialise universal variables
 call init0
 call init1
 call init2
-! check k-point grid is commensurate with q-point grid
-iv(:)=mod(ngridk(:),ngridq(:))
-if ((iv(1).ne.0).or.(iv(2).ne.0).or.(iv(3).ne.0)) then
-  write(*,*)
-  write(*,'("Error(ephcouple): k-point grid incommensurate with q-point grid")')
-  write(*,'(" ngridk : ",3I6)') ngridk
-  write(*,'(" ngridq : ",3I6)') ngridq
-  write(*,*)
-  stop
-end if
 ! allocate global arrays
 if (allocated(dvsmt)) deallocate(dvsmt)
 allocate(dvsmt(npmtmax,natmtot))
@@ -55,6 +45,8 @@ allocate(dvmt(npcmtmax,natmtot,nbph),dvir(ngtot,nbph))
 allocate(zfmt(npmtmax),gzfmt(npmtmax,3,natmtot))
 ! read in the density and potentials from file
 call readstate
+! Fourier transform Kohn-Sham potential to G-space
+call genvsig
 ! read Fermi energy from file
 call readfermi
 ! set the speed of light >> 1 (non-relativistic approximation)
@@ -112,7 +104,8 @@ do iq=1,nqpt
           js=idxis(jas)
           call zfmtftoc(nrmt(js),nrmti(js),dvsmt(:,jas),dvmt(:,jas,i))
         end do
-        call zcopy(ngtot,dvsir,1,dvir(:,i),1)
+! multiply the interstitial potential with the characteristic function
+        dvir(:,i)=dvsir(:)*cfunir(:)
       end do
     end do
   end do
@@ -121,9 +114,11 @@ do iq=1,nqpt
   de=4.d0*swidth
 ! zero the phonon linewidths array
   gq(:,iq)=0.d0
+  call omp_hold(nkptnr/np_mpi,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP PRIVATE(ephmat,jk,vl,isym,jkq) &
-!$OMP PRIVATE(t1,t2,t3,t4,ist,jst,x,i)
+!$OMP PRIVATE(t1,t2,t3,t4,ist,jst,x,i) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
   do ik=1,nkptnr
 ! distribute among MPI processes
@@ -148,9 +143,9 @@ do iq=1,nqpt
           x=(evalsv(ist,jkq)-evalsv(jst,jk)-wq(i,iq))/swidth
           t3=t2*sdelta(stype,x)/swidth
           t4=dble(ephmat(ist,jst,i))**2+aimag(ephmat(ist,jst,i))**2
-!$OMP CRITICAL
+!$OMP CRITICAL(ephcouple_)
           gq(i,iq)=gq(i,iq)+wq(i,iq)*t3*t4
-!$OMP END CRITICAL
+!$OMP END CRITICAL(ephcouple_)
         end do
       end do
     end do
@@ -159,13 +154,14 @@ do iq=1,nqpt
   end do
 !$OMP END DO
 !$OMP END PARALLEL
+  call omp_free(nthd)
 ! end loop over phonon q-points
 end do
 ! add gq from each process
 if (np_mpi.gt.1) then
   n=nbph*nqpt
-  call mpi_allreduce(mpi_in_place,gq,n,mpi_double_precision,mpi_sum, &
-   mpi_comm_kpt,ierror)
+  call mpi_allreduce(mpi_in_place,gq,n,mpi_double_precision,mpi_sum,mpicom, &
+   ierror)
 end if
 ! restore the default file extension
 filext='.OUT'
@@ -178,7 +174,7 @@ end if
 deallocate(wq,gq,dynq,ev,a)
 deallocate(dvmt,dvir,zfmt,gzfmt)
 ! restore original input parameters
-lmaxi=lmaxi0
+lmaxi=lmaxi_
 return
 end subroutine
 

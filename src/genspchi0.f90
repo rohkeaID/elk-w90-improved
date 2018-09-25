@@ -6,11 +6,13 @@
 !BOP
 ! !ROUTINE: genspchi0
 ! !INTERFACE:
-subroutine genspchi0(ik,scsr,vqpl,jlgqr,ylmgq,sfacgq,chi0)
+subroutine genspchi0(ik,lock,scsr,vqpl,jlgqr,ylmgq,sfacgq,chi0)
 ! !USES:
 use modmain
+use modomp
 ! !INPUT/OUTPUT PARAMETERS:
 !   ik     : k-point from non-reduced set (in,integer)
+!   lock   : OpenMP locks for frequency index of chi0 (in,integer(nwrf))
 !   scsr   : scissor correction (in,real)
 !   vqpl   : input q-point in lattice coordinates (in,real(3))
 !   jlgqr  : spherical Bessel functions evaluated on the coarse radial mesh for
@@ -59,24 +61,26 @@ use modmain
 implicit none
 ! local variables
 integer, intent(in) :: ik
+integer(8), intent(in) :: lock(nwrf)
 real(8), intent(in) :: scsr,vqpl(3),jlgqr(njcmax,nspecies,ngrf)
 complex(8), intent(in) :: ylmgq(lmmaxo,ngrf),sfacgq(ngrf,natmtot)
-complex(8), intent(inout) :: chi0(nwrf,ngrf,4,ngrf,4)
+complex(8), intent(inout) :: chi0(ngrf,4,ngrf,4,nwrf)
 ! local variables
 logical tz(4)
-integer isym,jk,jkq
-integer iw,nst,nstq
-integer ist,jst,kst,lst
-integer ig,jg,a,b,i,j
+integer isym,jk,jkq,iw
+integer nst,nstq,ist,jst,kst,lst
+integer ig,jg,a,b,i,j,nthd
 real(8) vkql(3),eij,t1
-complex(8) z1,z2
+complex(8) z1
 ! automatic arrays
 integer idx(nstsv),idxq(nstsv)
+integer ngp(nspnfv),ngpq(nspnfv)
 ! allocatable arrays
+integer, allocatable :: igpig(:,:),igpqig(:,:)
 complex(8), allocatable :: wfmt(:,:,:,:),wfir(:,:,:)
 complex(8), allocatable :: wfmtq(:,:,:,:),wfirq(:,:,:)
-complex(8), allocatable :: zrhomt(:,:),zrhoir(:)
-complex(8), allocatable :: zrhoig(:,:),zw(:)
+complex(8), allocatable :: zrhomt(:,:),zrhoir(:),zrhoig(:,:)
+complex(8), allocatable :: zw(:),c(:,:,:,:)
 if (.not.spinpol) then
   write(*,*)
   write(*,'("Error(genspchi0): spin-unpolarised calculation")')
@@ -86,7 +90,7 @@ end if
 ! k+q-vector in lattice coordinates
 vkql(:)=vkl(:,ik)+vqpl(:)
 ! equivalent reduced k-points for k and k+q
-call findkpt(vkl(:,ik),isym,jk)
+jk=ivkik(ivk(1,ik),ivk(2,ik),ivk(3,ik))
 call findkpt(vkql,isym,jkq)
 ! count and index states at k and k+q in energy window
 nst=0
@@ -104,18 +108,26 @@ do jst=1,nstsv
   end if
 end do
 ! generate the wavefunctions for all states at k and k+q in energy window
-allocate(wfmt(npcmtmax,natmtot,nspinor,nst),wfir(ngtot,nspinor,nst))
-call genwfsvp(.false.,.false.,nst,idx,vkl(:,ik),wfmt,ngtot,wfir)
-allocate(wfmtq(npcmtmax,natmtot,nspinor,nstq),wfirq(ngtot,nspinor,nstq))
-call genwfsvp(.false.,.false.,nstq,idxq,vkql,wfmtq,ngtot,wfirq)
+allocate(igpig(ngkmax,nspnfv))
+allocate(wfmt(npcmtmax,natmtot,nspinor,nst),wfir(ngtc,nspinor,nst))
+call genwfsvp(.false.,.false.,nst,idx,ngdc,igfc,vkl(:,ik),ngp,igpig,wfmt,ngtc, &
+ wfir)
+deallocate(igpig)
+allocate(igpqig(ngkmax,nspnfv))
+allocate(wfmtq(npcmtmax,natmtot,nspinor,nstq),wfirq(ngtc,nspinor,nstq))
+call genwfsvp(.false.,.false.,nstq,idxq,ngdc,igfc,vkql,ngpq,igpqig,wfmtq,ngtc, &
+ wfirq)
+deallocate(igpqig)
+call omp_hold(nst,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(zrhomt,zrhoir,zrhoig,zw) &
-!$OMP PRIVATE(jst,kst,lst,t1,eij,iw) &
-!$OMP PRIVATE(i,j,a,b,tz,ig,jg,z1,z2)
+!$OMP PRIVATE(zrhomt,zrhoir,zrhoig,zw,c) &
+!$OMP PRIVATE(jst,kst,lst,t1,eij,iw,i,j) &
+!$OMP PRIVATE(a,b,tz,ig,jg,z1) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ist=1,nst
-  allocate(zrhomt(npcmtmax,natmtot),zrhoir(ngtot))
-  allocate(zrhoig(ngrf,4),zw(nwrf))
+  allocate(zrhomt(npcmtmax,natmtot),zrhoir(ngtc))
+  allocate(zrhoig(ngrf,4),zw(nwrf),c(ngrf,4,ngrf,4))
   kst=idx(ist)
   do jst=1,nstq
     lst=idxq(jst)
@@ -150,12 +162,12 @@ do ist=1,nst
             cycle
           end if
         end if
-        call genzrho(.true.,.false.,wfmt(:,:,a,ist),wfir(:,a,ist), &
+        call genzrho(.true.,.false.,ngtc,wfmt(:,:,a,ist),wfir(:,a,ist), &
          wfmtq(:,:,b,jst),wfirq(:,b,jst),zrhomt,zrhoir)
         call zftzf(ngrf,jlgqr,ylmgq,ngrf,sfacgq,zrhomt,zrhoir,zrhoig(:,i))
       end do
     end do
-!$OMP CRITICAL
+! Hermitian part of matrix
     do j=1,4
       if (tz(j)) cycle
       do jg=1,ngrf
@@ -163,20 +175,33 @@ do ist=1,nst
         do i=1,4
           if (tz(i)) cycle
           do ig=1,ngrf
-            z2=zrhoig(ig,i)*z1
-            call zaxpy(nwrf,z2,zw,1,chi0(:,ig,i,jg,j),1)
+            c(ig,i,jg,j)=zrhoig(ig,i)*z1
           end do
         end do
       end do
     end do
-!$OMP END CRITICAL
+    do iw=1,nwrf
+      z1=zw(iw)
+      call omp_set_lock(lock(iw))
+      do j=1,4
+        if (tz(j)) cycle
+        do jg=1,ngrf
+          do i=1,4
+            if (tz(i)) cycle
+            call zaxpy(ngrf,z1,c(:,i,jg,j),1,chi0(:,i,jg,j,iw),1)
+          end do
+        end do
+      end do
+      call omp_unset_lock(lock(iw))
+    end do
 ! end loop over jst
   end do
-  deallocate(zrhomt,zrhoir,zrhoig,zw)
+  deallocate(zrhomt,zrhoir,zrhoig,zw,c)
 ! end loop over ist
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 deallocate(wfmt,wfmtq,wfir,wfirq)
 return
 end subroutine

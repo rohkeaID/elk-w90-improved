@@ -177,14 +177,14 @@ end if
 do isym=1,nsymcrys
   t1=sum(abs(vtlsymc(:,isym)))
   if (t1.lt.epslat) then
-    tvzsymc(isym)=.true.
+    tv0symc(isym)=.true.
   else
-    tvzsymc(isym)=.false.
+    tv0symc(isym)=.false.
   end if
 end do
 ! check inversion does not include a translation
 if (tsyminv) then
-  if (.not.tvzsymc(2)) tsyminv=.false.
+  if (.not.tv0symc(2)) tsyminv=.false.
 end if
 if (natmtot.gt.0) then
   v1(:)=atposl(:,1,1)-v0(:)

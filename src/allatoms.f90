@@ -10,6 +10,7 @@ subroutine allatoms
 ! !USES:
 use modmain
 use modxcifc
+use modomp
 ! !DESCRIPTION:
 !   Solves the Kohn-Sham-Dirac equations for each atom type in the solid and
 !   finds the self-consistent radial wavefunctions, eigenvalues, charge
@@ -28,7 +29,7 @@ use modxcifc
 implicit none
 logical hybrid_
 integer xcspin_,xcgrad_
-integer is
+integer is,nthd
 real(8) hybridc_
 character(512) xcdescr_
 ! allocatable arrays
@@ -40,7 +41,10 @@ if (allocated(vrsp)) deallocate(vrsp)
 allocate(vrsp(nrspmax,nspecies))
 ! get the exchange-correlation functional data
 call getxcdata(xctsp,xcdescr_,xcspin_,xcgrad_,hybrid_,hybridc_)
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(rwf)
+call omp_hold(nspecies,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(rwf) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do is=1,nspecies
   allocate(rwf(nrspmax,2,nstspmax))
@@ -51,6 +55,7 @@ do is=1,nspecies
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 return
 end subroutine
 !EOC

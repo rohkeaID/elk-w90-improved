@@ -24,28 +24,29 @@ implicit none
 integer idm,is,ias
 ! allocatable arrays
 real(8), allocatable :: rfmt(:,:,:),rvfmt(:,:,:,:),rvfcmt(:,:,:,:)
-open(50,file='STATE'//trim(filext),action='WRITE',form='UNFORMATTED')
-write(50) version
-write(50) spinpol
-write(50) nspecies
-write(50) lmmaxo
-write(50) nrmtmax
-write(50) nrcmtmax
+open(40,file='STATE'//trim(filext),form='UNFORMATTED')
+write(40) version
+write(40) spinpol
+write(40) nspecies
+write(40) lmmaxo
+write(40) nrmtmax
+write(40) nrcmtmax
 do is=1,nspecies
-  write(50) natoms(is)
-  write(50) nrmt(is)
-  write(50) rsp(1:nrmt(is),is)
-  write(50) nrcmt(is)
-  write(50) rcmt(1:nrcmt(is),is)
+  write(40) natoms(is)
+  write(40) nrmt(is)
+  write(40) rsp(1:nrmt(is),is)
+  write(40) nrcmt(is)
+  write(40) rcmt(1:nrcmt(is),is)
 end do
-write(50) ngridg
-write(50) ngvec
-write(50) ndmag
-write(50) nspinor
-write(50) fsmtype
-write(50) ftmtype
-write(50) dftu
-write(50) lmmaxdm
+write(40) ngridg
+write(40) ngvec
+write(40) ndmag
+write(40) nspinor
+write(40) fsmtype
+write(40) ftmtype
+write(40) dftu
+write(40) lmmaxdm
+write(40) xcgrad
 ! muffin-tin functions are unpacked to maintain backward compatibility
 allocate(rfmt(lmmaxo,nrmtmax,natmtot))
 if (spinpol) then
@@ -57,25 +58,25 @@ do ias=1,natmtot
   is=idxis(ias)
   call rfmtpack(.false.,nrmt(is),nrmti(is),rhomt(:,ias),rfmt(:,:,ias))
 end do
-write(50) rfmt,rhoir
+write(40) rfmt,rhoir
 ! write the Coulomb potential
 do ias=1,natmtot
   is=idxis(ias)
   call rfmtpack(.false.,nrmt(is),nrmti(is),vclmt(:,ias),rfmt(:,:,ias))
 end do
-write(50) rfmt,vclir
+write(40) rfmt,vclir
 ! write the exchange-correlation potential
 do ias=1,natmtot
   is=idxis(ias)
   call rfmtpack(.false.,nrmt(is),nrmti(is),vxcmt(:,ias),rfmt(:,:,ias))
 end do
-write(50) rfmt,vxcir
+write(40) rfmt,vxcir
 ! write the Kohn-Sham effective potential
 do ias=1,natmtot
   is=idxis(ias)
   call rfmtpack(.false.,nrmt(is),nrmti(is),vsmt(:,ias),rfmt(:,:,ias))
 end do
-write(50) rfmt,vsir
+write(40) rfmt,vsir
 if (spinpol) then
 ! write the magnetisation, exchange-correlation and effective magnetic fields
   do idm=1,ndmag
@@ -85,7 +86,7 @@ if (spinpol) then
        rvfmt(:,:,ias,idm))
     end do
   end do
-  write(50) rvfmt,magir
+  write(40) rvfmt,magir
   do idm=1,ndmag
     do ias=1,natmtot
       is=idxis(ias)
@@ -93,7 +94,7 @@ if (spinpol) then
        rvfmt(:,:,ias,idm))
     end do
   end do
-  write(50) rvfmt,bxcir
+  write(40) rvfmt,bxcir
   do idm=1,ndmag
     do ias=1,natmtot
       is=idxis(ias)
@@ -101,22 +102,30 @@ if (spinpol) then
        rvfcmt(:,:,ias,idm))
     end do
   end do
-  write(50) rvfcmt,bsir
+  write(40) rvfcmt,bsir
 ! write fixed spin moment magnetic fields
   if (fsmtype.ne.0) then
-    write(50) bfsmc
-    write(50) bfsmcmt
+    write(40) bfsmc
+    write(40) bfsmcmt
   end if
+end if
+! write the tau-DFT exchange-correlation potential
+if (xcgrad.eq.4) then
+  do ias=1,natmtot
+    is=idxis(ias)
+    call rfmtpack(.false.,nrmt(is),nrmti(is),wxcmt(:,ias),rfmt(:,:,ias))
+  end do
+  write(40) rfmt,wxcir
 end if
 ! write the potential matrix in each muffin-tin
 if ((dftu.ne.0).or.(ftmtype.ne.0)) then
-  write(50) vmatmt
+  write(40) vmatmt
 end if
 ! write the fixed tensor moment potential matrix
 if (ftmtype.ne.0) then
-  write(50) vmftm
+  write(40) vmftm
 end if
-close(50)
+close(40)
 deallocate(rfmt)
 if (spinpol) deallocate(rvfmt,rvfcmt)
 return

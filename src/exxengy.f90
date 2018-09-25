@@ -6,10 +6,12 @@
 subroutine exxengy
 use modmain
 use modmpi
+use modomp
 implicit none
 ! local variables
 integer ik,ist,jst,is,ia
-integer nrc,nrci,npc,m1,m2
+integer nrc,nrci,npc
+integer m1,m2,nthd
 complex(8) z1
 ! allocatable arrays
 complex(8), allocatable :: wfcr1(:,:),wfcr2(:,:)
@@ -24,21 +26,24 @@ engyx=0.d0
 !--------------------------------------------------!
 !     val-val-val and val-cr-val contributions     !
 !--------------------------------------------------!
-!$OMP PARALLEL DEFAULT(SHARED)
+call omp_hold(nkpt/np_mpi,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ik=1,nkpt
 ! distribute among MPI processes
   if (mod(ik-1,np_mpi).ne.lp_mpi) cycle
-!$OMP CRITICAL
+!$OMP CRITICAL(exxengy_)
   write(*,'("Info(exxengy): ",I6," of ",I6," k-points")') ik,nkpt
-!$OMP END CRITICAL
+!$OMP END CRITICAL(exxengy_)
   call exxengyk(ik)
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 ! add energies from each process and redistribute
-call mpi_allreduce(mpi_in_place,engyx,1,mpi_double_precision,mpi_sum, &
- mpi_comm_kpt,ierror)
+call mpi_allreduce(mpi_in_place,engyx,1,mpi_double_precision,mpi_sum,mpicom, &
+ ierror)
 !-----------------------------------!
 !    core-core-core contribution    !
 !-----------------------------------!

@@ -1,0 +1,55 @@
+
+! Susceptibility for non-linear optical second-harmonic generation in GaAs. The
+! inverse lifetime is determined by swidth. Note that many k-points and empty
+! states are required for good convergence. Various contributions to the
+! susceptibility are also written to file.
+
+! For details, see Physica Scripta T109, 128 (2004).
+
+tasks
+  0
+  120
+  125
+
+nempty
+  15
+
+scissor
+  0.031
+
+swidth
+  0.008
+
+! components of the optical tensor
+optcomp
+  1  2  3
+
+wplot
+  400  100  0  : nwplot, ngrkf, nswplot
+  0.0  0.3     : wplot
+
+mixtype
+  3
+
+avec
+  5.3435  5.3435  0.0000
+  5.3435  0.0000  5.3435
+  0.0000  5.3435  5.3435
+
+sppath
+  '../../../species/'
+
+atoms
+  2                                   : nspecies
+  'Ga.in'                             : spfname
+  1                                   : natoms; atposl below
+  0.0   0.0   0.0
+  'As.in'
+  1
+  0.25  0.25  0.25
+
+ngridk
+  12  12  12
+
+vkloff
+  0.5  0.5  0.5

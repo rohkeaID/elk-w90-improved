@@ -6,14 +6,14 @@
 !BOP
 ! !ROUTINE: pade
 ! !INTERFACE:
-subroutine pade(nin,zin,uin,nout,zout,uout)
+subroutine pade(ni,zi,ui,no,zo,uo)
 ! !INPUT/OUTPUT PARAMETERS:
-!   nin  : number of input points (in,integer)
-!   zin  : input points (in,complex(nin))
-!   uin  : input function values (in,complex(nin))
-!   nout : number of output points (in,integer)
-!   zout : output points (in,complex(nout))
-!   uout : output function values (out,complex(nout))
+!   ni : number of input points (in,integer)
+!   zi : input points (in,complex(ni))
+!   ui : input function values (in,complex(ni))
+!   no : number of output points (in,integer)
+!   zo : output points (in,complex(no))
+!   uo : output function values (out,complex(no))
 ! !DESCRIPTION:
 !   Calculates a Pad\'{e} approximant of a function, given the function
 !   evaluated on a set of points in the complex plane. The function is returned
@@ -26,31 +26,31 @@ subroutine pade(nin,zin,uin,nout,zout,uout)
 !BOC
 implicit none
 ! arguments
-integer, intent(in) :: nin
-complex(8), intent(in) :: zin(nin)
-complex(8), intent(in) :: uin(nin)
-integer, intent(in) :: nout
-complex(8), intent(in) :: zout(nout)
-complex(8), intent(out) :: uout(nout)
+integer, intent(in) :: ni
+complex(8), intent(in) :: zi(ni)
+complex(8), intent(in) :: ui(ni)
+integer, intent(in) :: no
+complex(8), intent(in) :: zo(no)
+complex(8), intent(out) :: uo(no)
 ! local variables
 integer i,j
 real(8) t1
 complex(8) a0,a1,b0,b1,z1,z2
 ! allocatable arrays
 complex(8), allocatable :: g(:,:)
-if ((nin.le.0).or.(nout.le.0)) then
+if ((ni.le.0).or.(no.le.0)) then
   write(*,*)
   write(*,'("Error(pade): invalid number of input or output points : ",2I8)') &
-   nin,nout
+   ni,no
   write(*,*)
   stop
 end if
-allocate(g(nin,nin))
+allocate(g(ni,ni))
 ! define the g functions using Eq. (A2)
-g(1,:)=uin(:)
-do i=2,nin
-  do j=i,nin
-    z1=(zin(j)-zin(i-1))*g(i-1,j)
+g(1,:)=ui(:)
+do i=2,ni
+  do j=i,ni
+    z1=(zi(j)-zi(i-1))*g(i-1,j)
     t1=abs(dble(z1))+abs(aimag(z1))
     if (t1.gt.1.d-14) then
       g(i,j)=(g(i-1,i-1)-g(i-1,j))/z1
@@ -60,14 +60,14 @@ do i=2,nin
   end do
 end do
 ! loop over output points
-do i=1,nout
+do i=1,no
 ! use recursive algorithm in Eq. (A3) to evaluate function
   a0=0.d0
   a1=g(1,1)
   b0=1.d0
   b1=1.d0
-  do j=2,nin
-    z1=(zout(i)-zin(j-1))*g(j,j)
+  do j=2,ni
+    z1=(zo(i)-zi(j-1))*g(j,j)
     z2=a1+z1*a0
     a0=a1
     a1=z2
@@ -92,9 +92,9 @@ do i=1,nout
   end do
   t1=abs(dble(b1))+abs(aimag(b1))
   if (t1.ne.0.d0) then
-    uout(i)=a1/b1
+    uo(i)=a1/b1
   else
-    uout(i)=0.d0
+    uo(i)=0.d0
   end if
 end do
 deallocate(g)

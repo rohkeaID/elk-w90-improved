@@ -56,9 +56,7 @@ do is=1,nspecies
   end do
 end do
 allocate(zfft(ngtot))
-do ig=1,ngtot
-  zfft(igfft(ig))=cfunig(ig)
-end do
+zfft(igfft(:))=cfunig(:)
 ! Fourier transform to real-space
 call zfftifc(3,ngridg,1,zfft)
 cfunir(:)=dble(zfft(:))

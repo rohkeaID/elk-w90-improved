@@ -3,16 +3,15 @@
 ! This file is distributed under the terms of the GNU General Public License.
 ! See the file COPYING for license details.
 
-subroutine genvfxcg(gqc,vfxc)
+subroutine genvfxcg(gclgq,nm,vfxc)
 use modmain
 implicit none
 ! arguments
-real(8), intent(in) :: gqc(ngrf)
-complex(8), intent(out) :: vfxc(ngrf,ngrf,nwrf)
+real(8), intent(in) :: gclgq(ngrf)
+integer, intent(in) :: nm
+complex(8), intent(out) :: vfxc(nm,nm,nwrf)
 ! local variables
 integer ig,jg,kg,iv(3)
-real(8) t0
-complex(8) z1
 ! allocatable arrays
 real(8), allocatable :: fxcmt(:,:),fxcir(:)
 complex(8), allocatable :: fxcg(:)
@@ -22,7 +21,6 @@ allocate(fxcg(ngtot))
 call genfxcr(.true.,fxcmt,fxcir)
 ! Fourier transform the kernel to G-space
 call zftrf(ngtot,ivg,vgc,fxcmt,fxcir,fxcg)
-t0=1.d0/fourpi
 do ig=1,ngrf
   do jg=1,ngrf
     iv(:)=ivg(:,ig)-ivg(:,jg)
@@ -30,8 +28,7 @@ do ig=1,ngrf
         (iv(2).ge.intgv(1,2)).and.(iv(2).le.intgv(2,2)).and. &
         (iv(3).ge.intgv(1,3)).and.(iv(3).le.intgv(2,3))) then
       kg=ivgig(iv(1),iv(2),iv(3))
-      z1=t0*fxcg(kg)*(gqc(ig)*gqc(jg))
-      vfxc(ig,jg,:)=z1
+      vfxc(ig,jg,:)=fxcg(kg)/(gclgq(ig)*gclgq(jg))
     end if
   end do
 end do

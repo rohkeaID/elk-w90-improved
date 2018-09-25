@@ -10,35 +10,16 @@ implicit none
 ! local variables
 integer ig
 ! allocatable arrays
-complex(8), allocatable :: zfft1(:),zfft2(:)
-allocate(zfft1(ngtot))
-if (trimvg) then
-! trim the Fourier components |G| > 3*gkmax
-  zfft1(:)=dvsir(:)
-  call zfftifc(3,ngridg,-1,zfft1)
-  do ig=ng3gk+1,ngtot
-    zfft1(igfft(ig))=0.d0
-  end do
-  call zfftifc(3,ngridg,1,zfft1)
-  allocate(zfft2(ngtot))
-  zfft2(:)=vsir(:)
-  call zfftifc(3,ngridg,-1,zfft2)
-  do ig=ng3gk+1,ngtot
-    zfft2(igfft(ig))=0.d0
-  end do
-  call zfftifc(3,ngridg,1,zfft2)
-  zfft1(:)=zfft1(:)*cfunir(:)+zfft2(:)*dcfunir(:)
-  deallocate(zfft2)
-else
-  zfft1(:)=dvsir(:)*cfunir(:)+vsir(:)*dcfunir(:)
-end if
+complex(8), allocatable :: zfft(:)
+allocate(zfft(ngtot))
+zfft(:)=dvsir(:)*cfunir(:)+vsir(:)*dcfunir(:)
 ! Fourier transform to G+q-space
-call zfftifc(3,ngridg,-1,zfft1)
+call zfftifc(3,ngridg,-1,zfft)
 ! store in global array
 do ig=1,ngvec
-  dvsig(ig)=zfft1(igfft(ig))
+  dvsig(ig)=zfft(igfft(ig))
 end do
-deallocate(zfft1)
+deallocate(zfft)
 return
 end subroutine
 

@@ -38,24 +38,24 @@ integer, intent(in) :: nr,nri
 real(8), intent(in) :: r(nr),r2(nr)
 real(8), intent(in) :: rfmt1(*),rfmt2(*)
 ! local variables
-integer ir,i0,i1
+integer n,ir,i
 ! automatic arrays
 real(8) fr(nr)
 ! external functions
 real(8) fintgt
 external fintgt
 ! inner part of muffin-tin
-i1=0
+n=lmmaxi-1
+i=1
 do ir=1,nri
-  i0=i1+1
-  i1=i1+lmmaxi
-  fr(ir)=dot_product(rfmt1(i0:i1),rfmt2(i0:i1))*r2(ir)
+  fr(ir)=dot_product(rfmt1(i:i+n),rfmt2(i:i+n))*r2(ir)
+  i=i+lmmaxi
 end do
 ! outer part of muffin-tin
+n=lmmaxo-1
 do ir=nri+1,nr
-  i0=i1+1
-  i1=i1+lmmaxo
-  fr(ir)=dot_product(rfmt1(i0:i1),rfmt2(i0:i1))*r2(ir)
+  fr(ir)=dot_product(rfmt1(i:i+n),rfmt2(i:i+n))*r2(ir)
+  i=i+lmmaxo
 end do
 ! integrate
 rfmtinp=fintgt(-1,nr,r,fr)

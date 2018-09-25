@@ -10,6 +10,7 @@ subroutine sfacrho
 ! !USES:
 use modmain
 use modpw
+use modtest
 ! !DESCRIPTION:
 !   Outputs X-ray structure factors, i.e. the Fourier transform coefficients of
 !   the total electron density
@@ -36,7 +37,7 @@ call sfacinit
 ! calculate the density structure factors
 allocate(zrhoh(nhvec))
 call zftrf(nhvec,ivh,vhc,rhomt,rhoir,zrhoh)
-open(50,file='SFACRHO.OUT',action='WRITE',form='FORMATTED')
+open(50,file='SFACRHO.OUT',form='FORMATTED')
 write(50,*)
 write(50,'("h k l indices transformed by vhmat matrix:")')
 write(50,'(3G18.10)') vhmat(:,1)
@@ -67,12 +68,14 @@ do ih=1,nhvec
     write(50,'(3F7.2,I7,4G16.8)') v(:),mulh(ih),hc(ih),a,b,r
   end if
 end do
-deallocate(zrhoh)
 close(50)
 write(*,*)
 write(*,'("Info(sfacrho): density structure factors written to SFACRHO.OUT")')
 write(*,*)
 write(*,'(" Energy window : ",2G18.10)') wsfac(:)
+! write the structure factors to test file
+call writetest(195,'density structure factors',nv=nhvec,tol=1.d-5,zva=zrhoh(:))
+deallocate(zrhoh)
 return
 end subroutine
 !EOC

@@ -35,8 +35,7 @@ allocate(evalbse(nmbse))
 if (allocated(hmlbse)) deallocate(hmlbse)
 allocate(hmlbse(nmbse,nmbse))
 ! read in the BSE eigenvectors and eigenvalues
-open(50,file='EVBSE.OUT',action='READ',form='UNFORMATTED',status='OLD', &
- iostat=iostat)
+open(50,file='EVBSE.OUT',form='UNFORMATTED',status='OLD',iostat=iostat)
 if (iostat.ne.0) then
   write(*,*)
   write(*,'("Error(dielectric_bse): error opening EVBSE.OUT")')
@@ -58,7 +57,7 @@ close(50)
 allocate(w(nwplot))
 allocate(pmat(nstsv,nstsv,3))
 allocate(sigma(3,3,nwplot))
-! generate energy grid (starting from zero)
+! set up the frequency grid (starting from zero)
 t1=wplot(2)/dble(nwplot)
 do iw=1,nwplot
   w(iw)=t1*dble(iw-1)
@@ -104,17 +103,17 @@ do l=1,noptcomp
   t1=0.d0
   if (i.eq.j) t1=1.d0
   write(fname,'("EPSILON_BSE_",2I1,".OUT")') i,j
-  open(60,file=trim(fname),action='WRITE',form='FORMATTED')
+  open(50,file=trim(fname),form='FORMATTED')
   do iw=1,nwplot
     t2=t1-fourpi*aimag(sigma(i,j,iw)/(w(iw)+eta))
-    write(60,'(2G18.10)') w(iw),t2
+    write(50,'(2G18.10)') w(iw),t2
   end do
-  write(60,'("     ")')
+  write(50,*)
   do iw=1,nwplot
     t2=fourpi*dble(sigma(i,j,iw)/(w(iw)+eta))
-    write(60,'(2G18.10)') w(iw),t2
+    write(50,'(2G18.10)') w(iw),t2
   end do
-  close(60)
+  close(50)
 end do
 write(*,*)
 write(*,'("Info(dielectric_bse):")')

@@ -1,0 +1,50 @@
+
+! Fermi surface of ferromagnetic bcc iron. Use XCrysDen for visualisation.
+! Run code and then use
+!   xcrysden --bxsf FERMISURF(_UP/_DN).bxsf
+! to display the spin up and down Fermi surfaces.
+
+tasks
+  0
+  102    : this generates the XCrysDen Fermi Surface .bxsf file
+
+! 3D Fermi surface box defined in terms of reciprocal lattice vectors
+plot3d
+  0.0  0.0  0.0  : origin (first corner)
+  1.0  0.0  0.0  : second corner, etc.
+  0.0  1.0  0.0
+  0.0  0.0  1.0
+  12  12  12     : number of points in each direction
+
+spinpol
+  .true.
+
+bfieldc
+  0.0  0.0  0.01
+
+! fairly large number of empty states required for magnetic cases
+nempty
+  8
+
+avec
+  1.0  1.0 -1.0
+  1.0 -1.0  1.0
+ -1.0  1.0  1.0
+
+scale
+  2.708
+
+sppath
+  '../../../species/'
+
+atoms
+  1
+  'Fe.in'
+  1
+  0.0  0.0  0.0
+
+ngridk
+  4  4  4
+
+vkloff
+  0.5  0.5  0.5

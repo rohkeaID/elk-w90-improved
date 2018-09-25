@@ -36,3 +36,6 @@ doc:
 	../protex -s $(SRC_main) $(SRC_modules) $(SRC_routines) > spacegroup.tex
 	pdflatex spacegroup;pdflatex spacegroup;pdflatex spacegroup
 
+spaces:
+	../rmspaces $(SRC)
+

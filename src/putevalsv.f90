@@ -14,12 +14,11 @@ real(8), intent(in) :: evalsvp(nstsv)
 integer recl
 ! find the record length
 inquire(iolength=recl) vkl(:,ik),nstsv,evalsvp
-!$OMP CRITICAL
-open(70,file='EVALSV'//trim(fext),action='WRITE',form='UNFORMATTED', &
- access='DIRECT',recl=recl)
-write(70,rec=ik) vkl(:,ik),nstsv,evalsvp
-close(70)
-!$OMP END CRITICAL
+!$OMP CRITICAL(u124)
+open(124,file='EVALSV'//trim(fext),form='UNFORMATTED',access='DIRECT',recl=recl)
+write(124,rec=ik) vkl(:,ik),nstsv,evalsvp
+close(124)
+!$OMP END CRITICAL(u124)
 return
 end subroutine
 

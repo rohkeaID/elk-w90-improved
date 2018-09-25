@@ -7,9 +7,10 @@ subroutine writewfpw
 use modmain
 use modpw
 use modmpi
+use modomp
 implicit none
 ! local variables
-integer ik,recl
+integer ik,recl,nthd
 ! allocatable arrays
 complex(8), allocatable :: wfpw(:,:,:)
 ! initialise global variables
@@ -28,41 +29,44 @@ call genapwfr
 call genlofr
 ! delete existing WFPW.OUT
 if (mp_mpi) then
-  open(50,file='WFPW.OUT')
-  close(50,status='DELETE')
+  open(170,file='WFPW.OUT')
+  close(170,status='DELETE')
 end if
 ! synchronise MPI processes
-call mpi_barrier(mpi_comm_kpt,ierror)
+call mpi_barrier(mpicom,ierror)
 ! determine the record length and open WFPW.OUT
 allocate(wfpw(nhkmax,nspinor,nstsv))
 inquire(iolength=recl) vkl(:,1),nhkmax,nspinor,nstsv,wfpw
 deallocate(wfpw)
-open(50,file='WFPW.OUT',action='WRITE',form='UNFORMATTED',access='DIRECT', &
- recl=recl)
+open(170,file='WFPW.OUT',form='UNFORMATTED',access='DIRECT',recl=recl)
 ! begin parallel loop over k-points
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(wfpw)
+call omp_hold(nkpt/np_mpi,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(wfpw) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ik=1,nkpt
 ! distribute among MPI processes
   if (mod(ik-1,np_mpi).ne.lp_mpi) cycle
   allocate(wfpw(nhkmax,nspinor,nstsv))
-!$OMP CRITICAL
+!$OMP CRITICAL(writewfpw_)
   write(*,'("Info(writewfpw): ",I6," of ",I6," k-points")') ik,nkpt
-!$OMP END CRITICAL
+!$OMP END CRITICAL(writewfpw_)
 ! generate the plane wave wavefunctions
   call genwfpw(vkl(:,ik),ngk(:,ik),igkig(:,:,ik),vgkl(:,:,:,ik), &
    vgkc(:,:,:,ik),gkc(:,:,ik),tpgkc(:,:,:,ik),sfacgk(:,:,:,ik),nhk(:,ik), &
    vhkc(:,:,:,ik),hkc(:,:,ik),tphkc(:,:,:,ik),sfachk(:,:,:,ik),wfpw)
-!$OMP CRITICAL
-  write(50,rec=ik) vkl(:,ik),nhkmax,nspinor,nstsv,wfpw
-!$OMP END CRITICAL
+!$OMP CRITICAL(u170)
+  write(170,rec=ik) vkl(:,ik),nhkmax,nspinor,nstsv,wfpw
+!$OMP END CRITICAL(u170)
   deallocate(wfpw)
 end do
 !$OMP END DO
 !$OMP END PARALLEL
-close(50)
+call omp_free(nthd)
+close(170)
 ! synchronise MPI processes
-call mpi_barrier(mpi_comm_kpt,ierror)
+call mpi_barrier(mpicom,ierror)
 if (mp_mpi) then
   write(*,*)
   write(*,'("Info(writewfpw): plane wave wavefunctions written to WFPW.OUT")')

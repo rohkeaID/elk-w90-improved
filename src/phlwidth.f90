@@ -63,7 +63,7 @@ end do
 gmax=gmax+(gmax-gmin)*0.5d0
 gmin=gmin-(gmax-gmin)*0.5d0
 ! output the vertex location lines
-open(50,file='PHLWLINES.OUT',action='WRITE',form='FORMATTED')
+open(50,file='PHLWLINES.OUT',form='FORMATTED')
 do iv=1,nvp1d
   write(50,'(2G18.10)') dvp1d(iv),gmin
   write(50,'(2G18.10)') dvp1d(iv),gmax
@@ -71,7 +71,7 @@ do iv=1,nvp1d
 end do
 close(50)
 ! output the phonon linewidth dispersion
-open(50,file='PHLWIDTH.OUT',action='WRITE',form='FORMATTED')
+open(50,file='PHLWIDTH.OUT',form='FORMATTED')
 do i=1,nbph
   do iq=1,npp1d
     write(50,'(2G18.10)') dpp1d(iq),gp(i,iq)

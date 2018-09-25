@@ -8,6 +8,10 @@ tasks
   450
   460
 
+! no shifting of the atomic positions for the ground-state run
+tshift
+ .false.
+
 xctype
   20
 
@@ -25,9 +29,6 @@ nempty
 
 autokpt
  .false.
-
-nosym
- .true.
 
 tstime
   500

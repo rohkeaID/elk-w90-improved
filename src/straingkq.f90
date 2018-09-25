@@ -5,16 +5,16 @@
 
 subroutine straingkq
 use modmain
-use modultra
+use modulr
 use modstore
 implicit none
 integer is,ia,ig
 integer nppt,ik,igk
 integer jspn,iq
-real(8) ta(3,3),tb(3,3),v(3)
+real(8) ta(3,3),tb(3,3),vc(3)
 if ((istrain.lt.1).or.(istrain.gt.nstrain)) return
 ! compute the strained lattice vectors
-avec(:,:)=avec0(:,:)+deltast*strain(:,:,istrain)
+avec(:,:)=avec_(:,:)+deltast*strain(:,:,istrain)
 ! generate the strained reciprocal lattice vectors and unit cell volume
 call reciplat(avec,bvec,omega,omegabz)
 ! determine the transformation matrix to the strained vectors
@@ -29,19 +29,16 @@ do is=1,nspecies
     call r3mv(avec,atposl(:,ia,is),atposc(:,ia,is))
   end do
 end do
-if (ultracell) then
-  call r3mm(ta,avecu0,avecu)
-  call reciplat(avecu,bvecu,omegau,omegabzu)
-end if
 call r3mv(bvec,vecql,vecqc)
 call r3mv(ainv,efieldc,efieldl)
 ! apply the transformation matrix to the G-vectors
 do ig=1,ngtot
-  v(:)=vgc(:,ig)
-  call r3mv(tb,v,vgc(:,ig))
+  vc(:)=vgc(:,ig)
+  call r3mv(tb,vc,vgc(:,ig))
   gc(ig)=sqrt(vgc(1,ig)**2+vgc(2,ig)**2+vgc(3,ig)**2)
 end do
 ! recalculate variables which depend on the G-vectors
+call gengclg
 call genjlgprmt(lnpsd,ngvec,gc,ngvec,jlgrmt)
 call genylmg
 call gensfacgp(ngvec,vgc,ngvec,sfacg)
@@ -52,10 +49,9 @@ call gencfun
 call energynn
 ! apply the transformation to the k-vectors
 do ik=1,nkptnr
-  v(:)=vkc(:,ik)
-  call r3mv(tb,v,vkc(:,ik))
+  vc(:)=vkc(:,ik)
+  call r3mv(tb,vc,vkc(:,ik))
 end do
-call genkpakq
 ! apply the transformation to G+k-vectors and recalculate dependent variables
 if (xctype(1).lt.0) then
   nppt=nkptnr
@@ -65,8 +61,8 @@ end if
 do ik=1,nppt
   do jspn=1,nspnfv
     do igk=1,ngk(jspn,ik)
-      v(:)=vgkc(:,igk,jspn,ik)
-      call r3mv(tb,v,vgkc(:,igk,jspn,ik))
+      vc(:)=vgkc(:,igk,jspn,ik)
+      call r3mv(tb,vc,vgkc(:,igk,jspn,ik))
       call sphcrd(vgkc(:,igk,jspn,ik),gkc(igk,jspn,ik),tpgkc(:,igk,jspn,ik))
     end do
     call gensfacgp(ngk(jspn,ik),vgkc(:,:,jspn,ik),ngkmax,sfacgk(:,:,jspn,ik))
@@ -75,10 +71,10 @@ end do
 ! apply the transformation to the q-vectors if required
 if (xctype(1).lt.0) then
   do iq=1,nqptnr
-    v(:)=vqc(:,iq)
-    call r3mv(tb,v,vqc(:,iq))
+    vc(:)=vqc(:,iq)
+    call r3mv(tb,vc,vqc(:,iq))
   end do
-  call genwiq2
+  call gengclq
 end if
 return
 end subroutine

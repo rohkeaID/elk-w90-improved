@@ -1,0 +1,43 @@
+
+! Linear optical spectrum of titanium dioxide. The inverse lifetime is
+! determined by swidth. Note that many more k-points are required for good
+! convergence of the optical spectrum.
+
+tasks
+  0
+  120
+  121
+
+swidth
+  0.005
+
+! use Broyden mixing for fast convergence
+mixtype
+  3
+
+avec
+  1.0  0.0  0.0
+  0.0  1.0  0.0
+  0.0  0.0  0.6441
+
+scale
+  8.6806
+
+sppath
+  '../../../species/'
+
+atoms
+  2                                   : nspecies
+  'Ti.in'                             : spfname
+  2                                   : natoms; atposl below
+  0.0  0.0  0.0
+  0.5  0.5  0.5
+  'O.in'
+  4
+  0.3048  0.3048  0.0
+  0.6952  0.6952  0.0
+  0.1952  0.8048  0.5
+  0.8048  0.1952  0.5
+
+ngridk
+  4  4  4

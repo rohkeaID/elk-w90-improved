@@ -10,6 +10,7 @@ subroutine dielectric
 ! !USES:
 use modmain
 use modtest
+use modomp
 ! !DESCRIPTION:
 !   Computes the dielectric tensor, optical conductivity and plasma frequency.
 !   The formulae are taken from {\it Physica Scripta} {\bf T109}, 170 (2004).
@@ -25,7 +26,7 @@ use modtest
 implicit none
 ! local variables
 integer ik,jk,ist,jst
-integer iw,i,j,l
+integer iw,i,j,l,nthd
 real(8) w1,w2,wplas
 real(8) eji,x,t1,t2
 complex(8) eta,z1
@@ -65,9 +66,11 @@ do l=1,noptcomp
   wplas=0.d0
   sigma(:)=0.d0
 ! parallel loop over non-reduced k-points
+  call omp_hold(nkptnr,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP PRIVATE(pmat,jk,ist,jst) &
-!$OMP PRIVATE(z1,eji,t1,x)
+!$OMP PRIVATE(z1,eji,t1,x) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
   do ik=1,nkptnr
     allocate(pmat(nstsv,nstsv,3))
@@ -91,18 +94,18 @@ do l=1,noptcomp
         end if
         if (abs(eji).gt.1.d-8) then
           t1=occsv(ist,jk)*(1.d0-occsv(jst,jk)/occmax)/eji
-!$OMP CRITICAL
+!$OMP CRITICAL(dielectric_1)
           sigma(:)=sigma(:)+t1*(z1/(w(:)-eji+eta)+conjg(z1)/(w(:)+eji+eta))
-!$OMP END CRITICAL
+!$OMP END CRITICAL(dielectric_1)
         end if
 ! add to the plasma frequency
         if (intraband) then
           if (i.eq.j) then
             if (ist.eq.jst) then
               x=(evalsv(ist,jk)-efermi)/swidth
-!$OMP CRITICAL
+!$OMP CRITICAL(dielectric_2)
               wplas=wplas+wkptnr*dble(z1)*sdelta(stype,x)/swidth
-!$OMP END CRITICAL
+!$OMP END CRITICAL(dielectric_2)
             end if
           end if
         end if
@@ -112,6 +115,7 @@ do l=1,noptcomp
   end do
 !$OMP END DO
 !$OMP END PARALLEL
+  call omp_free(nthd)
   z1=zi*wkptnr/omega
   sigma(:)=z1*sigma(:)
 ! intraband contribution
@@ -120,9 +124,9 @@ do l=1,noptcomp
       wplas=sqrt(occmax*abs(wplas)*fourpi/omega)
 ! write the plasma frequency to file
       write(fname,'("PLASMA_",2I1,".OUT")') i,j
-      open(60,file=trim(fname),action='WRITE',form='FORMATTED')
-      write(60,'(G18.10," : plasma frequency")') wplas
-      close(60)
+      open(50,file=trim(fname),form='FORMATTED')
+      write(50,'(G18.10," : plasma frequency")') wplas
+      close(50)
 ! add the intraband contribution to sigma
       t1=wplas**2/fourpi
       do iw=1,nwplot
@@ -132,35 +136,34 @@ do l=1,noptcomp
   end if
 ! write the optical conductivity to file
   write(fname,'("SIGMA_",2I1,".OUT")') i,j
-  open(60,file=trim(fname),action='WRITE',form='FORMATTED')
+  open(50,file=trim(fname),form='FORMATTED')
   do iw=1,nwplot
-    write(60,'(2G18.10)') w(iw),dble(sigma(iw))
+    write(50,'(2G18.10)') w(iw),dble(sigma(iw))
   end do
-  write(60,'("     ")')
+  write(50,*)
   do iw=1,nwplot
-    write(60,'(2G18.10)') w(iw),aimag(sigma(iw))
+    write(50,'(2G18.10)') w(iw),aimag(sigma(iw))
   end do
-  close(60)
+  close(50)
 ! write the dielectric function to file
   write(fname,'("EPSILON_",2I1,".OUT")') i,j
-  open(60,file=trim(fname),action='WRITE',form='FORMATTED')
+  open(50,file=trim(fname),form='FORMATTED')
   t1=0.d0
   if (i.eq.j) t1=1.d0
   do iw=1,nwplot
     t2=t1-fourpi*aimag(sigma(iw)/(w(iw)+eta))
-    write(60,'(2G18.10)') w(iw),t2
+    write(50,'(2G18.10)') w(iw),t2
   end do
-  write(60,'("     ")')
+  write(50,*)
   do iw=1,nwplot
     t2=fourpi*dble(sigma(iw)/(w(iw)+eta))
-    write(60,'(2G18.10)') w(iw),t2
+    write(50,'(2G18.10)') w(iw),t2
   end do
-  close(60)
+  close(50)
 ! write sigma to test file
   call writetest(121,'optical conductivity',nv=nwplot,tol=1.d-2,zva=sigma)
 ! end loop over tensor components
 end do
-close(50)
 write(*,*)
 write(*,'("Info(dielectric):")')
 write(*,'(" dielectric tensor written to EPSILON_ij.OUT")')

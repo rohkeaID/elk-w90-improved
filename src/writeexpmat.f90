@@ -8,16 +8,16 @@ use modmain
 implicit none
 ! local variables
 integer nk,ik,jk,i,j
+real(8) vgqc(3),gqc
 real(8) a,b
 ! allocatable arrays
+real(8), allocatable :: jlgqr(:,:)
+complex(8), allocatable :: ylmgq(:),sfacgq(:)
 complex(8), allocatable :: expmt(:,:),emat(:,:)
 ! initialise universal variables
 call init0
 call init1
-! allocate the muffin-tin function exp(iq.r)
-allocate(expmt(npcmtmax,natmtot))
-! allocate the matrix elements array for < i,k+G+q | exp(iq.r) | j,k >
-allocate(emat(nstsv,nstsv))
+call init2
 ! read in the density and potentials from file
 call readstate
 ! read Fermi energy from file
@@ -29,14 +29,21 @@ call genapwfr
 ! generate the local-orbital radial functions
 call genlofr
 ! generate the phase factor function exp(iq.r) in the muffin-tins
-call genexpmt(vecqc,expmt)
+allocate(jlgqr(njcmax,nspecies))
+allocate(ylmgq(lmmaxo),sfacgq(natmtot))
+allocate(expmt(npcmtmax,natmtot))
+ngrf=1
+call gengqrf(vecqc,vgqc,gqc,jlgqr,ylmgq,sfacgq)
+call genexpmt(1,jlgqr,ylmgq,1,sfacgq,expmt)
+expmt(:,:)=omega*expmt(:,:)
+deallocate(jlgqr,ylmgq,sfacgq)
 ! number of k-points to write out
 if (kstlist(1,1).le.0) then
   nk=nkpt
 else
   nk=nkstlist
 end if
-open(50,file='EXPIQR.OUT',action='WRITE',form='FORMATTED')
+open(50,file='EXPIQR.OUT',form='FORMATTED')
 write(50,*)
 write(50,'("q-vector (lattice coordinates) :")')
 write(50,'(3G18.10)') vecql
@@ -45,6 +52,7 @@ write(50,'(3G18.10)') vecqc
 write(50,*)
 write(50,'(I8," : number of k-points")') nk
 write(50,'(I6," : number of states per k-point")') nstsv
+allocate(emat(nstsv,nstsv))
 do jk=1,nk
   if (kstlist(1,1).le.0) then
     ik=jk

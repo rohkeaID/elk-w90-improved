@@ -12,14 +12,14 @@ real(8), intent(in) :: jlgpr(njcmax,nspecies,ngp)
 complex(8), intent(in) :: ylmgp(lmmaxo,ngp)
 integer, intent(in) :: ld
 complex(8), intent(in) :: sfacgp(ld,natmtot)
-complex(8), intent(in) :: zfmt(npcmtmax,natmtot),zfir(ngtot)
+complex(8), intent(in) :: zfmt(npcmtmax,natmtot),zfir(ngtc)
 complex(8), intent(out) :: zfgp(ngp)
 ! local variables
 integer is,ia,ias,ig
-integer nrc,nrci,irc
-integer lmax,l,m,lm,i,j
+integer nrc,nrci,irco,irc
+integer l,m,lm,i,j
 real(8) t0,t1,t2
-complex(8) zsum1,zsum2
+complex(8) zsum1,zsum2,z1
 ! automatic arrays
 real(8) fr1(nrcmtmax),fr2(nrcmtmax)
 complex(8) ylm(lmmaxo)
@@ -28,7 +28,7 @@ complex(8), allocatable :: zfft(:)
 ! external functions
 real(8) fintgt
 external fintgt
-if ((ngp.lt.1).or.(ngp.gt.ngvec)) then
+if ((ngp.lt.1).or.(ngp.gt.ngvc)) then
   write(*,*)
   write(*,'("Error(zftzf): ngp out of range : ",I8)') ngp
   write(*,*)
@@ -41,36 +41,77 @@ zfgp(:)=0.d0
 !---------------------------------!
 t0=fourpi/omega
 do ig=1,ngp
-  ylm(:)=ylmgp(:,ig)
+  lm=1
+  do l=1,lmaxo
+    z1=zilc(l)
+    do m=-l,l
+      lm=lm+1
+      ylm(lm)=z1*ylmgp(lm,ig)
+    end do
+  end do
   do is=1,nspecies
     nrc=nrcmt(is)
     nrci=nrcmti(is)
+    irco=nrci+1
     do ia=1,natoms(is)
       ias=idxas(ia,is)
-      lmax=lmaxi
-      i=0
-      j=0
-      do irc=1,nrc
-        i=i+1
-        j=j+1
-        zsum1=jlgpr(j,is,ig)*zfmt(i,ias)*ylm(1)
-        lm=1
-        do l=1,lmax
-          lm=lm+1
+      i=1
+      j=1
+! inner part of muffin-tin
+      if (lmaxi.eq.1) then
+        do irc=1,nrci
+          z1=jlgpr(j,is,ig)*zfmt(i,ias)*y00+jlgpr(j+1,is,ig) &
+           *(zfmt(i+1,ias)*ylm(2)+zfmt(i+2,ias)*ylm(3)+zfmt(i+3,ias)*ylm(4))
+          z1=z1*r2cmt(irc,is)
+          fr1(irc)=dble(z1)
+          fr2(irc)=aimag(z1)
+          i=i+4
+          j=j+2
+        end do
+      else
+        do irc=1,nrci
+          zsum1=jlgpr(j,is,ig)*zfmt(i,ias)*y00
           i=i+1
           j=j+1
+          lm=1
+          do l=1,lmaxi
+            lm=lm+1
+            zsum2=zfmt(i,ias)*ylm(lm)
+            i=i+1
+            do m=1-l,l
+              lm=lm+1
+              zsum2=zsum2+zfmt(i,ias)*ylm(lm)
+              i=i+1
+            end do
+            zsum1=zsum1+jlgpr(j,is,ig)*zsum2
+            j=j+1
+          end do
+          zsum1=zsum1*r2cmt(irc,is)
+          fr1(irc)=dble(zsum1)
+          fr2(irc)=aimag(zsum1)
+        end do
+      end if
+! outer part of muffin-tin
+      do irc=irco,nrc
+        zsum1=jlgpr(j,is,ig)*zfmt(i,ias)*y00
+        i=i+1
+        j=j+1
+        lm=1
+        do l=1,lmaxo
+          lm=lm+1
           zsum2=zfmt(i,ias)*ylm(lm)
+          i=i+1
           do m=1-l,l
             lm=lm+1
-            i=i+1
             zsum2=zsum2+zfmt(i,ias)*ylm(lm)
+            i=i+1
           end do
-          zsum1=zsum1+jlgpr(j,is,ig)*zilc(l)*zsum2
+          zsum1=zsum1+jlgpr(j,is,ig)*zsum2
+          j=j+1
         end do
         zsum1=zsum1*r2cmt(irc,is)
         fr1(irc)=dble(zsum1)
         fr2(irc)=aimag(zsum1)
-        if (irc.eq.nrci) lmax=lmaxo
       end do
       t1=fintgt(-1,nrc,rcmt(:,is),fr1)
       t2=fintgt(-1,nrc,rcmt(:,is),fr2)
@@ -81,11 +122,13 @@ end do
 !-----------------------------------!
 !     interstitial contribution     !
 !-----------------------------------!
-allocate(zfft(ngtot))
-zfft(:)=zfir(:)*cfunir(:)
-call zfftifc(3,ngridg,-1,zfft)
+allocate(zfft(ngtc))
+! multiply by coarse characteristic function
+zfft(:)=zfir(:)*cfrc(:)
+! Fourier transform to coarse G-grid
+call zfftifc(3,ngdc,-1,zfft)
 do ig=1,ngp
-  zfgp(ig)=zfgp(ig)+zfft(igfft(ig))
+  zfgp(ig)=zfgp(ig)+zfft(igfc(ig))
 end do
 deallocate(zfft)
 return

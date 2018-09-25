@@ -4,13 +4,11 @@
 tasks
  0
  10
+ 25
  500
 
 test
  .true.
-
-maxscl
-  2
 
 wplot
  50 100 4

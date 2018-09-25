@@ -32,8 +32,9 @@ do isym=1,nsymcrys
       do ia=1,natoms(is)
 ! equivalent atom
         ja=ieqatom(ia,is,isym)
-        v(:)=sc(:,1)*mommtfix(1,ja,is)+sc(:,2)*mommtfix(2,ja,is) &
-         +sc(:,3)*mommtfix(3,ja,is)
+        v(:)=sc(:,1)*mommtfix(1,ja,is) &
+            +sc(:,2)*mommtfix(2,ja,is) &
+            +sc(:,3)*mommtfix(3,ja,is)
         t1=sum(abs(mommtfix(:,ia,is)-v(:)))
         if (t1.gt.epslat) then
           write(*,*)

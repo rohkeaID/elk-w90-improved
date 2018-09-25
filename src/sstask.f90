@@ -17,7 +17,7 @@ do iqss=1,nqpt
 ! determine if the SS file exists
   inquire(file='SS'//trim(fext),exist=exist)
   if (.not.exist) then
-    open(fnum,file='SS'//trim(fext),action='WRITE',form='FORMATTED')
+    open(fnum,file='SS'//trim(fext),form='FORMATTED')
     return
   end if
 end do

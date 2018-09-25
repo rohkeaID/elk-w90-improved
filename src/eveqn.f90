@@ -8,7 +8,8 @@
 subroutine eveqn(ik,evalfv,evecfv,evecsv)
 ! !USES:
 use modmain
-use modultra
+use modulr
+use modomp
 ! !INPUT/OUTPUT PARAMETERS:
 !   ik     : k-point number (in,integer)
 !   evalfv : first-variational eigenvalues (out,real(nstfv))
@@ -28,12 +29,14 @@ integer, intent(in) :: ik
 real(8), intent(out) :: evalfv(nstfv,nspnfv)
 complex(8), intent(out) :: evecfv(nmatmax,nstfv,nspnfv),evecsv(nstsv,nstsv)
 ! local variables
-integer jspn
+integer jspn,nthd
 ! allocatable arrays
 complex(8), allocatable :: apwalm(:,:,:,:,:)
 allocate(apwalm(ngkmax,apwordmax,lmmaxapw,natmtot,nspnfv))
 ! loop over first-variational spins (nspnfv=2 for spin-spirals only)
-!$OMP PARALLEL DEFAULT(SHARED)
+call omp_hold(nspnfv,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do jspn=1,nspnfv
 ! find the matching coefficients
@@ -53,6 +56,7 @@ do jspn=1,nspnfv
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 if (spinsprl) then
 ! solve the spin-spiral second-variational eigenvalue equation
   call eveqnss(ngk(:,ik),igkig(:,:,ik),apwalm,evalfv,evecfv,evalsv(:,ik),evecsv)

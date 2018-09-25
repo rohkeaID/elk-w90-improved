@@ -1,5 +1,5 @@
-'1/q^2 weights (wiq2)'
+'regularised Coulomb Green''s function (gclq)'
        2       2
     0.100000000000E-07
-       1     5.16355050398    
-       2     1.29849999353    
+       1     159.645293857    
+       2     40.1466806379    

@@ -14,13 +14,9 @@ integer i,p
 integer(8) plan
 real(8) t1
 ! interface to FFTW version 3
-!$OMP CRITICAL
 call dfftw_plan_dft(plan,nd,n,z,z,sgn,FFTW_ESTIMATE)
-!$OMP END CRITICAL
 call dfftw_execute(plan)
-!$OMP CRITICAL
 call dfftw_destroy_plan(plan)
-!$OMP END CRITICAL
 if (sgn.eq.-1) then
   p=1
   do i=1,nd

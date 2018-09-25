@@ -7,9 +7,11 @@ subroutine timestep
 use modmain
 use modtddft
 use modmpi
+use modomp
 implicit none
 ! local variables
-integer ik,is,ias,i,j
+integer ik,is,ias
+integer i,j,nthd
 real(8) dt,t1
 complex(8) z1
 ! allocatable arrays
@@ -24,8 +26,10 @@ if (itimes.ge.ntimes) then
 end if
 ! convert muffin-tin Kohn-Sham potential to spherical coordinates
 allocate(vmt(npcmtmax,natmtot))
+call omp_hold(natmtot,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(rfmt,is)
+!$OMP PRIVATE(rfmt,is) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ias=1,natmtot
   allocate(rfmt(npcmtmax))
@@ -36,13 +40,16 @@ do ias=1,natmtot
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 ! multiply interstitial potential by characteristic function
 allocate(vir(ngtot))
 vir(:)=vsir(:)*cfunir(:)
 ! loop over k-points
+call omp_hold(nkpt/np_mpi,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP PRIVATE(w,evecsv,evectv,evecsvt) &
-!$OMP PRIVATE(a,b,c,i,j,dt,t1,z1)
+!$OMP PRIVATE(a,b,c,i,j,dt,t1,z1) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ik=1,nkpt
 ! distribute among MPI processes
@@ -91,9 +98,10 @@ do ik=1,nkpt
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 deallocate(vmt,vir)
 ! synchronise MPI processes
-call mpi_barrier(mpi_comm_kpt,ierror)
+call mpi_barrier(mpicom,ierror)
 return
 end subroutine
 

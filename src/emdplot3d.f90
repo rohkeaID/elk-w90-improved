@@ -6,11 +6,12 @@
 subroutine emdplot3d(emds)
 use modmain
 use modpw
+use modomp
 implicit none
 ! arguments
 real(4), intent(in) :: emds(nhkmax,nkpt)
 ! local variables
-integer np,ip
+integer np,ip,nthd
 real(8) v1(3),t1
 ! allocatable arrays
 real(8), allocatable :: vpl(:,:)
@@ -22,9 +23,12 @@ np=np3d(1)*np3d(2)*np3d(3)
 ! generate the 3D plotting points
 allocate(vpl(3,np))
 call plotpt3d(vpl)
-open(50,file='EMD3D.OUT',action='WRITE',form='FORMATTED')
+open(50,file='EMD3D.OUT',form='FORMATTED')
 write(50,'(3I6," : grid size")') np3d(:)
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(t1,v1)
+call omp_hold(np,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(t1,v1) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO ORDERED
 do ip=1,np
   t1=rfhkintp(vpl(:,ip),emds)
@@ -35,6 +39,7 @@ do ip=1,np
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 close(50)
 deallocate(vpl)
 return

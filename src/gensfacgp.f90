@@ -9,6 +9,7 @@
 subroutine gensfacgp(ngp,vgpc,ld,sfacgp)
 ! !USES:
 use modmain
+use modomp
 ! !INPUT/OUTPUT PARAMETERS:
 !   ngp    : number of G+p-vectors (in,integer)
 !   vgpc   : G+p-vectors in Cartesian coordinates (in,real(3,*))
@@ -30,10 +31,13 @@ real(8), intent(in) :: vgpc(3,ngp)
 integer, intent(in) :: ld
 complex(8), intent(out) :: sfacgp(ld,natmtot)
 ! local variables
-integer is,ia,ias,igp
+integer is,ia,ias
+integer igp,nthd
 real(8) v(3),t1
+call omp_hold(natmtot,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(is,ia,v,igp,t1)
+!$OMP PRIVATE(is,ia,v,igp,t1) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ias=1,natmtot
   is=idxis(ias)
@@ -46,6 +50,7 @@ do ias=1,natmtot
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 return
 end subroutine
 !EOC

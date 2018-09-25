@@ -6,10 +6,11 @@
 subroutine hartfock
 use modmain
 use modmpi
+use modomp
 implicit none
 ! local variables
 logical exist
-integer ik,lp
+integer ik,lp,nthd
 real(8) etp,de
 ! allocatable arrays
 real(8), allocatable :: vmt(:,:),vir(:)
@@ -27,23 +28,24 @@ end if
 ! only the MPI master process should write files
 if (mp_mpi) then
 ! open INFO.OUT file
-  open(60,file='INFO'//trim(filext),action='WRITE',form='FORMATTED')
+  open(60,file='INFO'//trim(filext),form='FORMATTED')
 ! open TOTENERGY.OUT
-  open(61,file='TOTENERGY'//trim(filext),action='WRITE',form='FORMATTED')
+  open(61,file='TOTENERGY'//trim(filext),form='FORMATTED')
 ! open FERMIDOS.OUT
-  open(62,file='FERMIDOS'//trim(filext),action='WRITE',form='FORMATTED')
+  open(62,file='FERMIDOS'//trim(filext),form='FORMATTED')
 ! open MOMENT.OUT if required
-  if (spinpol) open(63,file='MOMENT'//trim(filext),action='WRITE', &
-   form='FORMATTED')
+  if (spinpol) open(63,file='MOMENT'//trim(filext),form='FORMATTED')
 ! open GAP.OUT
-  open(64,file='GAP'//trim(filext),action='WRITE',form='FORMATTED')
+  open(64,file='GAP'//trim(filext),form='FORMATTED')
 ! open DTOTENERGY.OUT
-  open(66,file='DTOTENERGY'//trim(filext),action='WRITE',form='FORMATTED')
+  open(66,file='DTOTENERGY'//trim(filext),form='FORMATTED')
 ! write out general information to INFO.OUT
   call writeinfo(60)
 end if
 ! read the charge density from file
 call readstate
+! Fourier transform Kohn-Sham potential to G-space
+call genvsig
 ! generate the core wavefunctions and densities
 call gencore
 ! read Fermi energy from file
@@ -82,7 +84,7 @@ do iscl=1,maxscl
     write(60,'("+--------------------+")')
     write(60,'("| Loop number : ",I4," |")') iscl
     write(60,'("+--------------------+")')
-    call flushifc(60)
+    flush(60)
     write(*,*)
     write(*,'("Info(hartfock): self-consistent loop number : ",I4)') iscl
   end if
@@ -93,11 +95,16 @@ do iscl=1,maxscl
     end if
     tlast=.true.
   end if
+! reset the OpenMP thread variables
+  call omp_reset
 ! compute the Hartree-Fock local potentials
   call hflocal(hybrid,vmt,vir,bmt,bir)
 ! synchronise MPI processes
-  call mpi_barrier(mpi_comm_kpt,ierror)
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(evecsv)
+  call mpi_barrier(mpicom,ierror)
+  call omp_hold(nkpt/np_mpi,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(evecsv) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
   do ik=1,nkpt
 ! distribute among MPI processes
@@ -113,13 +120,13 @@ do iscl=1,maxscl
   end do
 !$OMP END DO
 !$OMP END PARALLEL
+  call omp_free(nthd)
 ! synchronise MPI processes
-  call mpi_barrier(mpi_comm_kpt,ierror)
+  call mpi_barrier(mpicom,ierror)
 ! broadcast eigenvalue array to every process
   do ik=1,nkpt
     lp=mod(ik-1,np_mpi)
-    call mpi_bcast(evalsv(:,ik),nstsv,mpi_double_precision,lp,mpi_comm_kpt, &
-     ierror)
+    call mpi_bcast(evalsv(:,ik),nstsv,mpi_double_precision,lp,mpicom,ierror)
   end do
 ! find the occupation numbers and Fermi energy
   call occupy
@@ -150,21 +157,21 @@ do iscl=1,maxscl
     write(60,'(" at k-point ",I6)') ikgap(3)
 ! write total energy to TOTENERGY.OUT and flush
     write(61,'(G22.12)') engytot
-    call flushifc(61)
+    flush(61)
 ! write DOS at Fermi energy to FERMIDOS.OUT and flush
     write(62,'(G18.10)') fermidos
-    call flushifc(62)
+    flush(62)
 ! output charges and moments
     call writechg(60)
 ! write total moment to MOMENT.OUT and flush
     if (spinpol) then
       write(63,'(3G18.10)') momtot(1:ndmag)
-      call flushifc(63)
+      flush(63)
     end if
   end if
 ! write estimated Hartree-Fock indirect band gap
   write(64,'(G22.12)') bandgap(1)
-  call flushifc(64)
+  flush(64)
   if (tlast) goto 10
 ! compute the change in total energy and check for convergence
   if (iscl.ge.2) then
@@ -183,7 +190,7 @@ do iscl=1,maxscl
     end if
     if (mp_mpi) then
       write(66,'(G18.10)') de
-      call flushifc(66)
+      flush(66)
     end if
   end if
   etp=engytot
@@ -199,7 +206,7 @@ do iscl=1,maxscl
     end if
   end if
 ! broadcast tlast from master process to all other processes
-  call mpi_bcast(tlast,1,mpi_logical,0,mpi_comm_kpt,ierror)
+  call mpi_bcast(tlast,1,mpi_logical,0,mpicom,ierror)
 end do
 10 continue
 if (mp_mpi) then
@@ -234,6 +241,8 @@ if (mp_mpi) then
   close(62)
 ! close the MOMENT.OUT file
   if (spinpol) close(63)
+! close the GAP.OUT file
+  close(64)
 ! close the DTOTENERGY.OUT file
   close(66)
 end if

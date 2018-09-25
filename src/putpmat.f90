@@ -11,7 +11,7 @@ implicit none
 logical, intent(in) :: tfv,tsv
 integer, intent(in) :: ik
 ! local variables
-integer ist,ispn,i,recl
+integer ist,ispn,recl,i
 ! automatic arrays
 integer idx(nstsv)
 ! allocatable arrays
@@ -36,8 +36,8 @@ end do
 ! calculate the wavefunctions for all states
 allocate(wfmt(npcmtmax,natmtot,nspinor,nstsv))
 allocate(wfir(ngkmax,nspinor,nstsv))
-call genwfsv(.true.,.true.,nstsv,idx,ngk(:,ik),igkig(:,:,ik),apwalm,evecfv, &
- evecsv,wfmt,ngkmax,wfir)
+call genwfsv(.true.,.true.,nstsv,idx,ngridg,igfft,ngk(:,ik),igkig(:,:,ik), &
+ apwalm,evecfv,evecsv,wfmt,ngkmax,wfir)
 deallocate(evecfv,apwalm)
 ! calculate the momentum matrix elements
 allocate(pmat(nstsv,nstsv,3))
@@ -47,12 +47,23 @@ deallocate(wfmt,wfir)
 inquire(iolength=recl) vkl(:,1),nstsv,pmat
 ! write the matrix elements in the second-variational basis if required
 if (tsv) then
-!$OMP CRITICAL
-  open(85,file='PMAT.OUT',action='WRITE',form='UNFORMATTED',access='DIRECT', &
-   recl=recl)
-  write(85,rec=ik) vkl(:,ik),nstsv,pmat
-  close(85)
-!$OMP END CRITICAL
+!$OMP CRITICAL(u150)
+  do i=1,2
+    open(150,file='PMAT.OUT',form='UNFORMATTED',access='DIRECT',recl=recl, &
+     err=10)
+    write(150,rec=ik,err=10) vkl(:,ik),nstsv,pmat
+    close(150)
+    exit
+10 continue
+    if (i.eq.2) then
+      write(*,*)
+      write(*,'("Error(putpmat): unable to write to PMAT.OUT")')
+      write(*,*)
+      stop
+    end if
+    close(150)
+  end do
+!$OMP END CRITICAL(u150)
 end if
 ! write matrix elements in first-variational basis if required
 if (tfv) then
@@ -64,12 +75,23 @@ if (tfv) then
      pmat(:,:,i),nstsv)
   end do
   deallocate(a)
-!$OMP CRITICAL
-  open(85,file='PMATFV.OUT',action='WRITE',form='UNFORMATTED',access='DIRECT', &
-   recl=recl)
-  write(85,rec=ik) vkl(:,ik),nstsv,pmat
-  close(85)
-!$OMP END CRITICAL
+!$OMP CRITICAL(u152)
+  do i=1,2
+    open(152,file='PMATFV.OUT',form='UNFORMATTED',access='DIRECT',recl=recl, &
+     err=20)
+    write(152,rec=ik,err=20) vkl(:,ik),nstsv,pmat
+    close(152)
+    exit
+20 continue
+    if (i.eq.2) then
+      write(*,*)
+      write(*,'("Error(putpmat): unable to write to PMATFV.OUT")')
+      write(*,*)
+      stop
+    end if
+    close(152)
+  end do
+!$OMP END CRITICAL(u152)
 end if
 deallocate(evecsv,pmat)
 return

@@ -48,7 +48,7 @@ sn=sin(tp(1))
 cs=cos(tp(1))
 ! phase factors exp(i*m*phi)
 do m=1,lmax
-  t1=dble(m)*tp(2)
+  t1=m*tp(2)
   z(m)=cmplx(cos(t1),sin(t1),8)
 end do
 do l=1,lmax
@@ -61,7 +61,7 @@ do l=1,lmax
   dx=0.d0
   do m=l,1,-1
     t1=sqrt(dble((l+m)*(l-m+1)))
-    x(m-1)=-(sn*dx+dble(2*m)*cs*x(m))/t1
+    x(m-1)=-(sn*dx+(2*m)*cs*x(m))/t1
     dx=sn*x(m)*t1
   end do
 ! rescale values and multiply with phase factors
@@ -73,7 +73,7 @@ do l=1,lmax
     t1=t1*sn
   end do
   sum=2.d0*sum+x(0)**2
-  t1=sqrt(dble(2*l+1)/(fourpi*sum))
+  t1=sqrt((2*l+1)/(fourpi*sum))
   lm1=l*(l+1)+1
   lm2=lm1
   ylm(lm1)=t1*x(0)
@@ -88,3 +88,4 @@ end do
 return
 end subroutine
 !EOC
+

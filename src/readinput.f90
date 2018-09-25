@@ -17,10 +17,12 @@ use modrandom
 use modscdft
 use modpw
 use modtddft
-use modultra
+use modulr
 use modvars
 use modgw
+use modjx
 use modw90
+use modomp
 use modmpi
 ! !DESCRIPTION:
 !   Reads in the input parameters from the file {\tt elk.in}. Also sets default
@@ -32,7 +34,7 @@ use modmpi
 !BOC
 implicit none
 ! local variables
-logical nosym,highq
+logical lv
 integer is,ia,ias,iostat
 integer i,j,k,l,n,p
 real(8) sc,sc1,sc2,sc3
@@ -66,10 +68,9 @@ ngridq(:)=-1
 reduceq=1
 rgkmax=7.d0
 gmaxvr=12.d0
-lmaxapw=8
+lmaxapw=7
 lmaxo=7
-lmaxmat=7
-lmaxi=3
+lmaxi=1
 fracinr=0.01d0
 trhonorm=.true.
 xctype(1)=3
@@ -84,7 +85,7 @@ epsocc=1.d-8
 epschg=1.d-3
 nempty0=4.d0
 maxscl=200
-mixtype=1
+mixtype=3
 beta0=0.05d0
 betamax=1.d0
 ! Broyden parameters recommended by M. Meinert
@@ -136,7 +137,7 @@ tau0atp=0.25d0
 deltast=0.001d0
 latvopt=0
 maxlatvstp=30
-tau0latv=0.25d0
+tau0latv=0.2d0
 lradstp=4
 chgexs=0.d0
 scissor=0.d0
@@ -155,7 +156,6 @@ afieldc(:)=0.d0
 fsmtype=0
 momfix(:)=0.d0
 mommtfix(:,:,:)=0.d0
-!******** free moments?
 taufsm=0.01d0
 rmtdelta=0.05d0
 isgkmax=-1
@@ -181,7 +181,6 @@ spinsprl=.false.
 ssdph=.true.
 vqlss(:)=0.d0
 nwrite=0
-tevecsv=.false.
 dftu=0
 inpdftu=1
 ndftu=0
@@ -200,14 +199,13 @@ maxitc=0
 taurdmn=0.5d0
 taurdmc=0.25d0
 rdmalpha=0.565d0
-rdmbeta=0.25d0
 rdmtemp=0.d0
 reducebf=1.d0
 ptnucl=.true.
 tefvr=.true.
 tefvit=.false.
 minitefv=6
-maxitefv=20
+maxitefv=4
 befvit=0.25d0
 epsefvit=1.d-5
 vecql(:)=0.d0
@@ -231,7 +229,6 @@ esccut=-0.4d0
 gmaxrf=3.d0
 emaxrf=1.d6
 ntemp=40
-trimvg=.false.
 taubdg=0.1d0
 nvbse0=2
 ncbse0=3
@@ -246,7 +243,7 @@ fxclrc(2)=0.d0
 rndatposc=0.d0
 rndbfcmt=0.d0
 rndavec=0.d0
-ewbdg=0.5d0
+emaxbdg=0.5d0
 c_tb09=0.d0
 tc_tb09=.false.
 rndachi=0.1d0
@@ -279,17 +276,31 @@ tdrho2d=.false.
 tdrho3d=.false.
 tdmag2d=.false.
 tdmag3d=.false.
+tdcd2d=.false.
+tdcd3d=.false.
 rndevt0=0.d0
 ssxc=1.d0
-ultracell=.false.
-ngridkpa(:)=1
 avecu(:,:)=0.d0
 avecu(1,1)=1.d0
 avecu(2,2)=1.d0
 avecu(3,3)=1.d0
+kpamax=0.d0
 evtype=1
 wmaxgw=-5.d0
-gwdiag=0
+gwdiag=1
+actype=10
+npole=3
+nspade=100
+tfav0=.true.
+nqssjx=1
+thssjx(1)=0.d0
+thssjx(2)=pi/6.d0
+rmtall=-1.d0
+maxthd=0
+maxlvl=4
+emaxulr=1.d6
+taudft=.false.
+t0tdlr=0.d0
 wann_nwf=-1
 wann_nband=-1
 wann_projlines=-1
@@ -301,7 +312,7 @@ wann_ngridk(:)=1
 !--------------------------!
 !     read from elk.in     !
 !--------------------------!
-open(50,file='elk.in',action='READ',status='OLD',form='FORMATTED',iostat=iostat)
+open(50,file='elk.in',status='OLD',form='FORMATTED',iostat=iostat)
 if (iostat.ne.0) then
   write(*,*)
   write(*,'("Error(readinput): error opening elk.in")')
@@ -403,6 +414,7 @@ case('ngridk')
     write(*,*)
     stop
   end if
+  autokpt=.false.
 case('vkloff')
   read(50,*,err=20) vkloff(:)
 case('reducek')
@@ -459,13 +471,9 @@ case('lmaxi','lmaxinr')
     stop
   end if
 case('lmaxmat')
-  read(50,*,err=20) lmaxmat
-  if (lmaxmat.lt.0) then
-    write(*,*)
-    write(*,'("Error(readinput): lmaxmat < 0 : ",I8)') lmaxmat
-    write(*,*)
-    stop
-  end if
+  read(50,*,err=20)
+  write(*,*)
+  write(*,'("Info(readinput): variable ''lmaxmat'' is no longer used")')
 case('fracinr')
   read(50,*,err=20) fracinr
 case('trhonorm')
@@ -874,15 +882,13 @@ case('rmtdelta')
   read(50,*,err=20) rmtdelta
   if (rmtdelta.lt.0.d0) then
     write(*,*)
-    write(*,'("Error(readinput): rmtdelta < 0 : ",G18.10)') rmtdelta
-    write(*,*)
-    stop
+    write(*,'("Warning(readinput): rmtdelta < 0 : ",G18.10)') rmtdelta
   end if
 case('isgkmax')
   read(50,*,err=20) isgkmax
 case('nosym')
-  read(50,*,err=20) nosym
-  if (nosym) symtype=0
+  read(50,*,err=20) lv
+  if (lv) symtype=0
 case('symtype')
   read(50,*,err=20) symtype
   if ((symtype.lt.0).or.(symtype.gt.2)) then
@@ -978,7 +984,7 @@ case('deltaem')
   read(50,*,err=20) deltaem
 case('ndspem')
   read(50,*,err=20) ndspem
-  if ((ndspem.lt.1).or.(ndspem.gt.3)) then
+  if ((ndspem.lt.1).or.(ndspem.gt.4)) then
     write(*,*)
     write(*,'("Error(readinput): ndspem out of range : ",I8)') ndspem
     write(*,*)
@@ -994,8 +1000,6 @@ case('vqlss')
   read(50,*,err=20) vqlss
 case('nwrite')
   read(50,*,err=20) nwrite
-case('tevecsv')
-  read(50,*,err=20) tevecsv
 case('DFT+U','dft+u','lda+u')
   read(50,*,err=20) dftu,inpdftu
   do i=1,maxdftu
@@ -1108,14 +1112,6 @@ case('rdmalpha')
   if ((rdmalpha.le.0.d0).or.(rdmalpha.ge.1.d0)) then
     write(*,*)
     write(*,'("Error(readinput): rdmalpha not in (0,1) : ",G18.10)') rdmalpha
-    write(*,*)
-    stop
-  end if
-case('rdmbeta')
-  read(50,*,err=20) rdmbeta
-  if ((rdmbeta.le.0.d0).or.(rdmbeta.ge.1.d0)) then
-    write(*,*)
-    write(*,'("Error(readinput): rdmbeta not in (0,1) : ",G18.10)') rdmbeta
     write(*,*)
     stop
   end if
@@ -1334,11 +1330,14 @@ case('ntemp')
     stop
   end if
 case('trimvg')
-  read(50,*,err=20) trimvg
-case('rndseed')
-  read(50,*,err=20) i
-! set random number generator state with seed
-  rndstate(0)=abs(i)
+  read(50,*,err=20)
+  write(*,*)
+  write(*,'("Info(readinput): variable ''trimvg'' is no longer used")')
+  write(*,'(" setting msmooth=4 instead")')
+  msmooth=4
+case('rndstate','rndseed')
+  read(50,*,err=20) rndstate(0)
+  rndstate(0)=abs(rndstate(0))
 case('taubdg')
   read(50,*,err=20) taubdg
 case('rndatposc')
@@ -1347,11 +1346,11 @@ case('rndbfcmt')
   read(50,*,err=20) rndbfcmt
 case('rndavec')
   read(50,*,err=20) rndavec
-case('ewbdg')
-  read(50,*,err=20) ewbdg
-  if (ewbdg.le.0.d0) then
+case('emaxbdg')
+  read(50,*,err=20) emaxbdg
+  if (emaxbdg.le.0.d0) then
     write(*,*)
-    write(*,'("Error(readinput): ewbdg <= 0 : ",G18.10)') ewbdg
+    write(*,'("Error(readinput): emaxbdg <= 0 : ",G18.10)') emaxbdg
     write(*,*)
     stop
   end if
@@ -1361,84 +1360,92 @@ case('c_tb09')
   tc_tb09=.true.
 case('rndachi')
   read(50,*,err=20) rndachi
-case('highq','vhighq','uhighq')
-  read(50,*,err=20) highq
-  if (highq) then
-! parameter set for high quality calculation
-    if (trim(block).eq.'highq') then
-      rgkmax=8.d0
-      gmaxvr=20.d0
-      trimvg=.true.
-      lmaxapw=10
-      lmaxo=8
-      lmaxi=4
-      lmaxmat=8
-      fracinr=0.005d0
-      nrmtscf=1.5d0
+case('lowq','highq','vhighq','uhighq')
+  read(50,*,err=20) lv
+  if (lv) then
+    if (trim(block).eq.'lowq') then
+      rgkmax=6.5d0
+      gmaxvr=10.d0
+      lmaxapw=6
+      lmaxo=6
+      fracinr=0.02d0
       nxlo=2
-      radkpt=50.d0
+      radkpt=25.d0
+      vkloff(:)=0.5d0
+      nempty0=4.d0
+      epspot=1.d-5
+      epsengy=5.d-4
+      epsforce=1.d-2
+      autolinengy=.true.
+      gmaxrf=2.5d0
+      lradstp=6
+    else if (trim(block).eq.'highq') then
+! parameter set for high quality calculation
+      rgkmax=max(rgkmax,8.d0)
+      gmaxvr=max(gmaxvr,16.d0)
+      msmooth=max(msmooth,4)
+      lmaxapw=max(lmaxapw,8)
+      lmaxo=max(lmaxo,8)
+      fracinr=min(fracinr,0.005d0)
+      nrmtscf=max(nrmtscf,1.5d0)
+      nxlo=max(nxlo,2)
+      radkpt=max(radkpt,50.d0)
       autokpt=.true.
       vkloff(:)=0.d0
-      nempty0=10.d0
-      epspot=1.d-7
-      epsengy=1.d-5
-      epsforce=1.d-4
+      nempty0=max(nempty0,10.d0)
+      epspot=min(epspot,1.d-7)
+      epsengy=min(epsengy,1.d-5)
+      epsforce=min(epsforce,1.d-4)
       autolinengy=.true.
-      gmaxrf=4.d0
+      gmaxrf=max(gmaxrf,4.d0)
     else if (trim(block).eq.'vhighq') then
 ! parameter set for very high quality calculation
-      rgkmax=9.d0
-      gmaxvr=24.d0
-      trimvg=.true.
-      lmaxapw=12
-      lmaxo=9
-      lmaxi=4
-      lmaxmat=12
-      fracinr=0.005d0
-      nrmtscf=2.d0
-      nxlo=3
-      radkpt=90.d0
+      rgkmax=max(rgkmax,9.d0)
+      gmaxvr=max(gmaxvr,18.d0)
+      msmooth=max(msmooth,4)
+      lmaxapw=max(lmaxapw,12)
+      lmaxo=max(lmaxo,10)
+      fracinr=min(fracinr,0.002d0)
+      nrmtscf=max(nrmtscf,2.d0)
+      nxlo=max(nxlo,3)
+      radkpt=max(radkpt,90.d0)
       autokpt=.true.
       vkloff(:)=0.d0
-      nempty0=20.d0
-      epspot=1.d-8
-      epsengy=1.d-6
-      epsforce=1.d-5
+      nempty0=max(nempty0,20.d0)
+      epspot=min(epspot,1.d-7)
+      epsengy=min(epsengy,1.d-6)
+      epsforce=min(epsforce,1.d-4)
       autolinengy=.true.
-      gmaxrf=5.d0
+      gmaxrf=max(gmaxrf,5.d0)
     else
 ! parameter set for ultra high quality calculation
-      rgkmax=10.d0
-      gmaxvr=36.d0
-      trimvg=.true.
-      lmaxapw=16
-      lmaxo=12
-      lmaxi=5
-      lmaxmat=12
-      fracinr=0.001d0
-      nrmtscf=4.d0
-      nxlo=3
+      rgkmax=max(rgkmax,10.d0)
+      gmaxvr=max(gmaxvr,20.d0)
+      msmooth=max(msmooth,4)
+      lmaxapw=max(lmaxapw,12)
+      lmaxo=max(lmaxo,12)
+      fracinr=min(fracinr,0.001d0)
+      nrmtscf=max(nrmtscf,4.d0)
+      nxlo=max(nxlo,3)
       lorbcnd=.true.
-      radkpt=120.d0
+      radkpt=max(radkpt,120.d0)
       autokpt=.true.
       vkloff(:)=0.d0
-      nempty0=60.d0
-      epspot=1.d-7
-      epsengy=1.d-5
-      epsforce=1.d-4
+      nempty0=max(nempty0,40.d0)
+      epspot=min(epspot,1.d-7)
+      epsengy=min(epsengy,1.d-6)
+      epsforce=min(epsforce,1.d-4)
       autolinengy=.true.
-      gmaxrf=6.d0
+      gmaxrf=max(gmaxrf,6.d0)
     end if
     if (mp_mpi) then
       write(*,*)
       write(*,'("Info(readinput): parameters set by ",A," option")') trim(block)
       write(*,'(" rgkmax : ",G18.10)') rgkmax
       write(*,'(" gmaxvr : ",G18.10)') gmaxvr
-      write(*,'(" trimvg : ",L1)') autokpt
+      write(*,'(" msmooth : ",I4)') msmooth
       write(*,'(" lmaxapw : ",I4)') lmaxapw
-      write(*,'(" lmaxmat : ",I4)') lmaxmat
       write(*,'(" lmaxo : ",I4)') lmaxo
-      write(*,'(" lmaxi : ",I4)') lmaxi
       write(*,'(" fracinr : ",G18.10)') fracinr
       write(*,'(" nrmtscf : ",G18.10)') nrmtscf
       write(*,'(" nxlo : ",I4)') nxlo
@@ -1453,6 +1460,9 @@ case('highq','vhighq','uhighq')
       write(*,'(" gmaxrf : ",G18.10)') gmaxrf
       if (trim(block).eq.'uhighq') then
         write(*,'(" lorbcnd : ",L1)') lorbcnd
+      end if
+      if (trim(block).eq.'lowq') then
+        write(*,'(" lradstp : ",I4)') lradstp
       end if
     end if
   end if
@@ -1681,6 +1691,10 @@ case('tdmag2d')
   read(50,*,err=20) tdmag2d
 case('tdmag3d')
   read(50,*,err=20) tdmag3d
+case('tdcd2d')
+  read(50,*,err=20) tdcd2d
+case('tdcd3d')
+  read(50,*,err=20) tdcd3d
 case('tddos')
   read(50,*,err=20) tddos
 case('epseph')
@@ -1703,26 +1717,105 @@ case('tempk')
   stype=3
 ! set the smearing width
   swidth=kboltz*tempk
-case('ultracell')
-  read(50,*,err=20) ultracell
-case('ngridkpa')
-  read(50,*,err=20) ngridkpa
-  if ((ngridkpa(1).le.0).or.(ngridkpa(2).le.0).or.(ngridkpa(3).le.0)) then
-    write(*,*)
-    write(*,'("Error(readinput): invalid ngridkpa : ",3I8)') ngridkpa(:)
-    write(*,*)
-    stop
-  end if
 case('avecu')
   read(50,*,err=20) avecu(:,1)
   read(50,*,err=20) avecu(:,2)
   read(50,*,err=20) avecu(:,3)
+case('kpamax')
+  read(50,*,err=20) kpamax
+  if (kpamax.le.0.d0) then
+    write(*,*)
+    write(*,'("Error(readinput): kpamax <= 0 : ",G18.10)') kpamax
+    write(*,*)
+    stop
+  end if
 case('evtype')
   read(50,*,err=20) evtype
 case('wmaxgw')
   read(50,*,err=20) wmaxgw
 case('gwdiag')
   read(50,*,err=20) gwdiag
+case('actype')
+  read(50,*,err=20) actype
+case('npole')
+  read(50,*,err=20) npole
+  if (npole.le.0) then
+    write(*,*)
+    write(*,'("Error(readinput): npole <= 0 : ",I8)') npole
+    write(*,*)
+    stop
+  end if
+case('nspade')
+  read(50,*,err=20) nspade
+  if (nspade.le.0) then
+    write(*,*)
+    write(*,'("Error(readinput): nspade <= 0 : ",I8)') nspade
+    write(*,*)
+    stop
+  end if
+case('tfav0')
+  read(50,*,err=20) tfav0
+case('nqssjx')
+  read(50,*,err=20) nqssjx
+  if (nqssjx.le.0) then
+    write(*,*)
+    write(*,'("Error(readinput): nqssjx <= 0 : ",I8)') nqssjx
+    write(*,*)
+    stop
+  end if
+case('thssjx')
+  read(50,*,err=20) thssjx(:)
+! convert from radians to degrees
+  thssjx(:)=thssjx(:)*pi/180.d0
+case('rmtall')
+  read(50,*,err=20) rmtall
+case('maxthd','omp_num_threads','OMP_NUM_THREADS')
+  read(50,*,err=20) maxthd
+case('maxlvl','omp_max_active_levels','OMP_MAX_ACTIVE_LEVELS')
+  read(50,*,err=20) maxlvl
+case('emaxulr')
+  read(50,*,err=20) emaxulr
+  if (emaxulr.le.0.d0) then
+    write(*,*)
+    write(*,'("Error(readinput): emaxulr <= 0 : ",G18.10)') emaxulr
+    write(*,*)
+    stop
+  end if
+case('stable')
+  read(50,*,err=20) lv
+  if (lv) then
+    nxoapwlo=1
+    mixtype=3
+    broydpm(1)=min(broydpm(1),0.01d0)
+    broydpm(2)=min(broydpm(2),0.04d0)
+    msmooth=max(msmooth,4)
+  end if
+case('metagga')
+  read(50,*,err=20) lv
+  if (lv) then
+    nempty0=max(nempty0,10.d0)
+    lradstp=1
+    nrmtscf=max(nrmtscf,2.d0)
+    msmooth=max(msmooth,4)
+    if (mp_mpi) then
+      write(*,*)
+      write(*,'("Info(readinput): parameters set by metagga option")')
+      write(*,'(" nempty0 : ",G18.10)') nempty0
+      write(*,'(" lradstp : ",I4)') lradstp
+      write(*,'(" nrmtscf : ",G18.10)') nrmtscf
+      write(*,'(" msmooth : ",I4)') msmooth
+    end if
+  end if
+case('taudft')
+  read(50,*,err=20) taudft
+case('t0tdlr')
+  read(50,*,err=20) t0tdlr
+  if (t0tdlr.le.0.d0) then
+    write(*,*)
+    write(*,'("Error(readinput): t0tdlr <= 0 : ",G18.10)') t0tdlr
+    write(*,*)
+    stop
+  end if
 case('wannier')
   read(50,'(A256)',err=20) str ! wann_seedname
   if (trim(str).ne.'') then
@@ -1772,8 +1865,6 @@ case('wannierExtra')
       wann_input(wann_inputlines) = trim(str)
     end if
   end do
-case('wann_numiter')
-  read(50,*,err=20) wann_numiter
 case('')
   goto 10
 case default
@@ -1864,3 +1955,4 @@ call readspecies
 return
 end subroutine
 !EOC
+

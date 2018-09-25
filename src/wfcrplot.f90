@@ -19,7 +19,7 @@ do is=1,nspecies
   do ia=1,natoms(is)
     ias=idxas(ia,is)
     write(fname,'("WFCORE_S",I2.2,"_A",I4.4,".OUT")') is,ia
-    open(50,file=trim(fname),action='WRITE',form='FORMATTED')
+    open(50,file=trim(fname),form='FORMATTED')
     do ist=1,nstsp(is)
       if (spcore(ist,is)) then
         do ir=1,nrsp(is)

@@ -108,6 +108,8 @@ if ((task.eq.205).or.(task.eq.240)) then
   allocate(vgqc(3,ngtot))
   if (allocated(gqc)) deallocate(gqc)
   allocate(gqc(ngtot))
+  if (allocated(gclgq)) deallocate(gclgq)
+  allocate(gclgq(ngvec))
   if (allocated(jlgqrmt)) deallocate(jlgqrmt)
   allocate(jlgqrmt(0:lnpsd,ngvec,nspecies))
   if (allocated(ylmgq)) deallocate(ylmgq)
@@ -161,21 +163,21 @@ if (task.eq.205) then
     allocate(dsocfr(nrcmtmax,natmtot))
   end if
   if (allocated(dhaa)) deallocate(dhaa)
-  allocate(dhaa(lmmaxo,apwordmax,0:lmaxmat,apwordmax,0:lmaxmat,natmtot))
+  allocate(dhaa(lmmaxo,apwordmax,0:lmaxapw,apwordmax,0:lmaxapw,natmtot))
   if (allocated(dhloa)) deallocate(dhloa)
-  allocate(dhloa(lmmaxo,apwordmax,0:lmaxmat,nlomax,natmtot))
+  allocate(dhloa(lmmaxo,apwordmax,0:lmaxapw,nlomax,natmtot))
   if (allocated(dhlolo)) deallocate(dhlolo)
   allocate(dhlolo(lmmaxo,nlomax,nlomax,natmtot))
 ! allocate and generate real Gaunt coefficient array
   if (allocated(gntyyy)) deallocate(gntyyy)
-  allocate(gntyyy(lmmaxmat,lmmaxo,lmmaxmat))
-  do l1=0,lmaxmat
+  allocate(gntyyy(lmmaxapw,lmmaxo,lmmaxapw))
+  do l1=0,lmaxapw
     do m1=-l1,l1
       lm1=idxlm(l1,m1)
       do l2=0,lmaxo
         do m2=-l2,l2
           lm2=idxlm(l2,m2)
-          do l3=0,lmaxmat
+          do l3=0,lmaxapw
             do m3=-l3,l3
               lm3=idxlm(l3,m3)
               gntyyy(lm1,lm2,lm3)=gaunt(l1,l2,l3,m1,m2,m3)

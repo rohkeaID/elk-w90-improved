@@ -26,12 +26,12 @@ do i=0,999
       write(*,*)
       stop
     end if
-    open(90,file=trim(fname_),action='READ',form='FORMATTED')
-    open(91,file=trim(fname),action='READ',form='FORMATTED')
-    read(90,*,err=10) descr
-    read(91,*,err=20) descr
-    read(90,*,err=10) vt_,nv_
-    read(91,*,err=20) vt,nv
+    open(91,file=trim(fname_),form='FORMATTED')
+    open(92,file=trim(fname),form='FORMATTED')
+    read(91,*,err=10) descr
+    read(92,*,err=20) descr
+    read(91,*,err=10) vt_,nv_
+    read(92,*,err=20) vt,nv
     if (vt_.ne.vt) then
       write(*,*)
       write(*,'("Error(testcheck): differing variable type")')
@@ -59,9 +59,9 @@ do i=0,999
     if (vt.eq.1) then
 ! integer variables
       do j=1,nv
-        read(90,*,err=10) k,iv_
+        read(91,*,err=10) k,iv_
         if (j.ne.k) goto 10
-        read(91,*,err=20) k,iv
+        read(92,*,err=20) k,iv
         if (j.ne.k) goto 20
         if (iv.ne.iv_) then
           write(*,*)
@@ -75,12 +75,12 @@ do i=0,999
       end do
     else if (vt.eq.2) then
 ! real variables
-      read(90,*,err=10) tol
-      read(91,*,err=20) tol
+      read(91,*,err=10) tol
+      read(92,*,err=20) tol
       do j=1,nv
-        read(90,*,err=10) k,rv_
+        read(91,*,err=10) k,rv_
         if (j.ne.k) goto 10
-        read(91,*,err=20) k,rv
+        read(92,*,err=20) k,rv
         if (j.ne.k) goto 20
         t1=abs(rv_-rv)
         t2=abs(rv_)*tol
@@ -100,18 +100,18 @@ do i=0,999
       end do
     else if (vt.eq.3) then
 ! complex variables
-      read(90,*,err=10) tol
-      read(91,*,err=20) tol
+      read(91,*,err=10) tol
+      read(92,*,err=20) tol
       do j=1,nv
-        read(90,*,err=10) k,a,b
+        read(91,*,err=10) k,a,b
         zv_=cmplx(a,b,8)
         if (j.ne.k) goto 10
-        read(91,*,err=20) k,a,b
+        read(92,*,err=20) k,a,b
         zv=cmplx(a,b,8)
         if (j.ne.k) goto 20
         t1=abs(zv_-zv)
         t2=abs(zv_)*tol
-        if ((t1.gt.t2).and.(abs(rv_).gt.1.d-4)) then
+        if ((t1.gt.t2).and.(abs(zv_).gt.1.d-4)) then
           write(*,*)
           write(*,'("Error(testcheck): variable ",I8," outside tolerance")') j
           write(*,'(" for quantity ''",A,"''")') trim(descr)
@@ -131,8 +131,8 @@ do i=0,999
       write(*,*)
       stop
     end if
-    close(90)
     close(91)
+    close(92)
     n=n+1
   end if
 end do

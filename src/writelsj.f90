@@ -63,7 +63,7 @@ if (task.eq.15) then
   end do
 ! symmetrise the density matrix
   call symdmat(lmaxo,lmmaxo,dmat1)
-  open(50,file='LSJ.OUT',action='WRITE',form='FORMATTED')
+  open(50,file='LSJ.OUT',form='FORMATTED')
   write(50,*)
   write(50,'("Expectation values are computed only over the muffin-tin")')
 ! loop over species and atoms
@@ -104,7 +104,7 @@ if (task.eq.15) then
   write(*,'(" total L, S and J expectation values written to LSJ.OUT")')
 else
 ! compute L, S and J for all states in kstlist
-  open(50,file='LSJ_KST.OUT',action='WRITE',form='FORMATTED')
+  open(50,file='LSJ_KST.OUT',form='FORMATTED')
   write(50,*)
   write(50,'("Expectation values are computed only over the muffin-tin")')
   do kst=1,nkstlist

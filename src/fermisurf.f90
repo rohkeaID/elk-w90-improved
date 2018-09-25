@@ -5,13 +5,12 @@
 
 subroutine fermisurf
 use modmain
+use modomp
 implicit none
 ! local variables
-integer ik,jk,nf,f
-integer nst,ist
-integer ist0,ist1
-integer jst0,jst1
-integer i1,i2,i3
+integer ik,jk,nst,ist
+integer ist0,ist1,jst0,jst1
+integer i1,i2,i3,nf,f,nthd
 real(8) e0,e1,prd
 ! allocatable arrays
 integer, allocatable :: idx(:)
@@ -23,6 +22,8 @@ call init0
 call init1
 ! read density and potentials from file
 call readstate
+! Fourier transform Kohn-Sham potential to G-space
+call genvsig
 ! read Fermi energy from file
 call readfermi
 ! find the new linearisation energies
@@ -38,16 +39,18 @@ call hmlrad
 ! generate the spin-orbit coupling radial functions
 call gensocfr
 ! begin parallel loop over reduced k-points set
+call omp_hold(nkpt,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(evalfv,evecfv,evecsv)
+!$OMP PRIVATE(evalfv,evecfv,evecsv) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ik=1,nkpt
   allocate(evalfv(nstfv,nspnfv))
   allocate(evecfv(nmatmax,nstfv,nspnfv))
   allocate(evecsv(nstsv,nstsv))
-!$OMP CRITICAL
+!$OMP CRITICAL(fermisurf_)
   write(*,'("Info(fermisurf): ",I6," of ",I6," k-points")') ik,nkpt
-!$OMP END CRITICAL
+!$OMP END CRITICAL(fermisurf_)
 ! solve the first- and second-variational eigenvalue equations
   call eveqn(ik,evalfv,evecfv,evecsv)
   deallocate(evalfv,evecfv,evecsv)
@@ -55,6 +58,7 @@ do ik=1,nkpt
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
 ! if iterative diagonalisation is used the eigenvalues must be reordered
 if (tefvit.and.(.not.spinpol)) then
   allocate(idx(nstsv),e(nstsv))
@@ -76,14 +80,14 @@ end if
 do f=1,nf
   if (nf.eq.2) then
     if (f.eq.1) then
-      open(50,file='FERMISURF_UP.OUT',action='WRITE',form='FORMATTED')
+      open(50,file='FERMISURF_UP.OUT',form='FORMATTED')
       jst0=1; jst1=nstfv
     else
-      open(50,file='FERMISURF_DN.OUT',action='WRITE',form='FORMATTED')
+      open(50,file='FERMISURF_DN.OUT',form='FORMATTED')
       jst0=nstfv+1; jst1=2*nstfv
     end if
   else
-    open(50,file='FERMISURF.OUT',action='WRITE',form='FORMATTED')
+    open(50,file='FERMISURF.OUT',form='FORMATTED')
     jst0=1; jst1=nstsv
   end if
 ! find the range of eigenvalues which contribute to the Fermi surface (Lars)

@@ -3,24 +3,22 @@
 ! This file is distributed under the terms of the GNU General Public License.
 ! See the file COPYING for license details.
 
-subroutine gentauk(ik,taumt,tauir)
+subroutine gentauk(ik)
 use modmain
 implicit none
 ! arguments
 integer, intent(in) :: ik
-real(8), intent(inout) :: taumt(npmtmax,natmtot,nspinor)
-real(8), intent(inout) :: tauir(ngtot,nspinor)
 ! local variables
 integer ispn,jspn,nst,ist,jst
-integer is,ias,nrc,nrci,ir
+integer is,ias,nrc,nrci
 integer npc,igk,ifg,i
-real(8) t0
+real(8) wo
+complex(8) z1
 ! automatic arrays
 integer idx(nstsv)
 ! allocatable arrays
-complex(8), allocatable :: apwalm(:,:,:,:,:)
-complex(8), allocatable :: evecfv(:,:),evecsv(:,:)
-complex(8), allocatable :: wfmt(:,:,:,:),wfir(:,:,:)
+complex(8), allocatable :: apwalm(:,:,:,:,:),evecfv(:,:),evecsv(:,:)
+complex(8), allocatable :: wfmt(:,:,:,:),wfgp(:,:,:)
 complex(8), allocatable :: gzfmt(:,:),zfmt(:),zfft(:)
 allocate(apwalm(ngkmax,apwordmax,lmmaxapw,natmtot,nspnfv))
 allocate(evecfv(nmatmax,nstfv),evecsv(nstsv,nstsv))
@@ -35,15 +33,14 @@ call getevecsv(filext,ik,vkl(:,ik),evecsv)
 ! count and index the occupied states
 nst=0
 do ist=1,nstsv
-  if (abs(occsv(ist,ik)).gt.epsocc) then
-    nst=nst+1
-    idx(nst)=ist
-  end if
+  if (abs(occsv(ist,ik)).lt.epsocc) cycle
+  nst=nst+1
+  idx(nst)=ist
 end do
-! calculate the second-variational wavefunctions for all states
-allocate(wfmt(npcmtmax,natmtot,nspinor,nst),wfir(ngkmax,nspinor,nst))
-call genwfsv(.true.,.true.,nst,idx,ngk(:,ik),igkig(:,:,ik),apwalm,evecfv, &
- evecsv,wfmt,ngkmax,wfir)
+! calculate the second-variational wavefunctions for occupied states
+allocate(wfmt(npcmtmax,natmtot,nspinor,nst),wfgp(ngkmax,nspinor,nst))
+call genwfsv(.true.,.true.,nst,idx,ngridg,igfft,ngk(:,ik),igkig(:,:,ik), &
+ apwalm,evecfv,evecsv,wfmt,ngkmax,wfgp)
 deallocate(apwalm,evecfv,evecsv)
 !-------------------------!
 !     muffin-tin part     !
@@ -51,7 +48,7 @@ deallocate(apwalm,evecfv,evecsv)
 allocate(gzfmt(npcmtmax,3),zfmt(npcmtmax))
 do ist=1,nst
   jst=idx(ist)
-  t0=0.5d0*wkpt(ik)*occsv(jst,ik)
+  wo=0.5d0*wkpt(ik)*occsv(jst,ik)
   do ispn=1,nspinor
     do ias=1,natmtot
       is=idxis(ias)
@@ -64,10 +61,10 @@ do ist=1,nst
 ! convert gradient to spherical coordinates
         call zbsht(nrc,nrci,gzfmt(:,i),zfmt)
 ! add to total in muffin-tin
-!$OMP CRITICAL
+!$OMP CRITICAL(gentauk_1)
         taumt(1:npc,ias,ispn)=taumt(1:npc,ias,ispn) &
-           +t0*(dble(zfmt(1:npc))**2+aimag(zfmt(1:npc))**2)
-!$OMP END CRITICAL
+         +wo*(dble(zfmt(1:npc))**2+aimag(zfmt(1:npc))**2)
+!$OMP END CRITICAL(gentauk_1)
       end do
     end do
   end do
@@ -79,26 +76,24 @@ deallocate(wfmt,gzfmt,zfmt)
 allocate(zfft(ngtot))
 do ist=1,nst
   jst=idx(ist)
-  t0=0.5d0*wkpt(ik)*occsv(jst,ik)/omega
+  wo=0.5d0*wkpt(ik)*occsv(jst,ik)/omega
   do ispn=1,nspinor
     jspn=jspnfv(ispn)
     do i=1,3
       zfft(:)=0.d0
       do igk=1,ngk(jspn,ik)
         ifg=igfft(igkig(igk,jspn,ik))
-        zfft(ifg)=vgkc(i,igk,jspn,ik) &
-         *cmplx(-aimag(wfir(igk,ispn,ist)),dble(wfir(igk,ispn,ist)),8)
+        z1=wfgp(igk,ispn,ist)
+        zfft(ifg)=vgkc(i,igk,jspn,ik)*cmplx(-aimag(z1),dble(z1),8)
       end do
       call zfftifc(3,ngridg,1,zfft)
-!$OMP CRITICAL
-      do ir=1,ngtot
-        tauir(ir,ispn)=tauir(ir,ispn)+t0*(dble(zfft(ir))**2+aimag(zfft(ir))**2)
-      end do
-!$OMP END CRITICAL
+!$OMP CRITICAL(gentauk_2)
+      tauir(:,ispn)=tauir(:,ispn)+wo*(dble(zfft(:))**2+aimag(zfft(:))**2)
+!$OMP END CRITICAL(gentauk_2)
     end do
   end do
 end do
-deallocate(wfir,zfft)
+deallocate(wfgp,zfft)
 return
 end subroutine
 

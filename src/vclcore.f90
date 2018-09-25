@@ -5,13 +5,14 @@
 
 subroutine vclcore(wfmt,vmat)
 use modmain
+use modomp
 implicit none
 ! arguments
 complex(8), intent(in) :: wfmt(npcmtmax,natmtot,nspinor,nstsv)
 complex(8), intent(inout) :: vmat(nstsv,nstsv)
 ! local variables
 integer ist1,ist2,ist3
-integer is,ia,ias,m
+integer is,ia,ias,m,nthd
 integer nrc,nrci,npc
 complex(8) z1
 ! allocatable arrays
@@ -31,7 +32,10 @@ do is=1,nspecies
         do m=-ksp(ist3,is),ksp(ist3,is)-1
 ! generate the core wavefunction in spherical coordinates (pass in m-1/2)
           call wavefcr(.false.,lradstp,is,ia,ist3,m,npcmtmax,wfcr)
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(zfmt)
+          call omp_hold(nstsv,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(zfmt) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
           do ist1=1,nstsv
             allocate(zfmt(npcmtmax))
@@ -47,7 +51,11 @@ do is=1,nspecies
           end do
 !$OMP END DO
 !$OMP END PARALLEL
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(zfmt,ist1,z1)
+          call omp_free(nthd)
+          call omp_hold(nstsv,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(zfmt,ist1,z1) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
           do ist2=1,nstsv
             allocate(zfmt(npcmtmax))
@@ -60,6 +68,7 @@ do is=1,nspecies
           end do
 !$OMP END DO
 !$OMP END PARALLEL
+          call omp_free(nthd)
         end do
       end if
     end do

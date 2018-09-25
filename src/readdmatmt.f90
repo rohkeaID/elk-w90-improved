@@ -14,7 +14,7 @@ integer i,l,m1,m2,lm1,lm2
 integer l_,m1_,m2_
 real(8) a,b
 ! read density matrix from DMATMT.OUT
-open(50,file='DMATMT'//trim(filext),action='READ',form='FORMATTED')
+open(50,file='DMATMT'//trim(filext),form='FORMATTED')
 do i=1,ndftu
   is=idftu(1,i)
   l=idftu(2,i)

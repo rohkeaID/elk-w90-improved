@@ -1,5 +1,5 @@
 
-! Antiferromagnetic bcc iron example with  fixed spin moment in muffin-tin.
+! Antiferromagnetic bcc iron example with fixed spin moment in muffin-tin.
 
 tasks
  0
@@ -7,6 +7,9 @@ tasks
 
 test
  .true.
+
+mixtype
+  1
 
 fsmtype
   2

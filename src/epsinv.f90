@@ -6,62 +6,80 @@
 subroutine epsinv
 use modmain
 use modmpi
+use modomp
 implicit none
 ! local variables
-integer iq,ik,iw,n
-integer igq0,ig,jg
-integer info,recl
+integer iq,ik,ig,iw,n
+integer info,recl,nthd
 ! allocatable arrays
 integer, allocatable :: ipiv(:)
-real(8), allocatable :: vgqc(:,:),gqc(:),jlgqr(:,:,:)
+integer(8), allocatable :: lock(:)
+real(8), allocatable :: vgqc(:,:),gqc(:),gclgq(:),jlgqr(:,:,:)
 complex(8), allocatable :: ylmgq(:,:),sfacgq(:,:)
-complex(8), allocatable :: vchi0(:,:,:),epsi(:,:,:),work(:)
+complex(8), allocatable :: epsi(:,:,:),work(:)
 ! allocate local arrays
-allocate(vgqc(3,ngrf),gqc(ngrf),jlgqr(njcmax,nspecies,ngrf))
+allocate(vgqc(3,ngrf),gqc(ngrf),gclgq(ngrf))
+allocate(jlgqr(njcmax,nspecies,ngrf))
 allocate(ylmgq(lmmaxo,ngrf),sfacgq(ngrf,natmtot))
-allocate(vchi0(nwrf,ngrf,ngrf),epsi(ngrf,ngrf,nwrf))
+allocate(epsi(ngrf,ngrf,nwrf))
+! initialise the OpenMP locks
+allocate(lock(nwrf))
+do iw=1,nwrf
+  call omp_init_lock(lock(iw))
+end do
 if (mp_mpi) then
 ! determine the record length for EPSINV.OUT
   inquire(iolength=recl) vql(:,1),ngrf,nwrf,epsi
 ! open EPSINV.OUT
-  open(50,file='EPSINV.OUT',action='WRITE',form='UNFORMATTED',access='DIRECT', &
+  open(180,file='EPSINV.OUT',form='UNFORMATTED',access='DIRECT', &
    status='REPLACE',recl=recl)
 end if
+if (mp_mpi) write(*,*)
+! synchronise MPI processes
+call mpi_barrier(mpicom,ierror)
 ! loop over q-points
 do iq=1,nqpt
   if (mp_mpi) write(*,'("Info(epsinv): ",I6," of ",I6," q-points")') iq,nqpt
 ! generate the G+q-vectors and related quantities
-  call gengqrf(vqc(:,iq),igq0,vgqc,gqc,jlgqr,ylmgq,sfacgq)
-! zero the response function array
-  vchi0(:,:,:)=0.d0
-!$OMP PARALLEL DEFAULT(SHARED)
+  call gengqrf(vqc(:,iq),vgqc,gqc,jlgqr,ylmgq,sfacgq)
+! generate the regularised Coulomb Green's function in G+q-space
+  call gengclgq(.true.,iq,ngrf,gqc,gclgq)
+! use the symmetric form
+  gclgq(:)=sqrt(gclgq(:))
+! zero the response function (stored in epsi)
+  epsi(:,:,:)=0.d0
+  call omp_hold(nkptnr/np_mpi,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
   do ik=1,nkptnr
 ! distribute among MPI processes
     if (mod(ik-1,np_mpi).ne.lp_mpi) cycle
 ! compute v^1/2 chi0 v^1/2
-    call genvchi0(ik,0,0.d0,vql(:,iq),igq0,gqc,jlgqr,ylmgq,sfacgq,vchi0)
+    call genvchi0(.false.,ik,lock,0.d0,vql(:,iq),gclgq,jlgqr,ylmgq,sfacgq, &
+     ngrf,epsi)
   end do
 !$OMP END DO
 !$OMP END PARALLEL
-! add vchi0 from each process and redistribute
+  call omp_free(nthd)
+! add epsi from each process and redistribute
   if (np_mpi.gt.1) then
     n=nwrf*ngrf*ngrf
-    call mpi_allreduce(mpi_in_place,vchi0,n,mpi_double_complex,mpi_sum, &
-     mpi_comm_kpt,ierror)
+    call mpi_allreduce(mpi_in_place,epsi,n,mpi_double_complex,mpi_sum,mpicom, &
+     ierror)
   end if
 ! negate and add delta(G,G')
+  epsi(:,:,:)=-epsi(:,:,:)
   do ig=1,ngrf
-    do jg=1,ngrf
-      epsi(ig,jg,:)=-vchi0(:,ig,jg)
-    end do
     epsi(ig,ig,:)=epsi(ig,ig,:)+1.d0
   end do
 !-------------------------------------!
 !     invert epsilon over G-space     !
 !-------------------------------------!
+  call omp_hold(nwrf,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(ipiv,work,info)
+!$OMP PRIVATE(ipiv,work,info) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
   do iw=1,nwrf
     allocate(ipiv(ngrf),work(ngrf))
@@ -79,12 +97,21 @@ do iq=1,nqpt
   end do
 !$OMP END DO
 !$OMP END PARALLEL
+  call omp_free(nthd)
 ! write inverse RPA epsilon to EPSINV.OUT
-  if (mp_mpi) write(50,rec=iq) vql(:,iq),ngrf,nwrf,epsi
+  if (mp_mpi) write(180,rec=iq) vql(:,iq),ngrf,nwrf,epsi
 ! end loop over q-points
 end do
-if (mp_mpi) close(50)
-deallocate(vgqc,gqc,jlgqr,ylmgq,sfacgq,vchi0,epsi)
+if (mp_mpi) close(180)
+! destroy the OpenMP locks
+do iw=1,nwrf
+  call omp_destroy_lock(lock(iw))
+end do
+deallocate(lock)
+deallocate(vgqc,gqc,gclgq,jlgqr)
+deallocate(ylmgq,sfacgq,epsi)
+! synchronise MPI processes
+call mpi_barrier(mpicom,ierror)
 return
 end subroutine
 

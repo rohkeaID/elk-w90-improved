@@ -1,0 +1,87 @@
+
+! MnO in AFMII structure with LDA, in analogy with NiO example. Unit cell from
+! Transactions and Journal of the British Ceramic Society (1984) 83, 5-9.
+!
+! This example illustrates the calculation of X-ray and magnetic structure
+! factors  which are the Fourier transforms of the electron density and
+! magnetisation, respectively.
+!
+! The structure factors are calculated for the reflections whose diffraction
+! vectors have lengths up to hmaxvr (given in a.u.). The connection to the
+! traditional sin(theta)/lambda ratio is
+!
+!      max|H| = 4*pi*max(sin(theta)/lambda)    [wavelength also in a.u.!]
+!
+! Additionally, the hkl indices of the reflections are transformed by matrix
+! vhmat.
+!
+! Since the primitive magnetic unit cell (given by avec) is bigger than the
+! conventional  crystallographic unit cell (cubic with a = 8.397946), a
+! non-integer hkl indices appears when reflections are reindexed to the latter
+! with vhmat. They have zero intensity for  X-ray structure factors but are of
+! non-zero intensity in case of magnetic structure factors.
+!
+! Example by Alexey I. Baranov.
+
+tasks
+  0
+  195
+  196
+
+spinpol
+  .true.
+
+scale
+  8.397946
+
+avec
+  1.0  0.5  0.5
+  0.5  1.0  0.5
+  0.5  0.5  1.0
+
+atoms
+  2                                    : nspecies
+  'Mn.in'                              : spfname
+  2                                    : natoms; atpos, bfcmt below
+  0.0   0.0   0.0    0.0 0.0 -0.01
+  0.5   0.5   0.5    0.0 0.0  0.01
+  'O.in'                               : spfname
+  2                                    : natoms; atpos, bfcmt below
+  0.25  0.25  0.25   0.0 0.0  0.0
+  0.75  0.75  0.75   0.0 0.0  0.0
+
+! fairly high number of empty states
+nempty
+  8
+
+sppath
+ '../../../species/'
+
+! this grid is too small for accurate magnetic moment
+ngridk
+  4  4  4
+
+! maximum |H|
+hmaxvr
+  6.0
+
+! H-vectors are reduced by the symmorphic crystal symmetries
+reduceh
+  .true.
+
+! uncomment the following lines to define an energy window for which only the
+! orbitals within this window will contribute to the structure factors
+!wsfac
+! -1.0 -0.1
+
+! H-vector transformation matrix for the conventional cell (cubic, a=8.397946)
+! in the usual matrix row-column setting and applied directly as H' = MH but
+! only for the output of the structure factor files.
+vhmat
+  1.5 -0.5 -0.5
+ -0.5  1.5 -0.5
+ -0.5 -0.5  1.5
+
+! For accurate results fine radial mesh (lradstp=1) should be used.
+lradstp
+  1

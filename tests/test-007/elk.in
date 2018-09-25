@@ -10,7 +10,7 @@ test
  .true.
 
 msmooth
-  2
+  4
 
 wplot
  50 100 2

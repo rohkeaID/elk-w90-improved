@@ -12,8 +12,8 @@ integer nlx,ilx,lx,ilo
 integer io,jo,ko,l,i,j
 e0min=0.d0
 do is=1,nspecies
-  open(50,file=trim(sppath)//trim(spfname(is)),action='READ',status='OLD', &
-   form='FORMATTED',iostat=iostat)
+  open(50,file=trim(sppath)//trim(spfname(is)),status='OLD',form='FORMATTED', &
+   iostat=iostat)
   if (iostat.ne.0) then
     write(*,*)
     write(*,'("Error(readspecies): error opening species file ",A)') &
@@ -236,10 +236,10 @@ do is=1,nspecies
       write(*,*)
       stop
     end if
-    if (lorbl(ilo,is).gt.lmaxmat) then
+    if (lorbl(ilo,is).gt.lmaxapw) then
       write(*,*)
-      write(*,'("Error(readspecies): lorbl > lmaxmat : ",2I8)') lorbl(ilo,is), &
-       lmaxmat
+      write(*,'("Error(readspecies): lorbl > lmaxapw : ",2I8)') lorbl(ilo,is), &
+       lmaxapw
       write(*,'(" for species ",I4)') is
       write(*,'(" and local-orbital ",I4)') ilo
       write(*,*)
@@ -290,7 +290,7 @@ do is=1,nspecies
     do i=1,nxlo
       if (ilo.eq.maxlorb) exit
       l=lx+i
-      if (l.gt.lmaxmat) exit
+      if (l.gt.lmaxapw) exit
       ilo=ilo+1
       lorbl(ilo,is)=l
       lorbord(ilo,is)=apword(l,is)+1
@@ -329,8 +329,12 @@ do is=1,nspecies
   end if
   close(50)
 end do
+! set all muffin-tin radii to single value if required
+if (rmtall.gt.0.d0) rmt(1:nspecies)=rmtall
 ! add conduction state local-orbitals if required
 call addlorbcnd
+! subtract 2 Hartree from the minimum energy
+e0min=e0min-2.d0
 return
 end subroutine
 

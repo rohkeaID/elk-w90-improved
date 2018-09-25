@@ -10,8 +10,8 @@ tasks
 test
  .true.
 
-nosym
-  .true.
+tshift
+ .false.
 
 lradstp
   5

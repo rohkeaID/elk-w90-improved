@@ -7,20 +7,24 @@ subroutine tddftlr
 use modmain
 use modtddft
 use modmpi
+use modomp
 implicit none
 ! local variables
+logical tq0
 integer, parameter :: maxit=500
-integer ik,iw,n
-integer igq0,ig,jg
-integer it,info
+integer ik,iq,isym,iw
+integer nm,i,j,l,n
+integer it,info,nthd
 real(8) v(3),t1
-complex(8) vfxcp,z1
+complex(8) vfxcp
+character(256) fname
 ! allocatable arrays
 integer, allocatable :: ipiv(:)
-real(8), allocatable :: vgqc(:,:),gqc(:),jlgqr(:,:,:)
+integer(8), allocatable :: lock(:)
+real(8), allocatable :: vgqc(:,:),gqc(:),gclgq(:),jlgqr(:,:,:)
 complex(8), allocatable :: ylmgq(:,:),sfacgq(:,:)
 complex(8), allocatable :: vchi0(:,:,:),vfxc(:,:,:)
-complex(8), allocatable :: eps0(:,:,:),eps(:,:,:)
+complex(8), allocatable :: eps0(:,:,:),epsi(:,:,:)
 complex(8), allocatable :: a(:,:),b(:,:),work(:)
 ! initialise global variables
 call init0
@@ -38,6 +42,11 @@ if ((v(1).gt.epslat).or.(v(2).gt.epslat).or.(v(3).gt.epslat)) then
   write(*,*)
   stop
 end if
+! find the equivalent reduced q-point
+call findqpt(vecql,isym,iq)
+! check if q=0
+tq0=.false.
+if (sum(abs(vecql(:))).lt.epslat) tq0=.true.
 ! read density and potentials from file
 call readstate
 ! read Fermi energy from a file
@@ -56,71 +65,88 @@ end do
 ! generate the G+q-vectors and related quantities
 allocate(vgqc(3,ngrf),gqc(ngrf),jlgqr(njcmax,nspecies,ngrf))
 allocate(ylmgq(lmmaxo,ngrf),sfacgq(ngrf,natmtot))
-call gengqrf(vecqc,igq0,vgqc,gqc,jlgqr,ylmgq,sfacgq)
+call gengqrf(vecqc,vgqc,gqc,jlgqr,ylmgq,sfacgq)
+deallocate(vgqc)
+! generate the regularised Coulomb Green's function in G+q-space
+allocate(gclgq(ngrf))
+call gengclgq(.true.,iq,ngrf,gqc,gclgq)
+gclgq(:)=sqrt(gclgq(:))
+! matrix sizes
+if (tq0) then
+  nm=ngrf+2
+else
+  nm=ngrf
+end if
 ! allocate local arrays
-allocate(vchi0(nwrf,ngrf,ngrf),vfxc(ngrf,ngrf,nwrf))
-allocate(eps0(ngrf,ngrf,nwrf),eps(ngrf,ngrf,nwrf))
+allocate(vchi0(nm,nm,nwrf),vfxc(nm,nm,nwrf))
+allocate(eps0(nm,nm,nwrf),epsi(nm,nm,nwrf))
+! initialise the OpenMP locks
+allocate(lock(nwrf))
+do iw=1,nwrf
+  call omp_init_lock(lock(iw))
+end do
 ! compute v^1/2 chi0 v^1/2 (the symmetric version of v chi0)
 vchi0(:,:,:)=0.d0
-!$OMP PARALLEL DEFAULT(SHARED)
+call omp_hold(nkptnr/np_mpi,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ik=1,nkptnr
 ! distribute among MPI processes
   if (mod(ik-1,np_mpi).ne.lp_mpi) cycle
-!$OMP CRITICAL
+!$OMP CRITICAL(tddftlr_)
   write(*,'("Info(tddftlr): ",I6," of ",I6," k-points")') ik,nkptnr
-!$OMP END CRITICAL
+!$OMP END CRITICAL(tddftlr_)
 ! compute v^1/2 chi0 v^1/2
-  call genvchi0(ik,optcomp(1,1),scissor,vecql,igq0,gqc,jlgqr,ylmgq,sfacgq,vchi0)
+  call genvchi0(.true.,ik,lock,scissor,vecql,gclgq,jlgqr,ylmgq,sfacgq,nm,vchi0)
 end do
 !$OMP END DO
 !$OMP END PARALLEL
+call omp_free(nthd)
+! destroy the OpenMP locks
+do iw=1,nwrf
+  call omp_destroy_lock(lock(iw))
+end do
+deallocate(lock)
 ! add vchi0 from each process and redistribute
 if (np_mpi.gt.1) then
-  n=nwrf*ngrf*ngrf
-  call mpi_allreduce(mpi_in_place,vchi0,n,mpi_double_complex,mpi_sum, &
-   mpi_comm_kpt,ierror)
+  n=nm*nm*nwrf
+  call mpi_allreduce(mpi_in_place,vchi0,n,mpi_double_complex,mpi_sum,mpicom, &
+   ierror)
 end if
 ! calculate symmetric epsilon = 1 - v^1/2 chi0 v^1/2
-do ig=1,ngrf
-  do jg=1,ngrf
-    eps0(ig,jg,:)=-vchi0(:,ig,jg)
-    eps(ig,jg,:)=vchi0(:,ig,jg)
+do i=1,nm
+  do j=1,nm
+    eps0(i,j,:)=-vchi0(i,j,:)
+    epsi(i,j,:)=vchi0(i,j,:)
   end do
-  eps0(ig,ig,:)=eps0(ig,ig,:)+1.d0
-  eps(ig,ig,:)=eps(ig,ig,:)+1.d0
+  eps0(i,i,:)=eps0(i,i,:)+1.d0
+  epsi(i,i,:)=epsi(i,i,:)+1.d0
 end do
+allocate(ipiv(nm),a(nm,nm),b(nm,nm),work(nm))
 vfxcp=0.d0
 it=0
 10 continue
 ! compute vchi0 v^(-1/2) f_xc v^(-1/2) vchi0
-call genvfxc(gqc,vchi0,eps0,eps,vfxc)
-allocate(ipiv(ngrf),a(ngrf,ngrf),b(ngrf,ngrf),work(ngrf))
+call genvfxc(tq0,.true.,gclgq,nm,vchi0,eps0,epsi,vfxc)
 ! begin loop over frequencies
 do iw=1,nwrf
 ! compute 1 - v^1/2 chi0 v^1/2 - v^(-1/2) f_xc v^(-1/2) vchi0
   a(:,:)=eps0(:,:,iw)-vfxc(:,:,iw)
 ! invert this matrix
-  call zgetrf(ngrf,ngrf,a,ngrf,ipiv,info)
-  if (info.eq.0) call zgetri(ngrf,a,ngrf,ipiv,work,ngrf,info)
-  if (info.ne.0) then
-    write(*,*)
-    write(*,'("Error(tddftlr): unable to invert epsilon")')
-    write(*,'(" for frequency ",I6)') iw
-    write(*,*)
-    stop
-  end if
+  call zgetrf(nm,nm,a,nm,ipiv,info)
+  if (info.eq.0) call zgetri(nm,a,nm,ipiv,work,nm,info)
+  if (info.ne.0) goto 20
 ! left multiply by v^1/2 chi0 v^1/2
-  b(:,:)=vchi0(iw,:,:)
-  call zgemm('N','N',ngrf,ngrf,ngrf,zone,b,ngrf,a,ngrf,zzero,eps(:,:,iw),ngrf)
+  b(:,:)=vchi0(:,:,iw)
+  call zgemm('N','N',nm,nm,nm,zone,b,nm,a,nm,zzero,epsi(:,:,iw),nm)
 ! compute epsilon^(-1) = 1 + v^1/2 chi v^1/2
-  do ig=1,ngrf
-    eps(ig,ig,iw)=1.d0+eps(ig,ig,iw)
+  do i=1,nm
+    epsi(i,i,iw)=1.d0+epsi(i,i,iw)
   end do
 end do
-deallocate(ipiv,a,b,work)
-! bootstrap f_xc
 if (fxctype(1).eq.210) then
+! self-consistent bootstrap f_xc
   it=it+1
   if (it.gt.maxit) then
     write(*,*)
@@ -136,35 +162,62 @@ if (fxctype(1).eq.210) then
   t1=abs(vfxcp)-abs(vfxc(1,1,1))
   vfxcp=vfxc(1,1,1)
   if (abs(t1).gt.1.d-8) goto 10
+else if (fxctype(1).eq.211) then
+! single iteration bootstrap
+  it=it+1
+  if (it.le.1) goto 10
 end if
+! invert epsilon^(-1) to find epsilon and store in array eps0
+do iw=1,nwrf
+  eps0(:,:,iw)=epsi(:,:,iw)
+  call zgetrf(nm,nm,eps0(:,:,iw),nm,ipiv,info)
+  if (info.eq.0) call zgetri(nm,eps0(:,:,iw),nm,ipiv,work,nm,info)
+  if (info.ne.0) goto 20
+end do
+deallocate(ipiv,a,b,work)
 ! write G = G' = 0 components to file
 if (mp_mpi) then
-  open(50,file="EPSILON_TDDFT.OUT",action='WRITE',form='FORMATTED')
-  open(51,file="EELS_TDDFT.OUT",action='WRITE',form='FORMATTED')
-  do iw=1,nwrf
-    z1=1.d0/eps(1,1,iw)
-    write(50,'(2G18.10)') dble(wrf(iw)),dble(z1)
-    write(51,'(2G18.10)') dble(wrf(iw)),-dble(eps(1,1,iw))
+  do l=1,noptcomp
+    i=optcomp(1,l)
+    j=optcomp(2,l)
+    write(fname,'("EPSILON_TDDFT_",2I1,".OUT")') i,j
+    open(50,file=trim(fname),form='FORMATTED')
+    write(fname,'("EPSINV_TDDFT_",2I1,".OUT")') i,j
+    open(51,file=trim(fname),form='FORMATTED')
+    do iw=2,nwrf
+      write(50,'(2G18.10)') dble(wrf(iw)),dble(eps0(i,j,iw))
+      write(51,'(2G18.10)') dble(wrf(iw)),dble(epsi(i,j,iw))
+    end do
+    write(50,*)
+    write(51,*)
+    do iw=2,nwrf
+      write(50,'(2G18.10)') dble(wrf(iw)),aimag(eps0(i,j,iw))
+      write(51,'(2G18.10)') dble(wrf(iw)),aimag(epsi(i,j,iw))
+    end do
+    close(50)
+    close(51)
   end do
-  write(50,*)
-  write(51,*)
-  do iw=1,nwrf
-    z1=1.d0/eps(1,1,iw)
-    write(50,'(2G18.10)') dble(wrf(iw)),aimag(z1)
-    write(51,'(2G18.10)') dble(wrf(iw)),-aimag(eps(1,1,iw))
-  end do
-  close(50)
-  close(51)
   write(*,*)
   write(*,'("Info(tddftlr):")')
-  write(*,'(" Dielectric tensor written to EPSILON_TDDFT.OUT")')
-  write(*,'(" Electron loss function written to EELS_TDDFT.OUT")')
-  write(*,'(" for component i, j = ",I1)') optcomp(1,1)
+  write(*,'(" Dielectric tensor written to EPSILON_TDDFT_ij.OUT")')
+  write(*,'(" Inverse written to EPSINV_TDDFT_ij.OUT")')
+  write(*,'(" for components")')
+  do l=1,noptcomp
+    write(*,'("  i = ",I1,", j = ",I1)') optcomp(1:2,l)
+  end do
   write(*,'(" q-vector (lattice coordinates) : ")')
   write(*,'(3G18.10)') vecql
   write(*,'(" q-vector length : ",G18.10)') gqc(1)
 end if
-deallocate(vgqc,gqc,ylmgq,sfacgq)
-deallocate(vchi0,vfxc,eps0,eps)
+deallocate(gqc,gclgq,jlgqr)
+deallocate(ylmgq,sfacgq)
+deallocate(vchi0,vfxc,eps0,epsi)
 return
+20 continue
+write(*,*)
+write(*,'("Error(tddftlr): unable to invert epsilon")')
+write(*,'(" for frequency ",I6)') iw
+write(*,*)
+stop
 end subroutine
+

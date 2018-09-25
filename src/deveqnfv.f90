@@ -7,6 +7,7 @@ subroutine deveqnfv(n,nq,igpig,igpqig,vgpc,vgpqc,evalfv,apwalm, &
  apwalmq,dapwalm,dapwalmq,evecfv,devalfvp,devecfv)
 use modmain
 use modphonon
+use modomp
 implicit none
 ! arguments
 integer, intent(in) :: n,nq
@@ -22,7 +23,7 @@ real(8), intent(out) :: devalfvp(nstfv)
 complex(8), intent(out) :: devecfv(nmatmax,nstfv)
 ! local variables
 integer nm,nmq,ias,ist,i
-integer lwork,info
+integer lwork,info,nthd
 real(8) t1
 complex(8) z1
 ! allocatable arrays
@@ -37,7 +38,10 @@ nm=n+nlotot
 nmq=nq+nlotot
 allocate(h(nmq,nmq),o(nmq,nmq))
 ! compute the Hamiltonian and overlap matrices at p+q
-!$OMP PARALLEL SECTIONS DEFAULT(SHARED) PRIVATE(ias)
+call omp_hold(2,nthd)
+!$OMP PARALLEL SECTIONS DEFAULT(SHARED) &
+!$OMP PRIVATE(ias) &
+!$OMP NUM_THREADS(nthd)
 !$OMP SECTION
 ! Hamiltonian
 h(:,:)=0.d0
@@ -57,6 +61,7 @@ do ias=1,natmtot
 end do
 call olpistl(nq,igpqig,nmq,o)
 !$OMP END PARALLEL SECTIONS
+call omp_free(nthd)
 ! solve the generalised eigenvalue problem (H - e_i O)|v_i> = 0
 ! (note: these are also the eigenvalues/vectors of O^(-1)H )
 lwork=2*nmq
@@ -72,7 +77,10 @@ end if
 deallocate(rwork,o,work)
 ! compute the Hamiltonian and overlap matrix derivatives
 allocate(dh(nmq,nm),od(nmq,nm))
-!$OMP PARALLEL SECTIONS DEFAULT(SHARED) PRIVATE(ias)
+call omp_hold(2,nthd)
+!$OMP PARALLEL SECTIONS DEFAULT(SHARED) &
+!$OMP PRIVATE(ias) &
+!$OMP NUM_THREADS(nthd)
 !$OMP SECTION
 dh(:,:)=0.d0
 do ias=1,natmtot
@@ -92,6 +100,7 @@ do ias=1,natmtot
 end do
 call dolpistl(n,nq,igpig,igpqig,nmq,od)
 !$OMP END PARALLEL SECTIONS
+call omp_free(nthd)
 allocate(x(nmq),y(nmq))
 ! loop over states
 do ist=1,nstfv

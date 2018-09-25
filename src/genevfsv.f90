@@ -6,15 +6,18 @@
 subroutine genevfsv
 use modmain
 use modmpi
+use modomp
 implicit none
 ! local variables
-integer ik,lp
+integer ik,lp,nthd
 ! allocatable arrays
 real(8), allocatable :: evalfv(:,:)
 complex(8), allocatable :: evecfv(:,:,:),evecsv(:,:)
 ! begin parallel loop over k-points
+call omp_hold(nkpt/np_mpi,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(evalfv,evecfv,evecsv)
+!$OMP PRIVATE(evalfv,evecfv,evecsv) &
+!$OMP NUM_THREADS(nthd)
 !$OMP DO
 do ik=1,nkpt
 ! distribute among MPI processes
@@ -33,12 +36,11 @@ do ik=1,nkpt
 end do
 !$OMP END DO
 !$OMP END PARALLEL
-! synchronise MPI processes
-call mpi_barrier(mpi_comm_kpt,ierror)
+call omp_free(nthd)
 ! broadcast eigenvalue array to every process
 do ik=1,nkpt
   lp=mod(ik-1,np_mpi)
-  call mpi_bcast(evalsv(:,ik),nstsv,mpi_double_precision,lp,mpi_comm_kpt,ierror)
+  call mpi_bcast(evalsv(:,ik),nstsv,mpi_double_precision,lp,mpicom,ierror)
 end do
 return
 end subroutine
