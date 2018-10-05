@@ -75,7 +75,7 @@ do itask=1,ntasks
   if (lp_mpi.gt.0) then
     select case(task)
     case(0,1,2,3,5,28,29,120,135,136,170,180,185,188,200,201,205,240,300,320, &
-     330,331,360,372,373,440,460,461,600,601,602,603,604,610,620)
+     330,331,360,372,373,440,460,461,600,602,603,604,610,620)
       continue
     case default
       write(*,'("Info(elk): MPI process ",I6," idle for task ",I6)') lp_mpi,task

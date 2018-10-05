@@ -11,6 +11,9 @@ subroutine setupw90lib
 use modmain
 use modw90
 use modw90overlap
+use modmpi
+use modomp
+
 ! !DESCRIPTION:
 !   
 !EOP
@@ -20,14 +23,7 @@ implicit none
 character(20)  :: atomFileName
 integer ia,is
 logical        :: spinors_lib = .false.
-! local variables
-
-! automatic arrays
-
-! external functions
-
-! allocatable arrays
-  
+ 
 ! check that user has defined bands and projections
 if(wann_projlines.eq.-1) then
   write(*,*)

@@ -11,6 +11,7 @@ subroutine genw90amn
 use modmain
 use modw90
 use modw90overlap
+use modmpi
 use modomp
 ! !DESCRIPTION:
 !   Calculates the Amn overlap matrices between Bloch states and
@@ -60,6 +61,8 @@ end if
 
 ! read density and potentials from file
 call readstate
+! Fourier transform Kohn-Sham potential to G-space
+call genvsig
 ! read Fermi energy from a file
 call readfermi
 ! find the new linearisation energies
@@ -100,9 +103,7 @@ if (redkfil.ne.0) then
 ! generate the spin-orbit coupling radial functions
   call gensocfr
 ! generate the first- and second-variational eigenvectors and eigenvalues
-  call genevfsv
-! find the occupation numbers and Fermi energy
-  call occupy
+  call genevfsv  
 end if
 
 ! generates the trial wavefunctions from the projection definitions read in
@@ -110,10 +111,13 @@ allocate(twfmt(npcmtmax,natmtot,nspinor,wann_nproj))
 allocate(twfir(ngtot,nspinor,wann_nproj))
 call genw90twf(twfmt,twfir)
 
+! synchronise MPI processes
+call mpi_barrier(mpicom,ierror)
 ! loop over k and k+b points
-call omp_hold(nst,nthd)
-!$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(ikp,n,m,ngp,igpig,amn,wfmt,wfir)
+call omp_hold(nkpt/np_mpi,nthd)
+!$OMP PARALLEL DEFAULT(SHARED)&
+!$OMP PRIVATE(ikp,n,m,ngp,igpig,amn,wfmt,wfir)&
+!$OMP NUM_THREADS(nthd)
 
 allocate(wfmt(npcmtmax,natmtot,nspinor,wann_nband))
 allocate(wfir(ngtot,nspinor,wann_nband))
@@ -127,7 +131,7 @@ do ikp=1,nkpt
   ! calculate the overlap integrals Amn(k)
   amn = cmplx(0.d0,0.d0,kind=8)
   call genw90overlap(wfmt,wfir,wann_nproj,1,twfmt,twfir,amn)
-!$OMP CRITICAL
+!$OMP CRITICAL(genw90amn_)
   ! write the Amn matrix elements
   do n=1,wann_nproj
     do m=1,wann_nband
@@ -142,7 +146,14 @@ do ikp=1,nkpt
       end if
     end do
   end do
-!$OMP END CRITICAL 
+!$OMP END CRITICAL(genw90amn_)
+
+!$OMP CRITICAL(genw90amn_)
+  if (mp_mpi) then
+    write(*,'("  Info(Wannier Amn): completed ",I6," of ",I6," k-points")')&
+                                                                   &ikp,nkpt
+  end if  
+!$OMP END CRITICAL(genw90amn_)
 
 end do !End loop over k points
 !$OMP END DO
