@@ -160,7 +160,8 @@ SRC_XC = \
 SRC_WANN = \
  getw90bands.f90 genw90twf.f90 \
  writew90win.f90 genw90amn.f90 \
- setupw90lib.f90 genw90input.f90 runw90.f90
+ setupw90lib.f90 genw90input.f90 \
+ rfplotUNK.f90 plotUNK.f90 runw90.f90
 
 SRC = $(SRC_modules) $(SRC_FFT) $(SRC_elk) $(SRC_main) $(SRC_phonon) \
  $(SRC_SCDFT) $(SRC_XC) $(SRC_DFTU) $(SRC_RDMFT) $(SRC_GW) $(SRC_TDDFT) \
