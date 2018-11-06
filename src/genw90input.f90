@@ -355,7 +355,7 @@ allocate(ngp(nspnfv))
 !    close(600)
 !  end do
 !end do
-ngrf=1
+ngrf=1 ! corresponds to expmt
 do ikp=1,nkpt
 
   call genwfsvp(.false.,.false.,wann_nband,wann_bands,ngridg,igfft,vkl(:,ikp),ngp,igpig,wfmt,ngtot,wfir)

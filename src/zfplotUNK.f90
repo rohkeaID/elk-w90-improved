@@ -5,47 +5,37 @@
 
 subroutine zfplotUNK(np,vpl,zfmt,zfir,fp)
 use modmain
-use modomp
 implicit none
 ! arguments
 integer, intent(in) :: np
 real(8), intent(in) :: vpl(3,np)
-complex(8), intent(in) :: zfmt(npmtmax,natmtot),zfir(ngtot)
+complex(8), intent(in) :: zfmt(npcmtmax,natmtot),zfir(ngtot)
 complex(8), intent(out) :: fp(np)
 ! local variables
 integer ias,is,ip,nthd
+!complex(8) fp_
 ! allocatable arrays
 complex(8), allocatable :: zfmt1(:,:,:)
 complex(8), allocatable :: zfft(:)
 ! unpack the muffin-tin function
-allocate(zfmt1(lmmaxo,nrmtmax,natmtot))
-call omp_hold(natmtot,nthd)
-!$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(is) &
-!$OMP NUM_THREADS(nthd)
-!$OMP DO
+allocate(zfmt1(lmmaxo,nrcmtmax,natmtot))
+
 do ias=1,natmtot
   is=idxis(ias)
-  call zfmtpack(.false.,nrmt(is),nrmti(is),zfmt(:,ias),zfmt1(:,:,ias))
+  call zfmtpack(.false.,nrcmt(is),nrcmti(is),zfmt(:,ias),zfmt1(:,:,ias))
 end do
-!$OMP END DO
-!$OMP END PARALLEL
-call omp_free(nthd)
-! Fourier transform rfir to G-space
+
+! Fourier transform zfir to G-space
 allocate(zfft(ngtot))
 zfft(:)=zfir(:)
 call zfftifc(3,ngridg,-1,zfft)
 ! begin loop over all points
-call omp_hold(np,nthd)
-!$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP NUM_THREADS(nthd)
-!$OMP DO
 do ip=1,np
   call zfip(ip)
+!  call zfip(ip,fp_)
+!  fp(ip) = fp_
 end do
-!$OMP END DO
-!$OMP END PARALLEL
-call omp_free(nthd)
+
 deallocate(zfmt1,zfft)
 return
 
@@ -54,13 +44,13 @@ contains
 subroutine zfip(ip)
 implicit none
 ! arguments
-integer, intent(in) :: ip
+integer,    intent(in   ) :: ip
 ! local variables
-integer is,ia,ias,nr,nri
+integer is,ia,ias,nrc,nrci
 integer ir0,ir,lmax,l,m,lm
 integer ig,ifg,i1,i2,i3,i,j
-real(8) rmt2,r,tp(2),t1,t2
-complex(8) ya(4)
+real(8) rmt2,r,tp(2),t1
+complex(8) ya(4),t2
 real(8) v1(3),v2(3),v3(3),v4(3),v5(3)
 complex(8) sum
 ! automatic arrays
@@ -71,9 +61,9 @@ call r3frac(epslat,v2)
 call r3mv(avec,v2,v1)
 ! check if point is in a muffin-tin
 do is=1,nspecies
-  nr=nrmt(is)
-  nri=nrmti(is)
-  rmt2=rmt(is)**2
+  nrc=nrcmt(is)
+  nrci=nrcmti(is)
+  !rmt2=rcmt(is)**2
   do ia=1,natoms(is)
     ias=idxas(ia,is)
     v2(:)=v1(:)-atposc(:,ia,is)
@@ -84,20 +74,21 @@ do is=1,nspecies
         do i3=-1,1
           v5(:)=v4(:)+dble(i3)*avec(:,3)
           t1=v5(1)**2+v5(2)**2+v5(3)**2
-          if (t1.lt.rmt2) then
+          !if (t1.lt.rmt2) then
+          if (t1.lt.r2cmt(nrci,is)) then
             call sphcrd(v5,r,tp)
             call genylm(lmaxo,tp,ylm)
-            do ir=1,nr
+            do ir=1,nrc
               if (rsp(ir,is).ge.r) then
                 if (ir.le.2) then
                   ir0=1
-                else if (ir.gt.nrmt(is)-2) then
-                  ir0=nrmt(is)-3
+                else if (ir.gt.nrcmt(is)-2) then
+                  ir0=nrcmt(is)-3
                 else
                   ir0=ir-2
                 end if
                 r=max(r,rsp(1,is))
-                if (ir0.le.nri) then
+                if (ir0.le.nrci) then
                   lmax=lmaxi
                 else
                   lmax=lmaxo
@@ -114,6 +105,7 @@ do is=1,nspecies
                     sum=sum+t2*ylm(lm)
                   end do
                 end do
+                
                 goto 10
               end if
             end do
@@ -138,13 +130,13 @@ end subroutine
 complex(8) function poly4(xa,ya,x)
 implicit none
 ! arguments
-real(8), intent(in) :: xa(4),x
+real(8),    intent(in) :: xa(4),x
 complex(8), intent(in) :: ya(4)
 ! local variables
-real(8) x0,x1,x2,x3
+real(8)    x0,x1,x2,x3
 complex(8) y0,y1,y2,y3
 complex(8) c1,c2,c3,t0,t1,t2,t3,t4,t5,t6
-! evaluate the polynomial coefficients
+! evaluate the polynomial coefficient
 x0=xa(1)
 x1=xa(2)-x0; x2=xa(3)-x0; x3=xa(4)-x0
 y0=ya(1)
