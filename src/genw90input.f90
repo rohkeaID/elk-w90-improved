@@ -23,7 +23,7 @@ use modomp
 
 implicit none
 ! local variables
-integer jk,n,m,ig,is,i,j,nrc,nrci
+integer jk,n,m,ig,is,i,j
 integer ikp,inn
 integer ist
 integer redkfil,nstsv_,recl
@@ -48,9 +48,6 @@ complex(8), allocatable :: zrhoir(:)
 ! automatic arrays
 real(8)                 :: bqvec(3),bqc(3),vkql(3)
 character(256)             filename
-character(8)            :: fmt_ikp,fmt_is ! format descriptor
-character(8)            :: ikp_str
-character(8)            :: is_str
 character(10)              dat,tim
 real(8)                    vkl_(3),vec_0(3)
 !integer           ngp(nspnfv),ngpq(nspnfv)
@@ -302,108 +299,6 @@ if(nspinor.eq.2) then
   deallocate(spn_x,spn_y,spn_z)
 end if
 
-!UNK
-fmt_ikp = '(I5.5)' ! format of k-points in UNK filename an integer of width 5 with zeros at the left
-fmt_is = '(I1.1)'
-
-allocate(wfmt(npcmtmax,natmtot,nspinor,wann_nband))
-allocate(wfir(ngtot,nspinor,wann_nband))
-allocate(zwfmt(npcmtmax,natmtot,nspinor,wann_nband))
-allocate(jlgqr(njcmax,nspecies))
-allocate(ylmgq(lmmaxo),sfacgq(natmtot))
-allocate(expmt(npcmtmax,natmtot))
-allocate(zrhomt(npcmtmax,natmtot),zrhoir(ngtot))
-allocate(igpig(ngkmax,nspnfv))
-allocate(ngp(nspnfv))
-
-!np = np3d(1)*np3d(2)*np3d(3)
-!allocate(vpl(3,np),fp_real(np),fp_imag(np))
-!! generate the 3D plotting points
-!call plotpt3d(vpl)
-!do ikp=1,nkpt
-!  call genwfsvp(.true.,.false.,wann_nband,wann_bands,vkl(:,ikp),wfmt,ngtot,wfir)
-!
-!  do is = 1,nspinor
-!    write (ikp_str,fmt_ikp) ikp ! converting integer to string using a 'internal file'
-!    write (is_str,fmt_is) is ! converting integer to string using a 'internal file'
-!    filename = 'UNK'//trim(ikp_str)//'.'//trim(is_str)
-!    open(600,file=filename,action='WRITE',form='FORMATTED')
-!
-!    write(600,*) np3d(1),np3d(2),np3d(3),ikp,wann_nband
-!    do m = 1,wann_nband
-!      call genzrho(.true.,.true.,wfmt(:,:,is,m), wfir(:,is,m), &
-!                                 wfmt(:,:,is,m), wfir(:,is,m), &
-!                                                zrhomt, zrhoir)
-!      ! evaluate the functions at the grid points
-!      call rfplot(np,vpl,dreal(zrhomt),dreal(zrhoir),fp_real)
-!      call rfplot(np,vpl,dimag(zrhomt),dimag(zrhoir),fp_imag)
-!
-!      ip = 0
-!
-!      do k=1,np3d(3)
-!        do j=1,np3d(2)
-!          do i=1,np3d(1)
-!            ip = ip + 1
-!            !ip = (j-1+(i-1)*np3d(2))*np3d(3) + k
-!            write(600,'(2F7.3)') fp_real(ip),0.d0!fp_imag(ip)
-!          end do
-!        end do
-!      end do
-!
-!    end do
-!
-!    close(600)
-!  end do
-!end do
-ngrf=1 ! corresponds to expmt
-do ikp=1,nkpt
-
-  call genwfsvp(.false.,.false.,wann_nband,wann_bands,ngridg,igfft,vkl(:,ikp),ngp,igpig,wfmt,ngtot,wfir)
-
-  ! b-vector in Cartesian coordinates
-  call r3mv(bvec,vkl(:,ikp),bqc)
-  ! generate the phase factor function exp(ib.r) in the muffin-tins
-  call gengqrf(bqc,vgqc,gqc,jlgqr,ylmgq,sfacgq)
-  call genexpmt(1,jlgqr,ylmgq,1,sfacgq,expmt)
-  do i=1,npcmtmax
-    do j=1,natmtot
-      do is = 1,nspinor
-        do m = 1,wann_nband
-          wfmt(i,j,is,m) = wfmt(i,j,is,m)*dconjg(expmt(i,j))
-        end do
-      end do
-    end do
-  end do
-  
-  do j=1,natmtot
-    nrc=nrcmt(idxis(j))
-    nrci=nrcmti(idxis(j))
-    do is = 1,nspinor
-      do m = 1,wann_nband
-        call zfsht(nrc,nrci,wfmt(:,j,is,m),zwfmt(:,j,is,m))
-      end do
-    end do
-  end do
-
-  do is = 1,nspinor
-    write (ikp_str,fmt_ikp) ikp ! converting integer to string using an 'internal file'
-    write (is_str,fmt_is) is ! converting integer to string using an 'internal file'
-    filename = 'UNK'//trim(ikp_str)//'.'//trim(is_str)
-    open(600,file=filename,action='WRITE',form='FORMATTED')
-    
-    write(600,*) np3d(1),np3d(2),np3d(3),ikp,wann_nband
-    do m = 1,wann_nband
-      call plotUNK(600,zwfmt(:,:,is,m),wfir(:,is,m))
-    end do
-
-    close(600)
-  end do
-
-end do
-deallocate(zwfmt,wfmt,wfir)
-deallocate(jlgqr,ylmgq,sfacgq)
-deallocate(igpig)
-deallocate(ngp)
 
 deallocate(wann_atomsymb,wann_atompos)
 deallocate(nnlist,nncell)
