@@ -23,6 +23,8 @@ implicit none
 integer ikp
 integer i,j,is,m
 integer nrc,nrci
+integer nthd
+integer fileID
 real(8) vgqc(3),gqc
 ! allocatable arrays
 complex(8), allocatable :: wfmt(:,:,:,:),wfir(:,:,:)
@@ -60,6 +62,23 @@ call genlofr
 fmt_ikp = '(I5.5)' ! format of k-points in UNK filename an integer of width 5 with zeros at the left
 fmt_is = '(I1.1)'
 
+if(mp_mpi) then
+  write(*,*)
+  write(*,*) "Info(Wannier): Unk calculation"
+end if
+
+ngrf=1 ! corresponds to expmt
+! synchronise MPI processes
+call mpi_barrier(mpicom,ierror)
+! loop over reduced k-point set
+call omp_hold(nkpt/np_mpi,nthd)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(ikp,i,j,is,nrc,nrci,m,bqc) &
+!$OMP PRIVATE(ikp_str,is_str,filename,ngp,igpig) &
+!$OMP PRIVATE(fileID,wfmt,wfir,zwfmt) &
+!$OMP PRIVATE(vgqc,gqc,jlgqr,ylmgq,sfacgq,expmt) &
+!$OMP NUM_THREADS(nthd)
+
 allocate(wfmt(npcmtmax,natmtot,nspinor,wann_nband))
 allocate(wfir(ngtot,nspinor,wann_nband))
 allocate(zwfmt(npcmtmax,natmtot,nspinor,wann_nband))
@@ -69,11 +88,7 @@ allocate(expmt(npcmtmax,natmtot))
 allocate(igpig(ngkmax,nspnfv))
 allocate(ngp(nspnfv))
 
-if(mp_mpi) then
-  write(*,*)
-  write(*,*) "Info(Wannier): Unk calculation"
-
-ngrf=1 ! corresponds to expmt
+!$OMP DO
 do ikp=1,nkpt
 
   call genwfsvp(.false.,.false.,wann_nband,wann_bands,ngridg,igfft,vkl(:,ikp),ngp,igpig,wfmt,ngtot,wfir) 
@@ -105,33 +120,43 @@ do ikp=1,nkpt
   end do
 
   do is = 1,nspinor
-    write (ikp_str,fmt_ikp) ikp ! converting integer to string using an 'internal file'
-    write (is_str,fmt_is) is ! converting integer to string using an 'internal file'
+    write(ikp_str,fmt_ikp) ikp ! converting integer to string using an 'internal file'
+    write(is_str,fmt_is) is ! converting integer to string using an 'internal file'
     filename = 'UNK'//trim(ikp_str)//'.'//trim(is_str)
-    open(600,file=filename,action='WRITE',form='FORMATTED')
+    fileID=600+ikp+is
+    open(fileID,file=filename,action='WRITE',form='FORMATTED')
     
-    write(600,*) np3d(1),np3d(2),np3d(3),ikp,wann_nband
+    write(fileID,*) np3d(1),np3d(2),np3d(3),ikp,wann_nband
     do m = 1,wann_nband
-      call plotUNK(600,zwfmt(:,:,is,m),wfir(:,is,m))
+      call plotUNK(fileID,zwfmt(:,:,is,m),wfir(:,is,m))
     end do
 
-    close(600)
+    close(fileID)
+  !$OMP CRITICAL(genw90unk_)
+    if (mp_mpi) then
+      write(*,'("  Info(Wannier Unk): completed ",I6," of ",I6," k-points")')&
+                                                                     &ikp,nkpt
+    end if
+  !$OMP END CRITICAL(genw90unk_)
 
-    write(*,'("  Info(Wannier Unk): completed ",I6," of ",I6," k-points")')&
-                                                                   &ikp,nkpt
   end do
 
 end do
-
-  write(*,*)
-  write(*,*) "Info(Wannier): Unk for each k-point are computed"
-endif! AG: mp_mpi
+!$OMP END DO
 
 deallocate(ngp)
 deallocate(igpig)
 deallocate(expmt)
 deallocate(ylmgq,sfacgq,jlgqr)
 deallocate(zwfmt,wfmt,wfir)
+
+!$OMP END PARALLEL
+call omp_free(nthd)
+
+if (mp_mpi) then
+  write(*,*)
+  write(*,*) "Info(Wannier): Unk for each k-point are computed"
+end if
 
 reducek=reducek0
 
