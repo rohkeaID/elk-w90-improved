@@ -202,4 +202,3 @@ reducek=reducek0
 
 end subroutine
 !EOC
-
