@@ -204,7 +204,7 @@ do ikp=1,nkpt
     
     ! compute Mmn
     mmn = cmplx(0.d0,0.d0,kind=8)
-    call genw90overlap(wfmt,wfir,wann_nband,nspinor,wfmtq,wfirq,mmn,expmt)
+    call genw90overlap(wfmt,wfir,wann_nband,wfmtq,wfirq,mmn,expmt)
 
   !$OMP CRITICAL(genw90input_)
     ! write the Mmn matrix elements
@@ -232,7 +232,7 @@ do ikp=1,nkpt
     call gengqrf(vec_0,vgqc,gqc,jlgqr,ylmgq,sfacgq)
     call genexpmt(1,jlgqr,ylmgq,1,sfacgq,expmt)
     mmn = cmplx(0.d0,0.d0,kind=8)
-    call genw90overlap(wfmt,wfir,wann_nband,nspinor,wfmt,wfir,mmn,expmt)
+    call genw90overlap(wfmt,wfir,wann_nband,wfmt,wfir,mmn,expmt)
   !$OMP CRITICAL(genw90input_)
     is=1
     do m=1,wann_nband
@@ -272,7 +272,7 @@ call genw90amn
 
 if (mp_mpi) then
   write(*,*)
-  write(*,*) "Info(Wannier): Mmn and Amn for each k-point are computed"
+  write(*,*) "Info(Wannier): Mmn and Amn matrices have been computed"
 end if
 
 ! close seedname.mmn

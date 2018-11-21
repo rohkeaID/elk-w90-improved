@@ -29,12 +29,12 @@ implicit none
 integer,    intent(in) :: fnum
 complex(8), intent(in) :: zfmt(npcmtmax,natmtot),zfir(ngtot)
 ! local variables
-integer np,ip,i,j,k
+integer np,ip,i,j,k,ii,jj,kk
 ! allocatable arrays
 real(8), allocatable :: vpl(:,:),vpc(:,:),fp_real(:),fp_imag(:)
 complex(8), allocatable :: fp(:)
 ! total number of plot points
-np=np3d(1)*np3d(2)*np3d(3)
+np=(np3d(1))*(np3d(2))*(np3d(3))
 ! allocate local arrays
 allocate(vpl(3,np),vpc(3,np),fp_real(np),fp_imag(np),fp(np))
 ! generate the 3D plotting points
@@ -43,10 +43,17 @@ call plotpt3d(vpl)
 call zfplotUNK(np,vpl,zfmt(:,:),zfir(:),fp(:))
 
 ! write functions to file
-do i=1,np3d(3)
-  do j=1,np3d(2)
-    do k=1,np3d(1)
-      ip = (j-1+(i-1)*np3d(2))*np3d(3) + k
+do i=1,np3d(3) !+1
+!ii=i
+!if (i .eq. np3d(3)+1) ii=1
+  do j=1,np3d(2) !+1
+!   jj=j
+!   if (j .eq. np3d(2)+1) jj=1
+    do k=1,np3d(1) !+1
+!      kk=k
+!      if (k .eq. np3d(1)+1) kk=1
+!      ip = (jj-1+(ii-1)*(np3d(2)))*(np3d(3)) + kk
+      ip = (j-1+(i-1)*(np3d(2)))*(np3d(3)) + k
       write(fnum,*) dreal(fp(ip)),dimag(fp(ip))
       !write(fnum,'(2F7.3)') dreal(fp(ip)),dimag(fp(ip))
     end do

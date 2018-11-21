@@ -58,14 +58,14 @@ if(allocated(wann_atomsymb)) deallocate(wann_atomsymb,wann_atompos,&
                                         wann_proj_isrand)
 allocate(wann_atomsymb(natmtot),wann_atompos(3,natmtot))
 allocate(nnlist(nkpt,num_nnmax),nncell(3,nkpt,num_nnmax))
-allocate(wann_proj_site(3,nstsv))
-allocate(wann_proj_l(nstsv),wann_proj_m(nstsv),wann_proj_radial(nstsv))
-allocate(wann_proj_zaxis(3,nstsv),wann_proj_xaxis(3,nstsv))
-allocate(wann_proj_zona(nstsv))
-allocate(wann_proj_exclude_bands_lib(nstsv))
-allocate(wann_proj_spin(nstsv))
-allocate(wann_proj_quantdir(3,nstsv))
-allocate(wann_proj_isrand(nstsv))
+allocate(wann_proj_site(3,wann_nband))
+allocate(wann_proj_l(wann_nband),wann_proj_m(wann_nband),wann_proj_radial(wann_nband))
+allocate(wann_proj_zaxis(3,wann_nband),wann_proj_xaxis(3,wann_nband))
+allocate(wann_proj_zona(wann_nband))
+allocate(wann_proj_exclude_bands_lib(wann_nband))
+allocate(wann_proj_spin(wann_nband))
+allocate(wann_proj_quantdir(3,wann_nband))
+allocate(wann_proj_isrand(wann_nband))
 
 ! prepare variables for calling lib of wannier90
 do is = 1,nspecies
@@ -82,21 +82,23 @@ end if
 
 ! 
 call wannier_setup(trim(wann_seedname),ngridk,nkpt,au2angstrom*transpose(avec),& !in
-                   (1/au2angstrom)*transpose(bvec),vkl,nstsv,natmtot,&           !in
+                   (1/au2angstrom)*transpose(bvec),vkl,wann_nband,natmtot,&           !in
                    wann_atomsymb,wann_atompos,.false.,spinors_lib,&              !in
                    wann_nntot,nnlist,nncell,wann_nband_total,wann_nwf,&          !out
                    wann_proj_site,wann_proj_l,wann_proj_m,&                      !out
                    wann_proj_radial,wann_proj_zaxis,wann_proj_xaxis,&            !out
                    wann_proj_zona,wann_proj_exclude_bands_lib,&                  !out
                    wann_proj_spin,wann_proj_quantdir)                            !out
+!yk tests
+  if (mp_mpi) then 
+   write(*,*)
+   write(*,*) " Info(Wannier): Wannier90 has been run as a library. [ OK ] "
+   write(*,*)
+  end if 
 
-wann_proj_radial = 0
 wann_proj_isrand = .false. ! AG: solve later
-if (nspinor .eq. 2)Then
-  wann_nproj = wann_nwf / 2
-else
+! number of projections is always equal to the number of WFs
   wann_nproj = wann_nwf
-endif
 
 end subroutine setupw90lib
 

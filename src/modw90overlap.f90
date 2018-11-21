@@ -8,7 +8,7 @@
 ! !INTERFACE:
 module modw90overlap
   contains
-    subroutine genw90overlap(wfmt,wfir,nproj,ns,wfmtq,wfirq,omn,phase)
+    subroutine genw90overlap(wfmt,wfir,nproj,wfmtq,wfirq,omn,phase)
       ! !USES:
       use modmain
       use modrandom
@@ -25,10 +25,9 @@ module modw90overlap
       complex(8), dimension(npcmtmax,natmtot,nspinor,wann_nband), intent(in   ) :: wfmt
       complex(8), dimension(ngtot,nspinor,wann_nband),            intent(in   ) :: wfir
       integer,                                                    intent(in   ) :: nproj
-      integer,                                                    intent(in   ) :: ns
       complex(8), dimension(npcmtmax,natmtot,nspinor,nproj),      intent(in   ) :: wfmtq
       complex(8), dimension(ngtot,nspinor,nproj),                 intent(in   ) :: wfirq
-      complex(8), dimension(wann_nband,nspinor,nproj,ns),         intent(inout) :: omn
+      complex(8), dimension(wann_nband,nspinor,nproj,nspinor),         intent(inout) :: omn
       complex(8), dimension(npcmtmax,natmtot),          optional, intent(in   ) :: phase
 
       ! local variables
@@ -75,8 +74,8 @@ module modw90overlap
 
       !Calculate matrix elements
       allocate(zrhomt(npcmtmax,natmtot),zrhoir(ngtot))
-      allocate(omnmt(wann_nband,nspinor,nproj,ns))
-      allocate(omnir(wann_nband,nspinor,nproj,ns))
+      allocate(omnmt(wann_nband,nspinor,nproj,nspinor))
+      allocate(omnir(wann_nband,nspinor,nproj,nspinor))
       allocate(cfunir_complex(ngtot))
 
       omnmt = cmplx(0.0d0,0.0d0,kind=8)
@@ -84,20 +83,8 @@ module modw90overlap
       cfunir_complex = cmplx(cfunir,0.0d0,kind=8)
 
       do jst = 1,nproj
-        if((.not. present(phase)) .and. wann_proj_isrand(jst)) then ! Amn case
-          ! if this projection should be random (at present, any non-atom centred projection!)
-          norm = 0.0d0
-          do ispin = 1,nspinor
-            do ist = 1,wann_nband
-              matel = cmplx(randomu(),randomu(),kind=8)
-              norm = norm + abs(matel)
-              omn(ist,ispin,jst,1) = matel
-            end do
-          end do
-          omn(:,:,jst,1) = omn(:,:,jst,1) / norm
-        else ! Amn and Mmn case
           do ist = 1,wann_nband
-            do jspin = 1,ns
+            do jspin = 1,nspinor
               do ispin = 1,nspinor
 
                 call genzrho(.true.,.false.,ngtot,wfmt(:,:,ispin,ist)  , &
@@ -132,7 +119,6 @@ module modw90overlap
               enddo
             enddo
           enddo
-        endif
         ! total calculated charge
         omn(:,:,jst,:) = omnmt(:,:,jst,:) + omnir(:,:,jst,:)
       enddo

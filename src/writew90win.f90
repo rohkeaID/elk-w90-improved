@@ -129,5 +129,10 @@ close(50)
 
 reducek=reducek0
 
+   write(*,*) 
+   write(*,*) "Info(w90 interface): seedname.win file has been created "
+   write(*,*) 
+
+
 end subroutine
 !EOC
