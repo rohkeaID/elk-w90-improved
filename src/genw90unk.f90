@@ -20,7 +20,7 @@ use modomp
 implicit none
 ! local variables
 integer ikp
-integer i,j,is,m
+integer i,j,is,ispn,m
 integer nrc,nrci
 integer nthd
 integer fileID
@@ -28,6 +28,8 @@ integer redkfil,nstsv_,recl
 real(8) vgqc(3),gqc
 logical exists
 real(8) t1
+logical :: wann_spn_up = .false., wann_spn_dn = .false.
+integer wann_spn_start,wann_spn_end
 ! allocatable arrays
 complex(8), allocatable :: wfmt(:,:,:,:),wfir(:,:,:)
 complex(8), allocatable :: zwfmt(:,:,:,:)
@@ -103,7 +105,16 @@ fmt_is = '(I1.1)'
 
 if(mp_mpi) then
   write(*,*)
-  write(*,*) "Info(Wannier): Unk calculation"
+  write(*,*) "Info(Wannier): Unk calculation" 
+end if
+
+if (any( wann_proj_spin .eq. 1))  wann_spn_up = .true.
+if (any( wann_proj_spin .eq. -1)) wann_spn_dn = .true.
+wann_spn_start = 1; wann_spn_end = nspinor
+if(spinpol .and. .not.(spinorb) .and. wann_spn_up .and. .not.(wann_spn_dn)) wann_spn_end = 1
+if(spinpol .and. .not.(spinorb) .and. .not.(wann_spn_up) .and. wann_spn_dn) then
+  wann_spn_start = 2
+  wann_spn_end = 2
 end if
 
 ngrf=1 ! corresponds to expmt
@@ -112,7 +123,7 @@ call mpi_barrier(mpicom,ierror)
 ! loop over reduced k-point set
 call omp_hold(nkpt/np_mpi,nthd)
 !$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(ikp,i,j,is,nrc,nrci,m,bqc) &
+!$OMP PRIVATE(ikp,i,j,is,ispn,nrc,nrci,m,bqc) &
 !$OMP PRIVATE(ikp_str,is_str,filename,ngp,igpig) &
 !$OMP PRIVATE(fileID,wfmt,wfir,zwfmt) &
 !$OMP PRIVATE(vgqc,gqc,jlgqr,ylmgq,sfacgq,expmt) &
@@ -140,7 +151,7 @@ do ikp=1,nkpt
 
   do i=1,npcmtmax
     do j=1,natmtot
-      do is = 1,nspinor
+      do is = wann_spn_start,wann_spn_end
         do m = 1,wann_nband
           wfmt(i,j,is,m) = wfmt(i,j,is,m)*dconjg(expmt(i,j))
         end do
@@ -151,17 +162,19 @@ do ikp=1,nkpt
   do j=1,natmtot
     nrc=nrcmt(idxis(j))
     nrci=nrcmti(idxis(j))
-    do is = 1,nspinor
+    do is = wann_spn_start,wann_spn_end
       do m = 1,wann_nband
         call zfsht(nrc,nrci,wfmt(:,j,is,m),zwfmt(:,j,is,m))
       end do
     end do
   end do
-
+  
+  ispn = 0
   fileID = 600+(ikp-1)*nspinor
-  do is = 1,nspinor
+  do is = wann_spn_start,wann_spn_end
+    ispn = ispn + 1
     write(ikp_str,fmt_ikp) ikp ! converting integer to string using an 'internal file'
-    write(is_str,fmt_is) is ! converting integer to string using an 'internal file'
+    write(is_str,fmt_is) ispn ! converting integer to string using an 'internal file'
     filename = 'UNK'//trim(ikp_str)//'.'//trim(is_str)
     fileID=fileID+is-1
     open(fileID,file=filename,action='WRITE',form='FORMATTED')
