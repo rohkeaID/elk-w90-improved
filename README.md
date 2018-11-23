@@ -5,6 +5,6 @@ Written code is presented as part of a "Big" ELK and uses Wannier90 library.
 
 ## Authors and contributors
 Written by:
-- Arsenii Gerasimov (UrFU, Russia)
+- [Arsenii Gerasimov](@rohkeaID) (UrFU, Russia)
 - Yaroslav Kvashnin (Uppsala University, Sweden)
 - Lars Nordström (Uppsala University, Sweden)
