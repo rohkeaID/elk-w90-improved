@@ -1,0 +1,100 @@
+! non-magnetic NiO: wannierized band structure and crystal field splitting. 
+!!! Requires installed wannier90 code (www.wannier90.org)
+! In this example we perform wannierization of five Ni-3d-derived bands. 
+! 1) run elk
+! 2) execute w90: 
+!         > wannier90.x NiO
+! 3) inspect the results:
+!       - compare the band structures in e.g. gnuplot:               
+!         > plot 'BAND.OUT' u ($1/0.529177):($2*27.2114) w l, 'NiO_band.dat'
+!       - Inspect the "On-site Hamiltonian" (NiO.wout) in and check the crystal field splitting, defined by the difference between Eg and T2g states at H(R=[0 0 0])). It should be about 0.9 eV for this setup. If the ligand states are explicitly wannierized, this value will decrease. (see example below)
+! 
+
+tasks
+  0
+  10
+  20
+  601 
+  602
+
+spinpol
+  .false.
+
+mixtype
+3
+
+scale
+  7.9
+
+!Non-magnetic unit cell of NiO (single f.u.)
+avec
+  .500000000000000  .500000000000000  .000000000000000
+  .500000000000000  .000000000000000  .500000000000000
+  .000000000000000  .500000000000000  .500000000000000
+
+atoms
+  2                                    : nspecies
+  'Ni.in'                              : spfname
+  1                                    : natoms; atpos, bfcmt below
+  .00000000000  .00000000000  .0000000000  0. 0. 0.   
+  'O.in'                               : spfname
+  1                                    : natoms; atpos, bfcmt below
+  .50000000000  .50000000000  .5000000000  0. 0. 0.
+
+sppath
+  './'
+
+! k-point grid used for the scf calculation
+ngridk
+ 10 10 10
+
+plot1d
+  6 60
+   0.25     0.75     0.5   : W
+   0.5      0.5      0.5   : L
+   0.0      0.0      0.0   : Gamma
+   0.0      0.5      0.5   : X
+   0.25     0.75     0.5   : W
+   0.375    0.75     0.375 : K
+
+! The main information about Wannier projection
+! 1) seedname
+! 2) k-point grid used for wannierization (larger number might be needed to get an ideal fit)
+! 3) number of Wannier functions (projections)
+! 4) range of bands to be used for Wannierization (primarly Ni-3d, see PDOS)
+! 5) Definition of the projection (which states to project on, in w90-readable format)
+wannier
+NiO
+4 4 4
+5
+5-9
+Ni:d
+
+! alternative setup with explicit O-p bands in the basis
+! this will result in an effective crystal field splitting of Ni-d state of ~0.3 eV
+! wannier
+! NiO
+! 4 4 4
+! 8
+! 2-9
+! f=0.5,0.5,0.5:p
+! f=0,0,0:d
+
+
+! Additional information to be transferred to Wannier90
+! The k-path coincides with that provided in "plot1d" block for a direct comparison of the band structures
+! Here we will plot the matrix elements of the Hamiltonian at R=0.
+wannierExtra
+  write_hr_diag = true
+  bands_plot = true
+  kpath = true
+  kpath_task = bands
+  kpath_num_points = 500
+  begin kpoint_path
+    W  0.25  0.75  0.5    L 0.50  0.50  0.50
+    L  0.50  0.50  0.5    G 0.0 0.0 0.0
+    G  0.0 0.0 0.0        X 0.0 0.5 0.5
+    X 0.0 0.5 0.5         W 0.25 0.75 0.5 
+    W 0.25 0.75 0.5       K 0.375 0.75 0.375 
+  end kpoint_path
+

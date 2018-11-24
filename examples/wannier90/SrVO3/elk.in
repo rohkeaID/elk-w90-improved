@@ -1,0 +1,98 @@
+! plotting the wannier functions in spin-polarized SrVO3
+!!! Requires installed wannier90 code (www.wannier90.org)
+! Note: Without SOC, spin is a good quantum number and it is recommmended to wannierize each spin channel independently
+! Here we will wannierize the V-eg[dn] bands and plot them.
+! 1) run elk
+! 2) execute w90: 
+!         > wannier90.x SrVO3
+! 3) inspect the results:
+!       - compare the band structures in e.g. gnuplot:
+!         > plot 'BAND.OUT' u ($1/0.529177):($2*27.2114) w l, 'SrVO3_band.dat'
+!       - plot the 3D WFs in e.g. xcrysden:
+!         > xcrysden --xsf SrVO3_00001.xsf 
+
+tasks
+  0
+  20
+  601
+  602
+  605
+
+xctype
+20
+
+scale
+  7.2589
+
+avec
+1.0 0.0 0.0
+0.0 1.0 0.0
+0.0 0.0 1.0
+
+spinpol
+.true.
+
+reducebf
+0.5
+
+atoms
+  3                                    : nspecies
+  'Sr.in'                              : spfname
+  1                                    : natoms; atpos, bfcmt below
+  .00000000000  .00000000000  .00000000000  0. 0. 0. 
+  'V.in'
+  1
+   0.5 0.5 0.5 0.0 0.0 1.0
+  'O.in'                               : spfname
+  3                                    : natoms; atpos, bfcmt below
+  0.5 0.5 0.0 0. 0. 0.
+  0.5 0.0 0.5 0. 0. 0.
+  0.0 0.5 0.5 0. 0. 0.
+
+sppath
+  './'
+
+ngridk
+6 6 6
+
+! These are the vertices to be joined for the band structure plot
+plot1d
+  6 50
+   0.0      0.0      0.0 : Gamma
+   0.5      0.0      0.0 : X
+   0.5      0.5      0.0 : M
+   0.5      0.5      0.5 : R
+   0.0      0.0      0.0 : Gamma
+   0.5      0.5      0.0 : M
+
+! The main information about Wannier projection
+! 1) seedname
+! 2) k-point grid used for wannierization (larger number might be needed for an ideal fit)
+! 3) number of WFs (equal to the num_bands in this case)
+! 4) range of bands to be used for Wannierization
+! 5) projection (here: spin-dn(d) V-Eg orbitals)
+wannier
+SrVO3
+3 3 3
+2 
+65,66
+V:dz2,dx2-y2(d)
+
+! Additional tasks for Wannier90
+! Now contains information for plotting 
+wannierExtra                
+  bands_plot = true
+  kpath = true
+  kpath_task = bands
+  kpath_num_points = 500
+  begin kpoint_path
+    G  0.00  0.00  0.00   X  0.50  0.00  0.00
+    X  0.50  0.00  0.00   M  0.50  0.50  0.00
+    M  0.50  0.50  0.00   R  0.50  0.50  0.50
+    R  0.50  0.50  0.50   G  0.00  0.00  0.00
+    G  0.00  0.00  0.00   M  0.50  0.50  0.00
+  end kpoint_path
+  wannier_plot           = true
+  wvfn_formatted         = true
+  wannier_plot_supercell = 3
+

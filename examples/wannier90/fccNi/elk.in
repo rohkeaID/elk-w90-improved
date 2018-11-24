@@ -1,0 +1,100 @@
+! Example of spin-polarized fcc Ni with SOC
+! Band structure wannierization with disentanglement + calculation of the spin moment in W90
+! Since it is a metal with many hybridised bands, it is impossible to clearly define the energy window for the Wannier projection. In this case, we take more bands into account and then perform the disentanglement procedure within wannier90
+! 1) run elk
+! 2) execute w90: 
+!          > wannier90.x Ni
+! 3) execute postw90 to calculate the spin moment in the WF basis: 
+!          > post90.x Ni
+! 4) inspect the results:
+!         1) compare the wannierized and original bands:
+!          > plot 'BAND.OUT' u ($1/0.529177):($2*27.2114) w l, 'SrVO3_band.dat'
+!         2) check the calculated spin moment in "Ni.wpout"-file. It should roughly coincide with the total value obtained in the full DFT calculation
+! Note: self-consistent calculation requires reasonably dense k-point grid. However, once the optimal potential is found, the wannierization can be successfully performed on a much coarser mesh. The latter grid is specified within "wannier" block.
+! Note: semi-core 3p states of Ni are treated as core just to save computational time  
+
+tasks
+  0
+  10
+  20
+  601
+  602
+
+spinpol
+  .true.
+
+spinorb
+ .true.
+
+
+scale
+  6.66
+
+avec
+  .500000000000000  .500000000000000  .000000000000000
+  .500000000000000  .000000000000000  .500000000000000
+  .000000000000000  .500000000000000  .500000000000000
+
+atoms
+  1                                    : nspecies
+  'Ni.in'                              : spfname
+  1                                    : natoms; atpos, bfcmt below
+  .00000000000  .00000000000  .0000000000  0. 0. 0.1
+
+! fairly high number of empty states
+nempty
+  8
+
+sppath
+  './'
+
+! this grid is too small for accurate magnetic moment
+ngridk
+16 16 16
+
+rgkmax
+7.0
+
+plot1d
+  6 60
+   0.25     0.75     0.5   : W
+   0.5      0.5      0.5   : L
+   0.0      0.0      0.0   : Gamma
+   0.0      0.5      0.5   : X
+   0.25     0.75     0.5   : W
+   0.375    0.75     0.375 : K
+
+! The main information about Wannier projection
+! 1) seedname
+! 2) k-point grid used for wannierization (larger number might be needed to get an ideal fit)
+! 3) number of Wannier functions (spd states of Ni, both spin channels)
+! 4) range of bands to be used for Wannierization (here we include some unoccupied bands for the disentanglement)
+! 5) Definition of the projection (All valence band states of Ni)
+wannier
+  Ni
+ 4 4 4
+  18
+  1-28
+  Ni:sp3d2;dxy;dxz;dyz
+
+wannierExtra                : additional input to go into <seedname>.win
+  bands_plot = true
+  kpath = true
+  kpath_task = bands
+  kpath_num_points = 500
+  begin kpoint_path
+    W  0.25  0.75  0.5    L 0.50  0.50  0.50
+    L  0.50  0.50  0.5    G 0.0 0.0 0.0
+    G  0.0 0.0 0.0        X 0.0 0.5 0.5
+    X 0.0 0.5 0.5         W 0.25 0.75 0.5
+    W 0.25 0.75 0.5       K 0.375 0.75 0.375
+  end kpoint_path
+  dis_win_min       = -10.0d0
+  dis_win_max       =  60.0d0
+  dis_froz_min      = -10.0d0
+  dis_froz_max      =  4.0d0
+  dis_num_iter      =  500
+  spin_moment  = true
+  kmesh = 32 32 32
+
+
