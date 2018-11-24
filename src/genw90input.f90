@@ -224,7 +224,7 @@ do ikp=1,nkpt
 
   end do ! end loop over b points
 
-  ! compute spn
+  ! if wavefunctions are spinors, compute spn-matrix by default
   if(nspinor.eq.2) then
     vec_0(1)=0.d0
     vec_0(2)=0.d0

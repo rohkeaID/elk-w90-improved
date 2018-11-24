@@ -40,6 +40,11 @@ if(wann_nband.eq.-1) then
   stop
 end if
 
+ write(*,*)
+ write(*,'("  Info(Wannier): Number of bands to be used for wannierization  :",i3)'), wann_nband
+ write(*,'(17x,"Indices of the corresponding bands/eigenvalues :",99i4)') wann_bands(1:wann_nband)
+ write(*,*)
+
 ! initialise universal variables
 call init0
 

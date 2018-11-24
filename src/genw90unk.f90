@@ -100,7 +100,7 @@ if (redkfil.ne.0) then
 end if
 
 
-fmt_ikp = '(I5.5)' ! format of k-points in UNK filename an integer of width 5 with zeros at the left
+fmt_ikp = '(I5.5)' ! format of k-points in UNK filename (5 digits) 
 fmt_is = '(I1.1)'
 
 if(mp_mpi) then
@@ -108,9 +108,11 @@ if(mp_mpi) then
   write(*,*) "Info(Wannier): Unk calculation" 
 end if
 
+! check whether both spinor projections need to be plotted
 if (any( wann_proj_spin .eq. 1))  wann_spn_up = .true.
 if (any( wann_proj_spin .eq. -1)) wann_spn_dn = .true.
 wann_spn_start = 1; wann_spn_end = nspinor
+! special cases where one spin component is enough
 if(spinpol .and. .not.(spinorb) .and. wann_spn_up .and. .not.(wann_spn_dn)) wann_spn_end = 1
 if(spinpol .and. .not.(spinorb) .and. .not.(wann_spn_up) .and. wann_spn_dn) then
   wann_spn_start = 2
@@ -149,6 +151,7 @@ do ikp=1,nkpt
   call gengqrf(bqc,vgqc,gqc,jlgqr,ylmgq,sfacgq)
   call genexpmt(1,jlgqr,ylmgq,1,sfacgq,expmt)
 
+! multiply psi_nk with exp(-ikr) to get the periodic part u_nk
   do i=1,npcmtmax
     do j=1,natmtot
       do is = wann_spn_start,wann_spn_end
@@ -169,12 +172,13 @@ do ikp=1,nkpt
     end do
   end do
   
+! dump data to files
   ispn = 0
   fileID = 600+(ikp-1)*nspinor
   do is = wann_spn_start,wann_spn_end
     ispn = ispn + 1
-    write(ikp_str,fmt_ikp) ikp ! converting integer to string using an 'internal file'
-    write(is_str,fmt_is) ispn ! converting integer to string using an 'internal file'
+    write(ikp_str,fmt_ikp) ikp 
+    write(is_str,fmt_is) ispn 
     filename = 'UNK'//trim(ikp_str)//'.'//trim(is_str)
     fileID=fileID+is-1
     open(fileID,file=filename,action='WRITE',form='FORMATTED')
@@ -208,7 +212,7 @@ call omp_free(nthd)
 
 if (mp_mpi) then
   write(*,*)
-  write(*,*) "Info(Wannier): Unk for each k-point are computed"
+  write(*,*) "Info(Wannier): Unk for each k-point has been computed [ OK ]"
 end if
 
 reducek=reducek0

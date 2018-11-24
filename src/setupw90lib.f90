@@ -80,7 +80,7 @@ if ( nspinor .eq. 2 ) then
   spinors_lib = .true.
 end if
 
-! 
+! call external w90 library 
 call wannier_setup(trim(wann_seedname),ngridk,nkpt,au2angstrom*transpose(avec),& !in
                    (1/au2angstrom)*transpose(bvec),vkl,wann_nband,natmtot,&           !in
                    wann_atomsymb,wann_atompos,.false.,spinors_lib,&              !in
@@ -96,7 +96,7 @@ call wannier_setup(trim(wann_seedname),ngridk,nkpt,au2angstrom*transpose(avec),&
    write(*,*)
   end if 
 
-wann_proj_isrand = .false. ! AG: solve later
+wann_proj_isrand = .false. ! AG: currently no support for random projections
 ! number of projections is always equal to the number of WFs
   wann_nproj = wann_nwf
 
