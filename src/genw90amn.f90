@@ -25,6 +25,7 @@ integer nst,nthd
 integer redkfil,nstsv_,recl
 logical exists
 real(8) t1
+logical :: wann_spn_up = .false., wann_spn_dn = .false.
 ! automatic arrays
 character(256)    filename
 character(10)     dat,tim
@@ -111,7 +112,7 @@ call genw90twf(twfmt,twfir)
 
 if (mp_mpi) then
   write(*,*) 
-  write(*,*) " Info(Wannier): Trial wavefunctions have been generated from the first APW in the list"
+  write(*,'(" Info(Wannier): Trial wavefunctions have been generated from the first APW in the list")') 
   write(*,*) 
   write(*,'("  List of projections (",i3,"):")')  wann_nproj
 
@@ -122,6 +123,32 @@ if (mp_mpi) then
     write(*,'("    n=",i3," : R_at =(",3f10.5,") ; l=", i2," ; m=", i2)') n, wann_proj_site(:,n), wann_proj_l(n), wann_proj_m(n) 
    end if
   end do
+
+! Special check for the case when the projection is done on a single spin
+! channel in spin-pol calculation without SOC 
+! (projections on both spins can be done independently)
+! In this case, the projections spins have to be consistent with the band
+! indices
+   if (spinpol .and. .not.(spinorb)) then
+    if (any( wann_proj_spin .eq. 1))  wann_spn_up = .true.
+    if (any( wann_proj_spin .eq. -1)) wann_spn_dn = .true.
+     ! first half of bands have pure spin-up character
+     if (wann_spn_up .and. not(wann_spn_dn) .and. any(wann_bands(1:wann_nband) .gt. int(nstsv/2))) then
+      write(*,*) 
+      write(*,'("Error(Wannier): Projecting on the spin-up states ...")') 
+      write(*,'("                You are trying to project spin-up bands onto spin-dn trial wavefunction")')   
+      write(*,'("                Change the spin-(u) character of the projection ")')
+      stop
+     end if
+     ! second half of bands have pure spin-dn character
+     if (.not.(wann_spn_up) .and. wann_spn_dn .and. any(wann_bands(1:wann_nband) .le. int(nstsv/2))) then
+      write(*,*)
+      write(*,'("Error(Wannier): Projecting on the spin-dn states ...")') 
+      write(*,'("                You are trying to project spin-up bands onto spin-dn trial wavefunction")')   
+      write(*,'("                Change the spin-(d) character of the projection ")')
+      stop
+     end if
+   end if
 
   write(*,*)
   write(*,*) " Info(Wannier): Calculating trial wavefunctions"

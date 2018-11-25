@@ -89,7 +89,7 @@ call wannier_setup(trim(wann_seedname),ngridk,nkpt,au2angstrom*transpose(avec),&
                    wann_proj_radial,wann_proj_zaxis,wann_proj_xaxis,&            !out
                    wann_proj_zona,wann_proj_exclude_bands_lib,&                  !out
                    wann_proj_spin,wann_proj_quantdir)                            !out
-!yk tests
+
   if (mp_mpi) then 
    write(*,*)
    write(*,*) " Info(Wannier): Wannier90 has been run as a library. [ OK ] "
