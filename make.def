@@ -10,6 +10,21 @@ SRC_MPI = mpi_stub.f90
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
+SRC_W90 = wannier_setup.f90 wannier_run.f90
+LIB_W90 =
+#
+# WARNING: if you would like to use Wannierization - comment first couple of
+# lines and follow instructions further.
+#
+# To enable Wannier90 library first download and compile as a library latest
+# version of Wannier90 (current one is 2.1.0). Then copy the file libwannier.a
+# to the elk/src directory. Uncomment the lines below and run 'make clean'
+# followed by 'make'.
+#SRC_W90 =
+#LIB_W90 = libwannier.a
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
 SRC_libxc = libxcifc_stub.f90
 # To enable Libxc first download and compile version 4.x of the library. Next
 # copy the files libxcf90.a and libxc.a to the elk/src directory. Then uncomment
@@ -31,8 +46,8 @@ SRC_FFT = zfftifc.f90
 
 #-------------------------------------------------------------------------------
 # As an example, here is the make.inc file we use for our cluster. It uses MKL
-# LAPACK and BLAS, MKL FFTW and Libxc. The Fortran compiler is mpif90 which
-# enables MPI parallelism. All libraries are statically linked.
+# LAPACK and BLAS, MKL FFTW, Libxc and Wannier90 library. The Fortran compiler
+# is mpif90 which enables MPI parallelism. All libraries are statically linked.
 #
 # MKLROOT = /cluster/intel_2018/mkl/
 # MAKE = make
@@ -47,6 +62,7 @@ SRC_FFT = zfftifc.f90
 # LIB_libxc = libxcf90.a libxc.a
 # SRC_libxc = libxc_funcs.f90 libxc.f90 libxcifc.f90
 # SRC_FFT = zfftifc_fftw.f90
+# SRC_W90 =
+# LIB_W90 = libwannier.a
 #
 #-------------------------------------------------------------------------------
-
