@@ -77,14 +77,13 @@ do is=1,nspecies
     end if
     wann_proj_haswt(:,ias)=.false.
     do n=1,wann_nproj
-      if(wann_proj_isrand(n)) cycle
 ! only treats atom centred projections in this version (!)
       if(abs(sum(wann_proj_site(:,n)-v1)).lt.0.0001) then
         wann_proj_haswt(n,ias)=.true.
         noweight(n)=.false.
-        select case (wann_proj_radial(n))
+!        select case (wann_proj_radial(n))
 ! expressions taken from table 3.3 of the wannier90 user guide and the Orbitron
-          case (0)
+!          case (0)
             do l=0,lmaxproj
              !wann_projulr(1:nr,l,ias,n)=apwfr(1:nr,1,1,l,ias)  ! just use the APW radial fn
               irc=1
@@ -93,34 +92,6 @@ do is=1,nspecies
                 irc=irc+lradstp
               end do
             end do
-          case (1)
-            wann_projulr(1:nr,0,ias,n)=2.*wann_proj_zona(n)**1.5&              ! 1s
-                *exp(-wann_proj_zona(n)*rcmt(1:nr,is))
-          case (2)
-            wann_projulr(1:nr,0,ias,n)=(1./2./sqrt(2.))*wann_proj_zona(n)**1.5&! 2s
-                *(2.-wann_proj_zona(n)*rcmt(1:nr,is))&
-                *exp(-wann_proj_zona(n)*rcmt(1:nr,is)/2.)
-            wann_projulr(1:nr,1,ias,n)=(1./2./sqrt(2.))*wann_proj_zona(n)**1.5&! 2p
-                *wann_proj_zona(n)*rcmt(1:nr,is)&
-                *exp(-wann_proj_zona(n)*rcmt(1:nr,is)/2.)
-          case (3)
-            wann_projulr(1:nr,0,ias,n)=sqrt(4./27.)*wann_proj_zona(n)**1.5&    ! 3s
-                *(1.-(2./3.)*wann_proj_zona(n)*rcmt(1:nr,is)&
-                +(2./27.)*((wann_proj_zona(n)*rcmt(1:nr,is))**2.))&
-                *exp(-wann_proj_zona(n)*rcmt(1:nr,is)/3.)
-            wann_projulr(1:nr,1,ias,n)=sqrt(4./54.)*wann_proj_zona(n)**1.5&    ! 3p
-                *(2.-wann_proj_zona(n)*rcmt(1:nr,is)/3.)&
-                *(2.*wann_proj_zona(n)*rcmt(1:nr,is)/3.)&
-                *exp(-wann_proj_zona(n)*rcmt(1:nr,is)/3.)
-            wann_projulr(1:nr,2,ias,n)=sqrt(1./270.)*wann_proj_zona(n)**1.5&   ! 3d
-                *(2.*wann_proj_zona(n)*rcmt(1:nr,is)/3.)**2.&
-                *exp(-wann_proj_zona(n)*rcmt(1:nr,is)/3.)
-          case default
-            write(*,*)
-            write(*,'("error(genw90twf): radial fn type ",I2," not recognised.")')
-            write(*,*)
-            stop
-        end select
         rlm=0
         wann_projclm(:,ias,n)=cmplx(0.d0,0.d0,kind=8)
         if(wann_proj_l(n).ge.0) then
@@ -214,21 +185,12 @@ do is=1,nspecies
     end do
   end do    ! loop over atoms
 end do      ! loop over species
-! Prints a warning if projections are not atom centred
-do n=1,wann_nproj
-  if(noweight(n).and..not.wann_proj_isrand(n)) then
-    write(*,*)
-    write(*,'("Warning(genw90twf): projection ",I4," at ",3F12.8," is not atom &
-              &centred. Treated as random.")') n, wann_proj_site(:,n)
-    wann_proj_isrand(n)=.true.
-  end if
-end do
 
 ! create the trial wavefunction matrix
 allocate(twfmt1(npcmtmax))
 twfmt = cmplx(0.d0,0.d0,kind=8)
 twfir = cmplx(0.d0,0.d0,kind=8)! trial wavefunction is zero outside muffin-tin.
-do ispn=1,nspinor
+!do ispn=1,nspinor !yk
   do is=1,nspecies
     nrc=nrcmt(is)
     nrci=nrcmti(is)
@@ -266,11 +228,15 @@ do ispn=1,nspinor
             end do
           end do
         end do
-        call zbsht(nrc,nrci,twfmt1,twfmt(:,ias,ispn,n))
-      end do
+        if (nspinor .eq. 2) then      
+         call zbsht(nrc,nrci,twfmt1,twfmt(:,ias,int(1.5d0-(wann_proj_spin(n)/2d0)),n))
+        else
+         call zbsht(nrc,nrci,twfmt1,twfmt(:,ias,1,n))
+        end if
+      end do !n
     end do
   end do
-end do
+!end do
 deallocate(twfmt1)
 
 return

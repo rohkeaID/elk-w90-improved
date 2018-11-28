@@ -23,7 +23,7 @@ use modomp
 
 implicit none
 ! local variables
-integer jk,n,m,ig,is
+integer jk,n,m,ig,is,i,j
 integer ikp,inn
 integer ist
 integer redkfil,nstsv_,recl
@@ -42,11 +42,14 @@ complex(8), allocatable :: wfmt(:,:,:,:),wfir(:,:,:)
 complex(8), allocatable :: wfmtq(:,:,:,:),wfirq(:,:,:)
 real(8),    allocatable :: evalsv_(:)
 integer,    allocatable :: ngp(:),ngpq(:)
+complex(8), allocatable :: zwfmt(:,:,:,:)
+complex(8), allocatable :: zrhomt(:,:)
+complex(8), allocatable :: zrhoir(:)
 ! automatic arrays
-real(8)        :: bqvec(3),bqc(3),vkql(3)
-character(256)    filename
-character(10)     dat,tim
-real(8)           vkl_(3),vec_0(3)
+real(8)                 :: bqvec(3),bqc(3),vkql(3)
+character(256)             filename
+character(10)              dat,tim
+real(8)                    vkl_(3),vec_0(3)
 !integer           ngp(nspnfv),ngpq(nspnfv)
 
 reducek0=reducek ! if reducek=1 was used in ground state calculations,
@@ -201,7 +204,7 @@ do ikp=1,nkpt
     
     ! compute Mmn
     mmn = cmplx(0.d0,0.d0,kind=8)
-    call genw90overlap(wfmt,wfir,wann_nband,nspinor,wfmtq,wfirq,mmn,expmt)
+    call genw90overlap(wfmt,wfir,wann_nband,wfmtq,wfirq,mmn,expmt)
 
   !$OMP CRITICAL(genw90input_)
     ! write the Mmn matrix elements
@@ -221,7 +224,7 @@ do ikp=1,nkpt
 
   end do ! end loop over b points
 
-  ! compute spn
+  ! if wavefunctions are spinors, compute spn-matrix by default
   if(nspinor.eq.2) then
     vec_0(1)=0.d0
     vec_0(2)=0.d0
@@ -229,7 +232,7 @@ do ikp=1,nkpt
     call gengqrf(vec_0,vgqc,gqc,jlgqr,ylmgq,sfacgq)
     call genexpmt(1,jlgqr,ylmgq,1,sfacgq,expmt)
     mmn = cmplx(0.d0,0.d0,kind=8)
-    call genw90overlap(wfmt,wfir,wann_nband,nspinor,wfmt,wfir,mmn,expmt)
+    call genw90overlap(wfmt,wfir,wann_nband,wfmt,wfir,mmn,expmt)
   !$OMP CRITICAL(genw90input_)
     is=1
     do m=1,wann_nband
@@ -256,6 +259,8 @@ end do !End loop over k points
 
 deallocate(wfmt,wfir)
 deallocate(jlgqr,ylmgq,sfacgq)
+deallocate(igpig,igpqig)
+deallocate(ngp,ngpq)
 deallocate(expmt)
 deallocate(wfmtq,wfirq)
 deallocate(mmn)
@@ -267,7 +272,7 @@ call genw90amn
 
 if (mp_mpi) then
   write(*,*)
-  write(*,*) "Info(Wannier): Mmn and Amn for each k-point are computed"
+  write(*,*) "Info(Wannier): Mmn and Amn matrices have been computed"
 end if
 
 ! close seedname.mmn
@@ -293,6 +298,7 @@ if(nspinor.eq.2) then
   end if
   deallocate(spn_x,spn_y,spn_z)
 end if
+
 
 deallocate(wann_atomsymb,wann_atompos)
 deallocate(nnlist,nncell)
