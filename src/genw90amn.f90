@@ -133,7 +133,7 @@ if (mp_mpi) then
     if (any( wann_proj_spin .eq. 1))  wann_spn_up = .true.
     if (any( wann_proj_spin .eq. -1)) wann_spn_dn = .true.
      ! first half of bands have pure spin-up character
-     if (wann_spn_up .and. not(wann_spn_dn) .and. any(wann_bands(1:wann_nband) .gt. int(nstsv/2))) then
+     if (wann_spn_up .and. .not.(wann_spn_dn) .and. any(wann_bands(1:wann_nband) .gt. int(nstsv/2))) then
       write(*,*) 
       write(*,'("Error(Wannier): Projecting on the spin-up states ...")') 
       write(*,'("                You are trying to project spin-up bands onto spin-dn trial wavefunction")')   
