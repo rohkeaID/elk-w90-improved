@@ -1,5 +1,6 @@
 
-! Copyright (C) 2015 Jon Lafuente and Manh Duc Le
+! Copyright (C) 2015 Jon Lafuente and Manh Duc Le, 2017-18 Arsenii Gerasimov,
+! Yaroslav Kvashnin and Lars Nordstrom.
 ! This file is distributed under the terms of the GNU General Public License.
 ! See the file COPYING for license details.
 

@@ -1,9 +1,10 @@
-! Copyright (C) 2017 Arsenii Gerasimov, Yaroslav Kvashnin and Lars Nordstrom
+
+! Copyright (C) 2017-18 Arsenii Gerasimov, Yaroslav Kvashnin and Lars Nordstrom.
 ! This file is distributed under the terms of the GNU General Public License.
 ! See the file COPYING for license details.
 
 !BOP
-! !MODULE: w90overlap - had to make a module, as we have an optional var. in a routine
+! !MODULE: w90overlap - has to be a module, as we have an optional var. in a routine
 ! !ROUTINE: genw90overlap
 ! !INTERFACE:
 module modw90overlap
@@ -17,7 +18,7 @@ module modw90overlap
       !   Calculates the general Omn (Mmn and Amn) overlap matrices required for Wannier90.
       !
       ! !REVISION HISTORY:
-      !   Created June 2017 (Arsenii Gerasimov)
+      !   Created October 2017 (Arsenii Gerasimov)
       !EOP
       !BOC
       implicit none
@@ -27,13 +28,11 @@ module modw90overlap
       integer,                                                    intent(in   ) :: nproj
       complex(8), dimension(npcmtmax,natmtot,nspinor,nproj),      intent(in   ) :: wfmtq
       complex(8), dimension(ngtot,nspinor,nproj),                 intent(in   ) :: wfirq
-      complex(8), dimension(wann_nband,nspinor,nproj,nspinor),         intent(inout) :: omn
+      complex(8), dimension(wann_nband,nspinor,nproj,nspinor),    intent(inout) :: omn
       complex(8), dimension(npcmtmax,natmtot),          optional, intent(in   ) :: phase
 
       ! local variables
       integer    :: ist,jst,ispin,jspin,i,irc
-      complex(8) :: matel
-      real(8)    :: norm
       integer    :: is,ia,ias
       integer    :: nrc,nrci,npc
       real(8)    :: t1real, t1img

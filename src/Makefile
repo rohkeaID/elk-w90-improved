@@ -5,7 +5,8 @@ include ../make.inc
 SRC_modules = modmain.f90 $(SRC_MPI) modmpi.f90 $(SRC_libxc) modxcifc.f90 \
  modfxcifc.f90 moddftu.f90 modrdm.f90 modphonon.f90 modscdft.f90 modtest.f90 \
  modrandom.f90 modstore.f90 modpw.f90 modvars.f90 modtddft.f90 modgw.f90 \
- modulr.f90 modjx.f90 modw90.f90 modw90overlap.f90 $(SRC_OMP) modomp.f90
+ modulr.f90 modjx.f90 modw90.f90 modw90overlap.f90 $(SRC_OMP) \
+ modomp.f90
 
 # Elk program
 SRC_elk = elk.f90
@@ -158,7 +159,7 @@ SRC_XC = \
   x_wc06.f90 x_pbe.f90 c_pbe.f90 c_pbe_gcor.f90 xc_vbh.f90 fxc_pwca.f90
 
 SRC_WANN = \
- getw90bands.f90 genw90twf.f90 \
+ initw90.f90 getw90bands.f90 genw90twf.f90 \
  writew90win.f90 genw90amn.f90 \
  setupw90lib.f90 genw90input.f90 \
  genw90unk.f90 zfplotUNK.f90 \
@@ -166,7 +167,7 @@ SRC_WANN = \
 
 SRC = $(SRC_modules) $(SRC_FFT) $(SRC_elk) $(SRC_main) $(SRC_phonon) \
  $(SRC_SCDFT) $(SRC_XC) $(SRC_DFTU) $(SRC_RDMFT) $(SRC_GW) $(SRC_TDDFT) \
- $(SRC_ULR) $(SRC_WANN)
+ $(SRC_ULR) $(SRC_W90) $(SRC_WANN)
 
 OBJ = $(SRC:.f90=.o)
 EXE = elk
@@ -183,7 +184,7 @@ EXE = elk
 #-------------------------------------------------------------------------------
 elk:	$(OBJ)
 	$(F90) $(F90_OPTS) -o $(EXE) $(OBJ) $(LIB_W90) $(LIB_LPK) $(LIB_FFT) $(LIB_libxc) \
-         $(LIB_SYS)  
+         $(LIB_SYS)
 
 blas:
 	cd BLAS; $(MAKE); cp blas.a ..
@@ -273,4 +274,3 @@ spaces:
 
 vim:
 	./vimelk
-
