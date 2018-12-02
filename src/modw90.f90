@@ -12,34 +12,33 @@ module modw90
 integer                      reducek0
 ! conversion factor from a.u. (Bohr) to Angstrom (needed 4: libwannier.a)
 real(8),      parameter   :: au2angstrom = 0.5291772108d0
-real(8),      parameter   :: hartree2ev  = 27.211385056d0
-! total number of atoms to pass to wannier90
+! total number of atoms to pass to the Wannier90
 integer                      wann_natoms
-! number of bands to pass to wannier90
+! number of bands to pass to the Wannier90
 integer                      wann_nband
-! atom symbols to pass to wannier90
+! atom symbols to pass to the Wannier90
 character(4), allocatable :: wann_atomsymb(:)
 ! atom Cartesian coordinates in Angstrom
 real(8),      allocatable :: wann_atompos(:,:)
-! index of bands to pass to wannier90
+! index of bands to pass to the Wannier90
 integer,      allocatable :: wann_bands(:)
 ! list of neighbouring k-points
 integer,      allocatable :: wann_nnkp(:,:)
-! number of iterations for the minimisation in Wannier90 iterations
+! number of iterations for the minimisation in the Wannier90 iterations
 integer                      wann_numiter
 
-! wannier projections definitions. Uses same syntax as wannier90 library
-! number of lines in projection block
+! Wannier projections definitions. Uses same syntax as Wannier90 library
+! number of projection lines in wannier block
 integer                      wann_projlines
-! number of lines in wann_input block
+! number of lines in wannierExtra block
 integer                      wann_inputlines
-! the projection block to write to .win
+! list of projections to write to the seedname.win
 character(256)               wann_projstr(256)
-! arbitrary input for wannier90 .win
+! arbitrary input for the Wannier90 seedname.win
 character(256)               wann_input(256)
-! name of all files, produced by interface; default: ELK
+! name of all files, produced by interface; default: null
 character(256)               wann_seedname
-! k-point grid sizes for Wannier calculations
+! k-point grid sizes for the Wannier90 calculations
 integer                      wann_ngridk(3)
 ! number of projections per spin
 integer                      wann_nproj
@@ -60,13 +59,13 @@ integer                   :: num_nnmax = 12
 integer                      wann_nntot
 ! list of nearest neighbours for each k-point
 integer,      allocatable :: nnlist(:,:)
-! (see the notation of Wannier90)
+! vector that brings the nearest neighbour of k-point to its periodic image
 integer,      allocatable :: nncell(:,:,:)
 ! number of bands in first-principles calc. (excluding eg. semi-core states)
 integer                   :: wann_nband_total
-! number of wannier functions to calculate
+! number of Wannier functions to calculate
 integer                      wann_nwf
-! coordinates of sites
+! sites coordinates
 real(8),      allocatable :: wann_proj_site(:,:)
 ! l angular momentum number
 integer,      allocatable :: wann_proj_l(:)

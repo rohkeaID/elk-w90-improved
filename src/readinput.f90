@@ -304,7 +304,7 @@ t0tdlr=0.d0
 wann_nwf=-1
 wann_nband=-1
 wann_projlines=-1
-wann_seedname='ELK'
+wann_seedname=''
 wann_numiter=500
 wann_inputlines=0
 wann_ngridk(:)=1
@@ -1834,7 +1834,7 @@ case('wannier')
   read(50,'(A256)',err=20) str ! wann_projections
   if (trim(str).eq.'') then
     write(*,*)
-    write(*,'("Error(readinput): no projections given in wann_projections")')
+    write(*,'("Error(readinput): no projections given in wann_projections string")')
     write(*,*)
     stop
   end if
@@ -1955,4 +1955,3 @@ call readspecies
 return
 end subroutine
 !EOC
-

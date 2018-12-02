@@ -12,7 +12,8 @@ subroutine writew90win
 use modmain
 use modw90
 ! !DESCRIPTION:
-!   Writes a template WIN input file for Wannier90 with the crystal structure
+!   Writes out a template {\tt seedname.win} file with the Wannier90 input
+!   parameters. Uses {\tt wannier} and {\tt wannierExtra} blocks.
 !
 ! !REVISION HISTORY:
 !   Created January 2015 (Manh Duc Le)
@@ -44,8 +45,10 @@ if( wann_nband .eq. -1 ) then
 end if
 
 write(*,*)
-write(*,'("  Info(Wannier): Number of bands to be used for wannierization  :",i3)'), wann_nband
-write(*,'(17x,"Indices of the corresponding bands/eigenvalues :",99i4)') wann_bands(1:wann_nband)
+write(*,'("  Info(Wannier): Number of bands to be used for &
+                                            &wannierization :",i3)'), wann_nband
+write(*,'(17x,"Indices of the corresponding bands/eigenvalues :",99i4)') &
+                                                        wann_bands(1:wann_nband)
 write(*,*)
 
 ! Initialise universal variables
@@ -62,42 +65,43 @@ call init1
 ! Check that the number of bands is greater than or equal to the number projections
 if( wann_nband .lt. wann_nwf ) then
   write(*,*)
-  write(*,'("Error(writew90win): Number of bands less than number of wannier functions.&
-                              &Please check wann_nwf/wann_projections and wann_bands")')
+  write(*,'("Error(writew90win): Number of bands less than number of wannier &
+                      &functions. Please check wann_nwf/wann_projections and &
+                                                                &wann_bands")')
   write(*,*)
   stop
 end if
 
 filename = trim(wann_seedname)//'.win'
-open(50,file=filename,action='WRITE',form='FORMATTED')
+open(500,file=filename,action='WRITE',form='FORMATTED')
 ! Write the number of Wannier functions and number of bands to calculate
-write(50,'(" length_unit=Bohr")')
-write(50,'(" num_wann =  ",I8)')  wann_nwf
-write(50,'(" num_bands = ",I8)')  wann_nband
-write(50,'(" num_iter = ",I8)')   wann_numiter
+write(500,'(" length_unit=Bohr")')
+write(500,'(" num_wann =  ",I8)')  wann_nwf
+write(500,'(" num_bands = ",I8)')  wann_nband
+write(500,'(" num_iter = ",I8)')   wann_numiter
 
 ! Write spinors, if necessary
 if ( nspinor .eq. 2 ) then
-  write(50,*)
-  write(50,'(" spinors = true")')
-  write(50,'(" spn_formatted = true")')
+  write(500,*)
+  write(500,'(" spinors = true")')
+  write(500,'(" spn_formatted = true")')
 end if
 
 ! Write unit cell
-write(50,*)
-write(50,'(" begin unit_cell_cart")')
-write(50,'(" bohr")')
-write(50,'(3G18.10)') avec(:,1)
-write(50,'(3G18.10)') avec(:,2)
-write(50,'(3G18.10)') avec(:,3)
-write(50,'(" end unit_cell_cart")')
+write(500,*)
+write(500,'(" begin unit_cell_cart")')
+write(500,'(" bohr")')
+write(500,'(3G18.10)') avec(:,1)
+write(500,'(3G18.10)') avec(:,2)
+write(500,'(3G18.10)') avec(:,3)
+write(500,'(" end unit_cell_cart")')
 
 ! Writes atomic positions
-write(50,*)
-write(50,'(" begin atoms_frac")')
+write(500,*)
+write(500,'(" begin atoms_frac")')
 do is = 1,nspecies
   do ia = 1,natoms(is)
-    ! code taken from writegeom.f90
+    ! Code taken from writegeom.f90
     if ( molecule ) then
       ! Map lattice coordinates to [-0.5,0.5)
       v2(:) = atposl(:,ia,is)
@@ -108,42 +112,41 @@ do is = 1,nspecies
       ! Otherwise write lattice coordinates
       v2(:) = atposl(:,ia,is)
     end if
-    write(50,'(A5,3G18.10)') trim(spsymb(is)),v2(:)
+    write(500,'(A5,3G18.10)') trim(spsymb(is)),v2(:)
   end do
 end do
-write(50,'(" end atoms_frac")')
+write(500,'(" end atoms_frac")')
 
 ! Write the projections block
-write(50,*)
-write(50,'(" begin projections")')
+write(500,*)
+write(500,'(" begin projections")')
 do i = 1,wann_projlines
-  write(50,'(A)') trim(wann_projstr(i))
+  write(500,'(A)') trim(wann_projstr(i))
 end do
-write(50,'(" end projections")')
+write(500,'(" end projections")')
 
 ! Write the list of k-points
-write(50,*)
-write(50,'(" mp_grid = ",3I8)') ngridk
-write(50,*)
-write(50,'(" begin kpoints")')
+write(500,*)
+write(500,'(" mp_grid = ",3I8)') ngridk
+write(500,*)
+write(500,'(" begin kpoints")')
 do ik = 1,nkpt
-  write(50,'(3G18.10)') vkl(:,ik)
+  write(500,'(3G18.10)') vkl(:,ik)
 end do
-write(50,'(" end kpoints")')
+write(500,'(" end kpoints")')
 if( wann_inputlines .gt. 0 ) then
   do i = 1,wann_inputlines
-    write(50,'(A)') trim(wann_input(i))
+    write(500,'(A)') trim(wann_input(i))
   end do
 end if
 
-close(50)
+close(500)
 
 reducek = reducek0
 
 write(*,*)
-write(*,*) " Info(Wannier): seedname.win file has been created "
+write(*,*) " Info(Wannier): <seedname>.win file has been created"
 write(*,*)
-
 
 end subroutine
 !EOC

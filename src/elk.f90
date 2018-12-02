@@ -215,12 +215,10 @@ do itask=1,ntasks
     call gwsefm
   case(601)
     call writew90win
-  ! case(602)
-    !   call writew90mmn
   case(602)
     call genw90input
-  case(603)
-    call runw90
+  ! case(603)
+  !   call runw90
   case(604)
     call genw90amn
   case(605)
@@ -410,6 +408,33 @@ end program
 !   and correlation functionals in the Libxc library. See the file
 !   {\tt elk/src/libxc\_funcs.f90} for a list of the functionals and their
 !   associated numbers.
+!
+!   \subsection{Linking with Wannier90 library and the Wannier90 interface}
+!    The Wannier90 interface will allow to construct a set of Maximally
+!    Localized Wannier Funtions (MLWF)\footnote{N. Marzari and D. Vanderbilt,
+!    {\it Maximally localized generalized Wannier functions for composite
+!    energy bands}, {\it Phys. Rev. B} {\bf 56}, 12847 (1997).}. This opens the
+!    way to investigate transport properties, parameterize Hubbard and
+!    Heisenberg models and much more. To enable an interface and Wannier90
+!    library first download and compile as a library latest version of the
+!    Wannier90 (current one is 2.1.0). Then copy the file {\tt libwannier.a} to
+!    the {\tt elk/src} directory and follow instructions indicated for Wannier90
+!    library in the {\tt elk/make.inc} file. After Wannier90 library is linked
+!    and interface is compiled, all necessary parameters for Wannierization can
+!    be specified in the following block
+!    \begin{verbatim}
+!      wannier
+!        NiO
+!        10 10 10
+!        10
+!        15-24
+!        Ni:d
+!    \end{verbatim}
+!    This block has a strict format and for the additional information
+!    {\tt wannierExtra} block can also be used.
+!
+!    {\it Note that interface can be run using \textbf{only} OpenMP, MPI
+!    parallelization is currently unavaliable.}
 !
 !   \subsection{Running the code}
 !   As a rule, all input files for the code are in lower case and end with the
@@ -1522,7 +1547,14 @@ end program
 !    energy contributions. \\
 !   450 & Generates a laser pulse in the form of a time-dependent vector
 !    potential ${\bf A}(t)$ and writes it to AFIELDT.OUT. \\
-!   460 & Time evolution run using TDDFT under the influence of ${\bf A}(t)$.
+!   460 & Time evolution run using TDDFT under the influence of ${\bf A}(t)$. \\
+!   601 & Generate {\tt seedname.win} file with the Wannier90 input
+!   parameters. \\
+!   602 & Generate and write all basic files required for the Wannier90. \\
+!   604 & Recompute {\tt seedname.amn} file with $A_{mn}$ integrals required
+!   for the Wannier90. \\
+!   605 & Generate {\tt UNKp.s} files for plotting Wannier Functions in the
+!   Wannier90.
 !   \end{tabularx}
 !
 !   \block{tau0atp}{
@@ -1674,6 +1706,36 @@ end program
 !    m_y({\bf r})\sin({\bf q \cdot r}),m_z({\bf r})), $$
 !   where $m_x$, $m_y$ and $m_z$ are lattice periodic. See also {\tt spinsprl}.
 !
+!   \block{wannier}{
+!    {\tt wann\_seedname} & {\tt seedname} of all files produced by interface &
+!     string & null \\
+!    \hline
+!    {\tt wann\_ngridk} & k-point grid used for Wannierization & integer(3) &
+!    (1,1,1) \\
+!    \hline
+!    {\tt wann\_nwf} & number of Wannier functions & integer & -1 \\
+!    \hline
+!    {\tt wann\_bands} & range of bands to be used for Wannierization. &
+!    string & - \\
+!    \hline
+!    {\tt wann\_projections} & list of projections & string(256) & -
+!   }
+!   Defines necessary parameters for Wannierization. Note that the range of
+!   bands should be a comma separated list of indices (e.g. 1-4 or 1,2,4
+!   or 1-3,5-6). List of projections should be defined in one line or many
+!   strings (up to 256 lines): the format is the same as the Wannier90 requires
+!   (for the details please look into Wannier90 user guide).
+!
+!   \medskip
+!   \textit{Tips:} band indexes can be identified using {\tt EIGVAL.OUT} file.
+!
+!   \block{wannierExtra}{
+!    {\tt wann\_input} & arbitrary input for the Wannier90 {\tt seedname.win} &
+!     string(256) & -
+!   }
+!   Defines additional information for Wannierization. Information under this
+!   block will be fully passed to the {\tt seedname.win} file.
+!
 !   \block{wmaxgw}{
 !   {\tt wmaxgw} & maximum Matsubara frequency for $GW$ calculations & real &
 !    $-5.0$}
@@ -1814,4 +1876,3 @@ end program
 !    will be accepted without this.
 !
 !EOI
-

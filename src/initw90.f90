@@ -11,7 +11,7 @@ subroutine initw90
 use modmain
 use modw90
 ! !DESCRIPTION:
-!
+!   Performs initialising global variables for the Wannier90 interface.
 !
 ! !REVISION HISTORY:
 !   Created November 2018 (Arsenii Gerasimov)
@@ -28,11 +28,12 @@ real(8),    allocatable :: evalsv_(:)
 ! automatic arrays
 real(8) vkl_(3)
 !-------------------------------------------------------------------------------
+
 reducek0 = reducek ! If reducek = 1 was used in ground state calculations,
                    ! need to regenerate the eigenvectors set for the full BZ.
 reducek  = 0
 
-!
+! Generate global variables for the Wannier90 interface
 call setupw90lib
 
 ! Read density and potentials from file

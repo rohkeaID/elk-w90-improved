@@ -12,7 +12,8 @@ use modmain
 use modw90
 use modmpi
 ! !DESCRIPTION:
-!
+!   Generates global variables for the Wannier90 interface using Wannier90 library.
+!   Requires predefined {\tt seedname.win} file.
 !
 ! !REVISION HISTORY:
 !   Created December 2017 (Arsenii Gerasimov)
@@ -69,7 +70,7 @@ allocate(wann_proj_spin(wann_nband))
 allocate(wann_proj_quantdir(3,wann_nband))
 allocate(wann_proj_isrand(wann_nband))
 
-! Prepare variables for calling lib of wannier90
+! Prepare variables for calling lib of the Wannier90
 do is = 1,nspecies
   do ia = 1,natoms(is)
     atomFileName = trim(spfname(is))
@@ -85,7 +86,7 @@ if ( nspinor .eq. 2 ) then
   spinors_lib = .true.
 end if
 
-! call external w90 library
+! Call external w90 library
 call wannier_setup(trim(wann_seedname),ngridk,nkpt,au2angstrom*transpose(avec),& !in
                    (1/au2angstrom)*transpose(bvec),vkl,wann_nband,natmtot,     & !in
                    wann_atomsymb,wann_atompos,.false.,spinors_lib,             & !in
@@ -97,7 +98,7 @@ call wannier_setup(trim(wann_seedname),ngridk,nkpt,au2angstrom*transpose(avec),&
 
 if ( mp_mpi ) then
   write(*,*)
-  write(*,*) " Info(Wannier): Wannier90 has been run as a library. [ OK ] "
+  write(*,*) " Info(Wannier): Wannier90 has been run as a library. [ OK ]"
 end if
 
 wann_proj_isrand = .false. ! AG: Currently no support for random projections

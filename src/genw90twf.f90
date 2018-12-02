@@ -11,9 +11,13 @@ subroutine genw90twf(twfmt,twfir)
 ! !USES:
 use modmain
 use modw90
+! !INPUT/OUTPUT PARAMETERS:
+!   twfmt : muffin-tin trial wavefunction in spherical coordinates
+!           (inout,complex(npcmtmax,natmtot,nspinor,wann_nproj))
+!   twfir : interstitial trial wavefunction in real-space
+!           (inout,complex(ngtot,nspinor,wann_nproj))
 ! !DESCRIPTION:
-!   Generates the trial orbitals and wave functions
-!   for the projection Amn matrix required by Wannier90
+!   Generates the trial orbitals and trial wavefunctions.
 !
 ! !REVISION HISTORY:
 !   Created January 2015 (Manh Duc Le),
@@ -21,8 +25,8 @@ use modw90
 !EOP
 !BOC
 implicit none
-complex(8), dimension(npcmtmax,natmtot,nspinor,wann_nproj), intent(inout) :: twfmt
-complex(8), dimension(ngtot,nspinor,wann_nproj),            intent(inout) :: twfir
+complex(8), intent(inout) :: twfmt(npcmtmax,natmtot,nspinor,wann_nproj)
+complex(8), intent(inout) :: twfir(ngtot,nspinor,wann_nproj)
 ! local variables
 integer    i,is,ia,ias,lmaxproj,lmmaxproj,lm,l,m,n,nr,ir,irc
 integer    irco,nrc,nrci
@@ -46,6 +50,7 @@ s3  = 1./sqrt(3.)
 s6  = 1./sqrt(6.)
 s12 = 1./sqrt(12.)
 !-------------------------------------------------------------------------------
+
 ! Determine the maximum lmax for projections (<=3)
 lmaxproj=maxval(wann_proj_l)
 if( any( wann_proj_l.lt. 0 ) .and. lmaxproj.lt.1 ) lmaxproj=1 ! sp,sp2,sp3 orbitals
@@ -57,10 +62,12 @@ if( lmaxproj .gt. 3 ) then
   stop
 end if
 lmmaxproj = lmaxproj*( lmaxproj + 2 ) + 1
+
 allocate(rlm(lmmaxproj))
 allocate(wann_projulr(nrmtmax,0:lmaxo,natmtot,wann_nproj))
 allocate(wann_projclm(lmaxo*( lmaxo + 2 ) + 1,natmtot,wann_nproj))
 allocate(wann_proj_haswt(wann_nproj,natmtot))
+
 ! At the moment, non-atom centred projections are treated as random (!)
 noweight = .true.
 wann_projulr = 0.d0
@@ -88,14 +95,16 @@ do is = 1,nspecies
         do l = 0,lmaxproj
           irc = 1
           do ir = 1,nr
-            wann_projulr(ir,l,ias,n) = apwfr(irc,1,1,l,ias) ! Just use the APW radial fn (on coarse mesh)
+            wann_projulr(ir,l,ias,n) = apwfr(irc,1,1,l,ias) ! Just use the APW radial fn
+                                                            ! (on coarse mesh)
             irc = irc + lradstp
           end do
         end do
         rlm = 0
-        wann_projclm(:,ias,n) = cmplx(0.d0,0.d0,kind=8)
+        wann_projclm(:,ias,n) = zzero
         if( wann_proj_l(n) .ge. 0 ) then
-          ! Converts projection angular part from wannier90 indexing (tab 3.1) to standard
+          ! Converts projection angular part from Wannier90 indexing (tab 3.1)
+                                                                  ! to standard
           l = wann_proj_l(n)
           if( wann_proj_m(n) .gt. (2*l + 1) ) goto 100
           m = irlm(wann_proj_m(n) + l*l) - 1 - l
@@ -103,7 +112,8 @@ do is = 1,nspecies
           rlm(lm) = 1
         else
           select case( wann_proj_l(n) )
-            ! Lin. comb. of real spherical harmonics from table 3.2 of wannier90 user guide
+            ! Lin. comb. of real spherical harmonics from table 3.2 of Wannier90
+                                                                    ! user guide
             case (-1)                            ! sp
               rlm(1) = s2                        ! 1/sqrt(2) s
               select case ( wann_proj_m(n) )
@@ -143,9 +153,11 @@ do is = 1,nspecies
             case (-4)                            ! sp3d
               select case ( wann_proj_m(n) )
                 case (1)    ! s, py,pz,px
-                  rlm(1:4) = (/s3, s2,0d0,-s6/)  ! 1/sqrt(3) s - 1/sqrt(6) px + 1/sqrt(2) py
+                  rlm(1:4) = (/s3, s2,0d0,-s6/)  ! 1/sqrt(3) s - 1/sqrt(6) px +
+                                                                ! + 1/sqrt(2) py
                 case (2)
-                  rlm(1:4) = (/s3,-s2,0d0,-s6/)  ! 1/sqrt(3) s - 1/sqrt(6) px - 1/sqrt(2) py
+                  rlm(1:4) = (/s3,-s2,0d0,-s6/)  ! 1/sqrt(3) s - 1/sqrt(6) px -
+                                                                ! - 1/sqrt(2) py
                 case (3)
                   rlm(1:4) = (/s3,0d0,0d0,2*s6/) ! 1/sqrt(3) s + 2/sqrt(6) px
                 case (4)
@@ -188,8 +200,8 @@ end do ! Loop over species
 
 ! Create the trial wavefunction matrix
 allocate(twfmt1(npcmtmax))
-twfmt = cmplx(0.d0,0.d0,kind=8)
-twfir = cmplx(0.d0,0.d0,kind=8) ! Trial wavefunction is zero outside muffin-tin.
+twfmt = zzero
+twfir = zzero ! Trial wavefunction is zero outside muffin-tin.
 !do ispn=1,nspinor !yk
   do is = 1,nspecies
     nrc = nrcmt(is)
@@ -200,7 +212,7 @@ twfir = cmplx(0.d0,0.d0,kind=8) ! Trial wavefunction is zero outside muffin-tin.
       do n = 1,wann_nproj
         if( .not.wann_proj_haswt(n,ias) ) cycle
         ! Zero the wavefunction
-        twfmt1 = cmplx(0.d0,0.d0,kind=8)
+        twfmt1 = zzero
         i = 1
         do ir = 1,nrci
           lm = 0
@@ -229,15 +241,18 @@ twfir = cmplx(0.d0,0.d0,kind=8) ! Trial wavefunction is zero outside muffin-tin.
           end do
         end do
         if ( nspinor .eq. 2 ) then
-         call zbsht(nrc,nrci,twfmt1,twfmt(:,ias,int(1.5d0-(wann_proj_spin(n)/2d0)),n))
+          call zbsht(nrc,nrci,twfmt1,twfmt(:,ias,&
+                                          int(1.5d0-(wann_proj_spin(n)/2d0)),n))
         else
-         call zbsht(nrc,nrci,twfmt1,twfmt(:,ias,1,n))
+          call zbsht(nrc,nrci,twfmt1,twfmt(:,ias,1,n))
         end if
       end do !n; projections
     end do ! ia; atoms
   end do ! is; species
 !end do
 deallocate(twfmt1)
+
+deallocate(rlm)
 
 return
 

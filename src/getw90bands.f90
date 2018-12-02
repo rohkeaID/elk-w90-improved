@@ -1,5 +1,6 @@
 
-! Copyright (C) 2017-18 Arsenii Gerasimov, Yaroslav Kvashnin and Lars Nordstrom.
+! Copyright (C) 2015 Manh Duc Le, 2017-18 Arsenii Gerasimov, Yaroslav Kvashnin
+! and Lars Nordstrom.
 ! This file is distributed under the terms of the GNU General Public License.
 ! See the file COPYING for license details.
 
@@ -11,11 +12,12 @@ subroutine getw90bands(str)
 use modmain
 use modw90
 ! !INPUT/OUTPUT PARAMETERS:
-!   str    : string defining which bands to pass to wannier90
+!   str    : string defining which bands to pass to the Wannier90
 !
 ! !DESCRIPTION:
-!   Parses the string from elk.in denoting which bands to pass to wannier90
-!   This should be a comma separated list of indices (e.g. 1-4 or 1,2,4 or 1-3,5-6)
+!   Parses the string from {\tt elk.in} denoting which bands to pass to the Wannier90.
+!   This should be a comma separated list of indices (e.g. 1-4 or 1,2,4 or
+!   1-3,5-6).
 !
 ! !REVISION HISTORY:
 !   Created January 2015 (Manh Duc Le)
@@ -26,16 +28,16 @@ implicit none
 ! arguments
 character(256), intent(in) :: str
 ! parameters
-integer, parameter :: max_bands = 1024  ! Maximum num bands to pass to wannier90
+integer, parameter :: max_bands = 1024  ! Maximum num bands to pass to Wannier90
 ! local variables
 integer :: i0,i1,idf,idb,ib,ibs,ibn,ibi,ios
 integer bands(max_bands)
 logical end_next
 !-------------------------------------------------------------------------------
-! band index initialisation
-ib = 1
 
-! splits str into comma delimited sections and parses them.
+! Band index initialisation
+ib = 1
+! Split str into comma delimited sections and parses them.
 i0 = 1
 i1 = index(str,',')
 if( i1 .eq. 0 ) then

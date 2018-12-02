@@ -159,11 +159,9 @@ SRC_XC = \
   x_wc06.f90 x_pbe.f90 c_pbe.f90 c_pbe_gcor.f90 xc_vbh.f90 fxc_pwca.f90
 
 SRC_WANN = \
- initw90.f90 getw90bands.f90 genw90twf.f90 \
- writew90win.f90 genw90amn.f90 \
- setupw90lib.f90 genw90input.f90 \
- genw90unk.f90 zfplotUNK.f90 \
- plotUNK.f90 runw90.f90
+ initw90.f90 getw90bands.f90 genw90twf.f90 writew90win.f90 genw90amn.f90 \
+ setupw90lib.f90 genw90input.f90 genw90unk.f90 zfplotw90unk.f90 \
+ plotw90unk.f90
 
 SRC = $(SRC_modules) $(SRC_FFT) $(SRC_elk) $(SRC_main) $(SRC_phonon) \
  $(SRC_SCDFT) $(SRC_XC) $(SRC_DFTU) $(SRC_RDMFT) $(SRC_GW) $(SRC_TDDFT) \
@@ -210,7 +208,7 @@ cleanall:
 doc:
 	rm -f elk.aux elk.bbl elk.blg elk.log elk.pdf elk.tex elk.toc elk.lst
 	ls $(SRC_modules) $(SRC_main) $(SRC_XC) $(SRC_phonon) $(SRC_DFTU) \
-         $(SRC_RDMFT) $(SRC_TDDFT) > elk.lst
+         $(SRC_RDMFT) $(SRC_TDDFT) ${SRC_WANN} > elk.lst
 	./protex -F -s $(SRC_elk) $$(cat elk.lst) > elk.tex
 	pdflatex elk;pdflatex elk;pdflatex elk
 
