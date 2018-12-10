@@ -1,4 +1,4 @@
-# elk-w90-improved
+# Developers repository of Elk-Wannier90 interface
 An interface between [ELK](http://elk.sourceforge.net/) and [Wannier90](https://github.com/wannier-developers/wannier90) codes. 
 
 Written code is presented as part of a "Big" ELK and uses Wannier90 library.
