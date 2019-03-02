@@ -22,7 +22,7 @@ use modmpi
 implicit none
 ! local variables
 logical :: spinors_lib = .false.
-integer    ia,is
+integer    ia,is,counter
 ! automatic arrays
 character(20) atomFileName
 !-------------------------------------------------------------------------------
@@ -71,14 +71,17 @@ allocate(wann_proj_quantdir(3,wann_nband))
 allocate(wann_proj_isrand(wann_nband))
 
 ! Prepare variables for calling lib of the Wannier90
+counter = 0
 do is = 1,nspecies
   do ia = 1,natoms(is)
     atomFileName = trim(spfname(is))
 
-    !erase '.in'
-    wann_atomsymb(is + ia - 1) = atomFileName(1:( len(trim(atomFileName)) - 3 ))
+    counter = counter + 1
 
-    wann_atompos(:,is + ia - 1) = atposc(:,ia,is)*au2angstrom
+    !erase '.in'
+    wann_atomsymb(counter) = atomFileName(1:( len(trim(atomFileName)) - 3 ))
+
+    wann_atompos(:,counter) = atposc(:,ia,is)*au2angstrom
   enddo ! is, loop over atoms of a species
 enddo ! ia, loop over species
 
