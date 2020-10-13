@@ -34,6 +34,9 @@ real(8)    s2,s3,s6,s12
 complex(8) z1
 ! allocatable arrays
 real(8),    allocatable :: rlm(:)
+real(8),    allocatable :: wann_proj_yaxis(:) !AG
+real(8),    allocatable :: wann_proj_rot(:,:) !AG
+complex(8), allocatable :: wann_projclm_rot(:) !AG
 complex(8), allocatable :: twfmt1(:)
 ! automatic arrays
 logical noweight(wann_nproj)
@@ -89,7 +92,12 @@ do is = 1,nspecies
     wann_proj_haswt(:,ias) = .false.
     do n = 1,wann_nproj
       ! Only treats atom centred projections in this version (!)
-      if( abs(sum( wann_proj_site(:,n) - v1 )) .lt. 0.0001 ) then
+      if( abs( wann_proj_site(1,n) - v1(1) ) .lt. 0.0001 .and. &
+         &abs( wann_proj_site(2,n) - v1(2) ) .lt. 0.0001 .and. &
+         &abs( wann_proj_site(3,n) - v1(3) ) .lt. 0.0001) then
+        !write(*,*) 'Atoms positions from genw90twf: v1 first and wann_proj_site next'
+        !write(*,*) v1
+        !write(*,*) wann_proj_site(:,n)
         wann_proj_haswt(n,ias) = .true.
         noweight(n) = .false.
         do l = 0,lmaxproj
@@ -110,6 +118,7 @@ do is = 1,nspecies
           m = irlm(wann_proj_m(n) + l*l) - 1 - l
           lm = l*(l + 1) + m + 1
           rlm(lm) = 1
+          !write(*,*)'n,l,m,lm,w90_m = ',n,l,m,lm,wann_proj_m(n)
         else
           select case( wann_proj_l(n) )
             ! Lin. comb. of real spherical harmonics from table 3.2 of Wannier90
@@ -193,6 +202,7 @@ do is = 1,nspecies
         end if
         ! Converts from real to complex spherical harmonics
         call rtozflm(lmaxproj,rlm,wann_projclm(:,ias,n))
+        !write(*,*) 'ias,n,wann_projclm: ',ias,n,wann_projclm(:,ias,n)
       end if
     end do
   end do ! Loop over atoms
@@ -200,6 +210,9 @@ end do ! Loop over species
 
 ! Create the trial wavefunction matrix
 allocate(twfmt1(npcmtmax))
+allocate(wann_proj_yaxis(3)) !AG
+allocate(wann_proj_rot(3,3)) !AG
+allocate(wann_projclm_rot(lmaxo*( lmaxo + 2 ) + 1)) !AG
 twfmt = zzero
 twfir = zzero ! Trial wavefunction is zero outside muffin-tin.
 !do ispn=1,nspinor !yk
@@ -213,13 +226,24 @@ twfir = zzero ! Trial wavefunction is zero outside muffin-tin.
         if( .not.wann_proj_haswt(n,ias) ) cycle
         ! Zero the wavefunction
         twfmt1 = zzero
+        call r3cross(wann_proj_zaxis(:,n),wann_proj_xaxis(:,n),wann_proj_yaxis(:)) !AG
+        wann_proj_rot(:,1) = wann_proj_xaxis(:,n) !AG
+        wann_proj_rot(:,2) = wann_proj_yaxis(:)   !AG
+        wann_proj_rot(:,3) = wann_proj_zaxis(:,n) !AG
+        call rotzflm(wann_proj_rot(:,:),&
+                                        0,&
+                                    lmaxo,&
+                                        1,&
+                        lmaxo*(lmaxo+2)+1,&
+                    wann_projclm(:,ias,n),&
+                    wann_projclm_rot(:)) !AG
         i = 1
         do ir = 1,nrci
           lm = 0
           do l = 0,lmaxi
             do m = -l,l
               lm = lm+1
-              z1 = wann_projclm(lm,ias,n)
+              z1 = wann_projclm_rot(lm)
               if( abs(z1).gt.1.d-14 ) then
                 twfmt1(i) = twfmt1(i) + z1*wann_projulr(ir,l,ias,n)
               end if
@@ -232,7 +256,7 @@ twfir = zzero ! Trial wavefunction is zero outside muffin-tin.
           do l = 0,lmaxo
             do m = -l,l
               lm = lm+1
-              z1 = wann_projclm(lm,ias,n)
+              z1 = wann_projclm_rot(lm)
               if( abs(z1) .gt. 1.d-14 ) then
                 twfmt1(i) = twfmt1(i) + z1*wann_projulr(ir,l,ias,n)
               end if
@@ -250,7 +274,7 @@ twfir = zzero ! Trial wavefunction is zero outside muffin-tin.
     end do ! ia; atoms
   end do ! is; species
 !end do
-deallocate(twfmt1)
+deallocate(wann_projclm_rot,wann_proj_rot,wann_proj_yaxis,twfmt1)
 
 deallocate(rlm)
 

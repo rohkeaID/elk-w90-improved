@@ -85,6 +85,8 @@ do ikp = 1,nkpt
     end do
   end do
 
+  !wfir = zzero
+
   do j = 1,natmtot
     nrc = nrcmt(idxis(j))
     nrci = nrcmti(idxis(j))
@@ -104,8 +106,9 @@ do ikp = 1,nkpt
     filename = 'UNK'//trim(ikp_str)//'.'//trim(is_str)
     fileID = fileID + is - 1
     open(fileID,file=filename,action='WRITE',form='FORMATTED')
-
-    ! write(fileID,*) np3d(1),np3d(2),np3d(3),ikp,wann_nband
+    
+    ! AG_UNK
+    !write(fileID,*) np3d(1)+1,np3d(2)+1,np3d(3)+1,ikp,wann_nband
     write(fileID,*) np3d(:),ikp,wann_nband
     do m = 1,wann_nband
       call plotw90unk(fileID,zwfmt(:,:,is,m),wfir(:,is,m))

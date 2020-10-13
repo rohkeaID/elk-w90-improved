@@ -99,6 +99,22 @@ call wannier_setup(trim(wann_seedname),ngridk,nkpt,au2angstrom*transpose(avec),&
                    wann_proj_zona,wann_proj_exclude_bands_lib,                 & !out
                    wann_proj_spin,wann_proj_quantdir)                            !out
 
+! AG: test proj
+!if ( mp_mpi ) then
+!  write(*,*)
+!  do counter = 1, wann_nband
+!    write(*,*) "   wann_proj_site ", counter,": ", wann_proj_site(:,counter)
+!  end do
+!  write(*,*)
+!  write(*,*) "   wann_proj_l: ", wann_proj_l(:)
+!  write(*,*)
+!  write(*,*) "   wann_proj_m: ", wann_proj_m(:)
+!  write(*,*)
+!  write(*,*) "   wann_proj_radial: ", wann_proj_radial(:)
+!
+!end if
+! AG: end test proj. REMOVE LATER
+
 if ( mp_mpi ) then
   write(*,*)
   write(*,*) " Info(Wannier): Wannier90 has been run as a library. [ OK ]"

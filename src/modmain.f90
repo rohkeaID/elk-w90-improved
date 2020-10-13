@@ -291,7 +291,7 @@ logical tshift
 ! tsyminv is .true. if the crystal has inversion symmetry
 logical tsyminv
 ! maximum of symmetries allowed
-integer, parameter :: maxsymcrys=192
+integer, parameter :: maxsymcrys=1024
 ! number of crystal symmetries
 integer nsymcrys
 ! crystal symmetry translation vector in lattice coordinates
